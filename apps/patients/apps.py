@@ -2,4 +2,6 @@ from django.apps import AppConfig
 
 
 class PatientsConfig(AppConfig):
-    name = 'apps.patients'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.patients"
+    verbose_name = "Pacientes"
