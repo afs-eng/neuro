@@ -1,0 +1,119 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Dashboard - NeuroAvalia{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<span>Dashboard</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Visão geral das suas avaliações e pacientes</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">&#9824;</div>
+        <div>
+            <div class="stat-value">{{ total_patients|default:"0" }}</div>
+            <div class="stat-label">Pacientes</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green">&#9830;</div>
+        <div>
+            <div class="stat-value">{{ active_evaluations|default:"0" }}</div>
+            <div class="stat-label">Avaliações Ativas</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange">&#9827;</div>
+        <div>
+            <div class="stat-value">{{ tests_applied|default:"0" }}</div>
+            <div class="stat-label">Testes Aplicados</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red">&#9776;</div>
+        <div>
+            <div class="stat-value">{{ pending_reports|default:"0" }}</div>
+            <div class="stat-label">Laudos Pendentes</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Evaluations & Patients -->
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Avaliações Recentes</h3>
+            <a href="{% url 'evaluations:list' %}" class="btn btn-secondary btn-sm">Ver todas</a>
+        </div>
+        <div class="card-body table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Paciente</th>
+                        <th>Status</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eval in recent_evaluations %}
+                    <tr>
+                        <td>{{ eval.patient.full_name }}</td>
+                        <td><span class="badge badge-info">{{ eval.get_status_display }}</span></td>
+                        <td>{{ eval.start_date|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">
+                            Nenhuma avaliação recente
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Pacientes Recentes</h3>
+            <a href="{% url 'patients:list' %}" class="btn btn-secondary btn-sm">Ver todos</a>
+        </div>
+        <div class="card-body table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Idade</th>
+                        <th>Última Avaliação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in recent_patients %}
+                    <tr>
+                        <td>{{ patient.full_name }}</td>
+                        <td>{{ patient.age }} anos</td>
+                        <td>{{ patient.last_evaluation|date:"d/m/Y"|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">
+                            Nenhum paciente cadastrado
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

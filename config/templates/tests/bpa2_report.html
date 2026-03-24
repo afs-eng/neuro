@@ -1,0 +1,188 @@
+{% extends "base/base.html" %}
+{% block title %}Relatório BPA-2 - {{ patient.full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; }
+    .report h1 { font-size: 22px; text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }
+    .report h2 { font-size: 16px; margin-top: 30px; margin-bottom: 12px; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    .report h3 { font-size: 14px; margin-top: 20px; margin-bottom: 8px; color: #334155; }
+    .report p { font-size: 13px; line-height: 1.7; margin-bottom: 12px; color: #334155; text-align: justify; }
+    .report hr { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+    .report strong { color: #1e293b; }
+    .dados-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 16px; }
+    .dados-grid .item { font-size: 13px; }
+    .dados-grid .item span { color: #64748b; }
+    .tabela-resultados { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .tabela-resultados th { background: #1e293b; color: #fff; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+    .tabela-resultados td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+    .tabela-resultados tr:last-child { background: #f0f9ff; font-weight: 600; }
+    .badge-class { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .badge-superior { background: #dcfce7; color: #166534; }
+    .badge-media { background: #e0f2fe; color: #075985; }
+    .badge-media-sup { background: #dbeafe; color: #1e40af; }
+    .badge-media-inf { background: #fef3c7; color: #92400e; }
+    .badge-inferior { background: #fee2e2; color: #991b1b; }
+    .badge-muito-inf { background: #fecaca; color: #7f1d1d; }
+    .print-btn { margin-bottom: 20px; }
+    @media print {
+        .sidebar, .header, .nav-item, .print-btn, .btn { display: none !important; }
+        .main-content { margin-left: 0 !important; }
+        .report { padding: 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<a href="{% url 'evaluations:detail' evaluation.pk %}">Avaliação</a>
+<span class="separator">/</span>
+<span>Relatório BPA-2</span>
+{% endblock %}
+
+{% block content %}
+<div class="print-btn" style="display: flex; gap: 12px; margin-bottom: 20px;">
+    <button onclick="window.print()" class="btn btn-primary">Imprimir / PDF</button>
+    <a href="{% url 'tests:result' application.pk %}" class="btn btn-secondary">Voltar ao Resultado</a>
+</div>
+
+<div class="report">
+    <h1>RELATÓRIO BPA-2</h1>
+
+    <h2>Dados do Avaliado</h2>
+    <div class="dados-grid">
+        <div class="item"><span>Nome:</span> <strong>{{ patient.full_name }}</strong></div>
+        <div class="item"><span>Data da aplicação:</span> {{ evaluation_date|date:"d/m/Y"|default:"-" }}</div>
+        <div class="item"><span>Sexo:</span> {{ patient.sex|default:"-" }}</div>
+        <div class="item"><span>Idade:</span> {{ patient.age|default:"-" }} anos</div>
+        <div class="item"><span>Escolaridade:</span> {{ patient.schooling|default:"-" }}</div>
+        <div class="item"><span>Cidade:</span> {{ patient.city|default:"-" }}</div>
+        <div class="item"><span>E-mail:</span> {{ patient.email|default:"-" }}</div>
+        <div class="item"><span>Profissional:</span> {{ examiner_name|default:"-" }}</div>
+    </div>
+    <p style="font-size: 12px; color: #64748b;"><strong>Tabela normativa:</strong> {{ referencia_normativa }}</p>
+
+    <hr>
+
+    <h2>Introdução</h2>
+    <p>
+        A atenção desempenha um papel muito importante e está relacionada à qualidade com que as pessoas executam
+        as tarefas que se propõem a realizar no seu dia a dia. É possível destacar ainda a importância desse
+        construto em diversas funções mentais, como a linguagem e a aprendizagem, ao utilizar recursos cognitivos
+        para emitir respostas rápidas e adequadas diante de estímulos considerados relevantes.
+    </p>
+    <p>
+        Diante da importância desse construto, a <strong>Bateria Psicológica para Avaliação da Atenção – BPA-2</strong>
+        pode servir como instrumento auxiliar na avaliação de aspectos atencionais em diferentes contextos, como o
+        clínico, escolar, organizacional e do trânsito, além de contribuir em processos de seleção de pessoal, no
+        auxílio ao diagnóstico de transtorno de déficit de atenção e hiperatividade, em avaliações neuropsicológicas,
+        entre outros.
+    </p>
+    <p>
+        Este resultado tem como objetivo apresentar o desempenho do avaliado em uma tarefa que investiga a atenção,
+        podendo ser considerado um indicativo desse potencial quando comparado a um grupo normativo específico.
+    </p>
+    <p>
+        São apresentados os resultados quantitativos correspondentes ao percentil alcançado pelo avaliado na
+        <strong>Atenção Geral</strong>, bem como nos tipos específicos de atenção:
+        <strong>Atenção Concentrada (AC)</strong>, <strong>Atenção Dividida (AD)</strong> e
+        <strong>Atenção Alternada (AA)</strong>, acompanhados de suas respectivas interpretações descritivas.
+    </p>
+
+    <hr>
+
+    <h2>Definição</h2>
+    <p>
+        A <strong>Bateria Psicológica para Avaliação da Atenção – BPA-2</strong> tem como objetivo mensurar a
+        capacidade geral de atenção e também avaliar, de forma individual, três tipos específicos de atenção,
+        a saber: <strong>Atenção Concentrada</strong>, <strong>Atenção Dividida</strong> e
+        <strong>Atenção Alternada</strong>.
+    </p>
+    <p>
+        A <strong>Atenção Concentrada</strong> refere-se à capacidade de selecionar apenas uma fonte de informação
+        diante de vários estímulos distratores, durante um tempo predeterminado.
+    </p>
+    <p>
+        A <strong>Atenção Dividida</strong> refere-se à capacidade de buscar dois ou mais estímulos simultaneamente
+        em um tempo predeterminado, mesmo na presença de vários distratores ao redor.
+    </p>
+    <p>
+        A <strong>Atenção Alternada</strong>, por sua vez, fornece informações sobre a capacidade de focar a atenção
+        ora em um estímulo, ora em outro, por determinado período de tempo e diante de múltiplos estímulos
+        concorrentes.
+    </p>
+
+    <hr>
+
+    <h2>Utilização do Relatório</h2>
+    <p>
+        Este documento não se constitui em laudo técnico, tampouco tem a finalidade de traçar, isoladamente, o
+        perfil psicológico ou comportamental da pessoa avaliada. Ele expressa dados qualitativos e quantitativos
+        traduzidos em medidas e conceitos objetivos, os quais não esgotam a necessidade de uma compreensão mais
+        ampla do construto avaliado, conforme descrito no manual do instrumento.
+    </p>
+    <p>
+        Os resultados aqui apresentados devem ser interpretados por profissional habilitado, de forma integrada
+        aos demais dados obtidos no processo de avaliação.
+    </p>
+
+    <hr>
+
+    <h2>Resultados</h2>
+    <table class="tabela-resultados">
+        <thead>
+            <tr>
+                <th>Atenção</th>
+                <th>Pontos</th>
+                <th>Percentil</th>
+                <th>Classificação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for st in subtestes %}
+            <tr>
+                <td>{{ st.subteste }} ({{ st.codigo|upper }})</td>
+                <td>{{ st.total }}</td>
+                <td>{{ st.percentil }}</td>
+                <td><span class="badge-class {{ st.badge_class }}">{{ st.classificacao }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="font-size: 12px; color: #64748b;"><strong>Referência normativa:</strong> {{ referencia_normativa }}</p>
+
+    <hr>
+
+    <h2>Interpretação Descritiva</h2>
+
+    {% for st in subtestes %}
+    <h3>{{ st.subteste }} – {{ st.classificacao }}</h3>
+    <p>{{ st.interpretacao_completa }}</p>
+    <hr>
+    {% endfor %}
+
+    <h2>Síntese Interpretativa</h2>
+    <p>
+        Em análise clínica, os resultados da BPA-2 sugerem que <strong>{{ patient.full_name }}</strong> apresenta
+        um perfil atencional <strong>{{ sintese_atencional }}</strong>, com desempenho classificado como
+        <strong>{{ ag_classificacao }}</strong> na medida de Atenção Geral. Observa-se que os resultados específicos
+        em Atenção Concentrada, Dividida e Alternada permitem compreender de forma mais detalhada os recursos
+        atencionais do avaliado, indicando possíveis áreas de maior eficiência e eventuais fragilidades no
+        processamento atencional.
+    </p>
+    <p>
+        A interpretação clínica desses resultados deve considerar a integração com os demais dados obtidos na
+        avaliação, incluindo observação comportamental, anamnese e demais instrumentos aplicados, uma vez que o
+        funcionamento atencional pode variar em função de fatores emocionais, motivacionais, ambientais e cognitivos.
+    </p>
+
+    <hr>
+
+    <h2>Observação Técnica</h2>
+    <p>
+        Os resultados apresentados neste relatório devem ser interpretados dentro do contexto da avaliação
+        psicológica e neuropsicológica global, não devendo ser utilizados de forma isolada para conclusão diagnóstica.
+    </p>
+</div>
+{% endblock %}

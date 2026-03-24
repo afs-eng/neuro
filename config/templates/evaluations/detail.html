@@ -1,0 +1,113 @@
+{% extends "base/base.html" %}
+{% block title %}Avaliação - {{ evaluation.patient.full_name }}{% endblock %}
+{% block nav_evaluations %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<a href="{% url 'evaluations:list' %}">Avaliações</a>
+<span class="separator">/</span>
+<span>{{ evaluation.patient.full_name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 class="page-title">Avaliação - {{ evaluation.patient.full_name }}</h1>
+        <p class="page-subtitle">
+            Status: <span class="badge badge-info">{{ evaluation.get_status_display }}</span>
+            {% if evaluation.referral_reason %}
+            | {{ evaluation.referral_reason }}
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Dados do Paciente -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <h3 class="card-title">Dados do Paciente</h3>
+    </div>
+    <div class="card-body">
+        <div class="form-row">
+            <div><strong>Nome:</strong> {{ evaluation.patient.full_name }}</div>
+            <div><strong>Data de Nasc.:</strong> {{ evaluation.patient.birth_date|date:"d/m/Y"|default:"-" }}</div>
+            <div><strong>Idade:</strong> {{ evaluation.patient.age|default:"-" }} anos</div>
+            <div><strong>Escolaridade:</strong> {{ evaluation.patient.schooling|default:"-" }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Testes Aplicados -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <h3 class="card-title">Testes Aplicados ({{ applications|length }})</h3>
+    </div>
+    <div class="card-body table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Teste</th>
+                    <th>Data</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                <tr>
+                    <td><strong>{{ app.instrument.name }}</strong></td>
+                    <td>{{ app.applied_on|date:"d/m/Y"|default:"-" }}</td>
+                    <td>
+                        {% if app.is_validated %}
+                            <span class="badge badge-success">Processado</span>
+                        {% else %}
+                            <span class="badge badge-warning">Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if app.computed_payload %}
+                            <a href="{% url 'tests:result' app.pk %}" class="btn btn-secondary btn-sm">Ver Resultado</a>
+                        {% else %}
+                            <a href="{% url 'tests:apply' evaluation.pk app.instrument.code %}" class="btn btn-primary btn-sm">Aplicar</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                        Nenhum teste aplicado ainda. Adicione um teste abaixo.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Adicionar Testes -->
+{% if available_instruments %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Adicionar Teste</h3>
+    </div>
+    <div class="card-body">
+        <div class="stats-grid">
+            {% for instrument in available_instruments %}
+            <div class="card" style="border: 1px dashed var(--border);">
+                <div class="card-body" style="text-align: center; padding: 20px;">
+                    <h4 style="margin-bottom: 8px;">{{ instrument.name }}</h4>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
+                        {{ instrument.category|default:"Teste" }} - v{{ instrument.version }}
+                    </p>
+                    <a href="{% url 'tests:add' evaluation.pk instrument.code %}" class="btn btn-primary btn-sm">
+                        Adicionar
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

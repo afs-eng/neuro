@@ -58,7 +58,7 @@ def serialize_evaluation(evaluation):
 
 
 @router.get("/", response=list[EvaluationOut], auth=bearer_auth)
-def list_evaluations(request, patient_id: int | None = Query(default=None)):
+def list_evaluations(request, patient_id: int | None = Query(default=None)) -> list[dict]:
     user = request.auth
 
     if not can_view_evaluations(user):
@@ -77,7 +77,7 @@ def list_evaluations(request, patient_id: int | None = Query(default=None)):
     response={200: EvaluationOut, 404: MessageOut},
     auth=bearer_auth,
 )
-def get_evaluation_endpoint(request, evaluation_id: int):
+def get_evaluation_endpoint(request, evaluation_id: int) -> tuple[int, dict]:
     user = request.auth
 
     if not can_view_evaluations(user):
@@ -95,7 +95,7 @@ def get_evaluation_endpoint(request, evaluation_id: int):
     response={201: EvaluationOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )
-def create_evaluation_endpoint(request, payload: EvaluationCreateIn):
+def create_evaluation_endpoint(request, payload: EvaluationCreateIn) -> tuple[int, dict]:
     user = request.auth
 
     if not can_edit_evaluations(user):
@@ -128,7 +128,7 @@ def create_evaluation_endpoint(request, payload: EvaluationCreateIn):
     response={200: EvaluationOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )
-def update_evaluation_endpoint(request, evaluation_id: int, payload: EvaluationUpdateIn):
+def update_evaluation_endpoint(request, evaluation_id: int, payload: EvaluationUpdateIn) -> tuple[int, dict]:
     user = request.auth
 
     if not can_edit_evaluations(user):

@@ -2,4 +2,10 @@ from django.apps import AppConfig
 
 
 class TestsConfig(AppConfig):
-    name = 'apps.tests'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.tests"
+    verbose_name = "Testes"
+
+    def ready(self):
+        from apps.tests.bpa2 import BPA2Module  # noqa
+        from apps.tests.wisc4 import WISC4Module  # noqa

@@ -1,0 +1,53 @@
+{% extends "base/base.html" %}
+{% block title %}Nova Avaliação - NeuroAvalia{% endblock %}
+{% block nav_evaluations %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<a href="{% url 'evaluations:list' %}">Avaliações</a>
+<span class="separator">/</span>
+<span>Nova</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Nova Avaliação</h1>
+    <p class="page-subtitle">Inicie uma avaliação neuropsicológica</p>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Paciente *</label>
+                    <select name="patient" class="form-control" required id="patient-select">
+                        <option value="">Selecione o paciente...</option>
+                        {% for patient in patients %}
+                        <option value="{{ patient.id }}">{{ patient.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Motivo do Encaminhamento</label>
+                    <textarea name="referral_reason" class="form-control" rows="3" placeholder="Ex: Dificuldades de atenção e aprendizagem"></textarea>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Finalidade da Avaliação</label>
+                    <textarea name="evaluation_purpose" class="form-control" rows="2" placeholder="Ex: Avaliação neuropsicológica completa"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer" style="display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-primary">Criar Avaliação</button>
+            <a href="{% url 'evaluations:list' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base/base.html" %}
+{% block title %}Testes - NeuroAvalia{% endblock %}
+{% block nav_bpa2 %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<span>Testes</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Testes Disponíveis</h1>
+    <p class="page-subtitle">Selecione um teste para aplicar (sem avaliação vinculada)</p>
+</div>
+
+<div class="stats-grid">
+    <a href="{% url 'tests:bpa2_standalone' %}" class="card" style="text-decoration: none; color: inherit;">
+        <div class="card-body" style="text-align: center; padding: 40px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">&#9827;</div>
+            <h3 style="margin-bottom: 8px;">BPA-2</h3>
+            <p style="color: var(--text-secondary); font-size: 14px;">Bateria de Provas Neuropsicológicas de Atenção</p>
+        </div>
+    </a>
+    <a href="{% url 'tests:wisc4' %}" class="card" style="text-decoration: none; color: inherit;">
+        <div class="card-body" style="text-align: center; padding: 40px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">&#9829;</div>
+            <h3 style="margin-bottom: 8px;">WISC-4</h3>
+            <p style="color: var(--text-secondary); font-size: 14px;">Escala de Inteligência Wechsler para Crianças</p>
+        </div>
+    </a>
+</div>
+
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+        <h3 class="card-title">Dica</h3>
+    </div>
+    <div class="card-body">
+        <p style="color: var(--text-secondary);">
+            Para vincular testes a uma avaliação, acesse <strong>Avaliações</strong> e crie uma nova avaliação para o paciente.
+            Lá você poderá adicionar múltiplos testes e gerar o laudo final.
+        </p>
+    </div>
+</div>
+{% endblock %}

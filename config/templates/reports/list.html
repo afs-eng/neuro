@@ -1,0 +1,22 @@
+{% extends "base/base.html" %}
+{% block title %}Laudos - NeuroAvalia{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<span>Laudos</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Laudos</h1>
+    <p class="page-subtitle">Relatórios e laudos neuropsicológicos</p>
+</div>
+
+<div class="card">
+    <div class="card-body" style="text-align: center; padding: 60px; color: var(--text-secondary);">
+        Nenhum laudo gerado ainda.
+    </div>
+</div>
+{% endblock %}

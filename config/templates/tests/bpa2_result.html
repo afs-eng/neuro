@@ -1,0 +1,221 @@
+{% extends "base/base.html" %}
+{% block title %}Resultado BPA-2 - {{ patient.full_name }}{% endblock %}
+{% block nav_bpa2 %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<a href="{% url 'tests:list' %}">Testes</a>
+<span class="separator">/</span>
+<a href="{% url 'tests:bpa2_standalone' %}">BPA-2</a>
+<span class="separator">/</span>
+<span>Resultado</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 class="page-title">Resultado BPA-2</h1>
+        <p class="page-subtitle">{{ patient.full_name }} - {{ evaluation_date }}</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="{% url 'tests:bpa2_standalone' %}" class="btn btn-secondary">Nova Aplicação</a>
+        {% if application %}
+        <a href="{% url 'tests:report' application.pk %}" class="btn btn-primary">Gerar Relatório</a>
+        {% endif %}
+        <button class="btn btn-secondary" onclick="window.print()">Imprimir</button>
+    </div>
+</div>
+
+<!-- Dados do Paciente -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <h3 class="card-title">Dados da Avaliação</h3>
+    </div>
+    <div class="card-body">
+        <div class="form-row">
+            <div><strong>Paciente:</strong> {{ patient.full_name }}</div>
+            <div><strong>Data de Nasc.:</strong> {{ patient.birth_date|date:"d/m/Y"|default:"-" }}</div>
+            <div><strong>Data da Avaliação:</strong> {{ evaluation_date }}</div>
+            <div><strong>Faixa Etária:</strong> {{ faixa }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Resultados -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <h3 class="card-title">Resultados dos Subtestes</h3>
+    </div>
+    <div class="card-body table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Subteste</th>
+                    <th>Bruto</th>
+                    <th>Erros</th>
+                    <th>Omissões</th>
+                    <th>Total</th>
+                    <th>Classificação</th>
+                    <th>Percentil</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for st in classified.subtestes %}
+                <tr {% if st.codigo == "ag" %}style="background: #f0f9ff; font-weight: 600;"{% endif %}>
+                    <td>{{ st.subteste }}</td>
+                    <td>{{ st.brutos }}</td>
+                    <td>{{ st.erros }}</td>
+                    <td>{{ st.omissoes }}</td>
+                    <td>{{ st.total }}</td>
+                    <td>
+                        {% if "Superior" in st.classificacao %}
+                            <span class="badge badge-success">{{ st.classificacao }}</span>
+                        {% elif "Média" in st.classificacao %}
+                            <span class="badge badge-info">{{ st.classificacao }}</span>
+                        {% elif "Inferior" in st.classificacao %}
+                            <span class="badge badge-warning">{{ st.classificacao }}</span>
+                        {% elif "Muito Inferior" in st.classificacao %}
+                            <span class="badge badge-danger">{{ st.classificacao }}</span>
+                        {% else %}
+                            <span class="badge badge-neutral">{{ st.classificacao }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ st.percentil }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Interpretação -->
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Interpretação por Subteste</h3>
+        </div>
+        <div class="card-body">
+            {% for st in classified.subtestes %}
+            <div style="margin-bottom: 16px;">
+                <strong>{{ st.subteste }} ({{ st.classificacao }} - Percentil {{ st.percentil }})</strong>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">
+                    {% if st.codigo == "ac" %}
+                        {% if "Muito" in st.classificacao and "Superior" in st.classificacao %}
+                            Desempenho excepcional em atenção concentrada.
+                        {% elif "Superior" in st.classificacao %}
+                            Excelente desempenho em atenção concentrada, muito acima da média.
+                        {% elif "Média Superior" in st.classificacao %}
+                            Bom desempenho em atenção concentrada, acima da média esperada.
+                        {% elif st.classificacao == "Média" %}
+                            Desempenho dentro do esperado em atenção concentrada para a faixa etária.
+                        {% elif "Média Inferior" in st.classificacao %}
+                            Desempenho na faixa inferior da média em atenção concentrada.
+                        {% elif "Inferior" in st.classificacao and "Muito" not in st.classificacao %}
+                            Desempenho abaixo do esperado em atenção concentrada, com dificuldades moderadas em manter foco.
+                        {% else %}
+                            Desempenho muito abaixo do esperado em atenção concentrada, indicando dificuldades significativas.
+                        {% endif %}
+                    {% elif st.codigo == "ad" %}
+                        {% if "Superior" in st.classificacao %}
+                            Excelente desempenho em atenção dividida.
+                        {% elif "Média" in st.classificacao and "Superior" not in st.classificacao and "Inferior" not in st.classificacao %}
+                            Desempenho dentro do esperado em atenção dividida para a faixa etária.
+                        {% elif "Inferior" in st.classificacao %}
+                            Desempenho abaixo do esperado em atenção dividida, apresentando dificuldades em tarefas simultâneas.
+                        {% else %}
+                            {{ st.classificacao }}
+                        {% endif %}
+                    {% elif st.codigo == "aa" %}
+                        {% if "Superior" in st.classificacao %}
+                            Excelente desempenho em atenção alternada.
+                        {% elif "Média" in st.classificacao and "Superior" not in st.classificacao and "Inferior" not in st.classificacao %}
+                            Desempenho dentro do esperado em atenção alternada para a faixa etária.
+                        {% elif "Inferior" in st.classificacao %}
+                            Desempenho abaixo do esperado em atenção alternada, com dificuldades na troca entre atividades.
+                        {% else %}
+                            {{ st.classificacao }}
+                        {% endif %}
+                    {% elif st.codigo == "ag" %}
+                        {% if "Superior" in st.classificacao %}
+                            O funcionamento atencional geral é excelente.
+                        {% elif "Média" in st.classificacao and "Superior" not in st.classificacao and "Inferior" not in st.classificacao %}
+                            O funcionamento atencional geral encontra-se dentro dos parâmetros esperados.
+                        {% elif "Inferior" in st.classificacao %}
+                            O funcionamento atencional geral está abaixo do esperado para a faixa etária.
+                        {% else %}
+                            {{ st.classificacao }}
+                        {% endif %}
+                    {% endif %}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Perfil Atencional</h3>
+        </div>
+        <div class="card-body">
+            {% if classified.pontos_fortes %}
+            <div style="margin-bottom: 16px;">
+                <strong style="color: var(--success);">Pontos Fortes</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    {% for p in classified.pontos_fortes %}
+                    <li>{{ p }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if classified.pontos_fragilizados %}
+            <div style="margin-bottom: 16px;">
+                <strong style="color: var(--warning);">Pontos Fragilizados</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    {% for p in classified.pontos_fragilizados %}
+                    <li>{{ p }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if not classified.pontos_fortes and not classified.pontos_fragilizados %}
+            <p style="color: var(--text-secondary);">Perfil homogêneo - sem diferenças significativas entre subtestes.</p>
+            {% endif %}
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-header">
+                <h3 class="card-title">Resumo dos Dados Brutos</h3>
+            </div>
+            <div class="card-body table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subteste</th>
+                            <th>Bruto</th>
+                            <th>Erros</th>
+                            <th>Omis.</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for st in classified.subtestes %}
+                        {% if st.codigo != "ag" %}
+                        <tr>
+                            <td>{{ st.subteste }}</td>
+                            <td>{{ st.brutos }}</td>
+                            <td>{{ st.erros }}</td>
+                            <td>{{ st.omissoes }}</td>
+                            <td><strong>{{ st.total }}</strong></td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

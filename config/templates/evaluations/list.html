@@ -1,0 +1,45 @@
+{% extends "base/base.html" %}
+{% block title %}Avaliações - NeuroAvalia{% endblock %}
+{% block nav_evaluations %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<span>Avaliações</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Avaliações</h1>
+    <p class="page-subtitle">Gerencie suas avaliações</p>
+</div>
+
+<div class="card">
+    <div class="card-body table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Paciente</th>
+                    <th>Status</th>
+                    <th>Data Início</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eval in evaluations %}
+                <tr>
+                    <td><strong>{{ eval.patient.full_name }}</strong></td>
+                    <td><span class="badge badge-info">{{ eval.get_status_display }}</span></td>
+                    <td>{{ eval.start_date|date:"d/m/Y"|default:"-" }}</td>
+                    <td><a href="{% url 'evaluations:detail' eval.pk %}" class="btn btn-secondary btn-sm">Ver</a></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-secondary);">Nenhuma avaliação</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

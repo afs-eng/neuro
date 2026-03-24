@@ -1,0 +1,219 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}BPA-2 - Aplicação de Teste{% endblock %}
+{% block nav_bpa2 %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<a href="{% url 'tests:list' %}">Testes</a>
+<span class="separator">/</span>
+<span>BPA-2</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">BPA-2 - Bateria de Atenção</h1>
+    <p class="page-subtitle">Preenchimento dos dados do teste</p>
+</div>
+
+{% if errors %}
+<div class="card" style="margin-bottom: 24px; border-color: var(--warning);">
+    <div class="card-header" style="background: #fef3c7;">
+        <h3 class="card-title" style="color: #92400e;">&#9888; Aviso</h3>
+    </div>
+    <div class="card-body">
+        {% for error in errors %}
+        <p style="color: #92400e; margin-bottom: 8px;">{{ error }}</p>
+        {% endfor %}
+        {% if existing_app %}
+        <a href="{% url 'tests:result' existing_app.pk %}" class="btn btn-primary" style="margin-top: 8px;">Ver resultado existente</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<form method="post" id="bpa2-form">
+    {% csrf_token %}
+
+    <!-- Dados do Paciente -->
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3 class="card-title">Dados da Avaliação</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Paciente</label>
+                    <select name="patient" class="form-control" required>
+                        <option value="">Selecione...</option>
+                        {% for patient in patients %}
+                        <option value="{{ patient.id }}">{{ patient.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Data da Avaliação</label>
+                    <input type="date" name="evaluation_date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Normatização</label>
+                    <select name="norm_type" class="form-control" id="norm-type" required>
+                        <option value="idade">Por Idade</option>
+                        <option value="escolaridade">Por Escolaridade</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subtestes -->
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3 class="card-title">Atenção Concentrada (AC)</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Pontos Brutos</label>
+                    <input type="number" name="ac_brutos" class="form-control subtest-input" data-subtest="ac" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Erros</label>
+                    <input type="number" name="ac_erros" class="form-control subtest-input" data-subtest="ac" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Omissões</label>
+                    <input type="number" name="ac_omissoes" class="form-control subtest-input" data-subtest="ac" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total</label>
+                    <input type="number" name="ac_total" class="form-control" id="ac_total" readonly style="background: #f1f5f9; font-weight: 600;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3 class="card-title">Atenção Dividida (AD)</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Pontos Brutos</label>
+                    <input type="number" name="ad_brutos" class="form-control subtest-input" data-subtest="ad" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Erros</label>
+                    <input type="number" name="ad_erros" class="form-control subtest-input" data-subtest="ad" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Omissões</label>
+                    <input type="number" name="ad_omissoes" class="form-control subtest-input" data-subtest="ad" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total</label>
+                    <input type="number" name="ad_total" class="form-control" id="ad_total" readonly style="background: #f1f5f9; font-weight: 600;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3 class="card-title">Atenção Alternada (AA)</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Pontos Brutos</label>
+                    <input type="number" name="aa_brutos" class="form-control subtest-input" data-subtest="aa" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Erros</label>
+                    <input type="number" name="aa_erros" class="form-control subtest-input" data-subtest="aa" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Omissões</label>
+                    <input type="number" name="aa_omissoes" class="form-control subtest-input" data-subtest="aa" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total</label>
+                    <input type="number" name="aa_total" class="form-control" id="aa_total" readonly style="background: #f1f5f9; font-weight: 600;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Atenção Geral (calculado) -->
+    <div class="card" style="margin-bottom: 24px; border-color: var(--primary);">
+        <div class="card-header">
+            <h3 class="card-title">Atenção Geral (AG) - Calculado Automaticamente</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Total Brutos</label>
+                    <input type="number" name="ag_brutos" class="form-control" id="ag_brutos" readonly style="background: #dbeafe; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total Erros</label>
+                    <input type="number" name="ag_erros" class="form-control" id="ag_erros" readonly style="background: #dbeafe; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total Omissões</label>
+                    <input type="number" name="ag_omissoes" class="form-control" id="ag_omissoes" readonly style="background: #dbeafe; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total Geral</label>
+                    <input type="number" name="ag_total" class="form-control" id="ag_total" readonly style="background: var(--primary); color: #fff; font-weight: 700; font-size: 18px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 12px;">
+        <button type="submit" class="btn btn-primary">Salvar e Processar</button>
+        <a href="{% url 'tests:list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calculateTotal(prefix) {
+    const brutos = parseInt(document.querySelector(`[name="${prefix}_brutos"]`)?.value) || 0;
+    const erros = parseInt(document.querySelector(`[name="${prefix}_erros"]`)?.value) || 0;
+    const omissoes = parseInt(document.querySelector(`[name="${prefix}_omissoes"]`)?.value) || 0;
+    return brutos - erros - omissoes;
+}
+
+function updateTotals() {
+    const prefixes = ['ac', 'ad', 'aa'];
+    let totalBrutos = 0, totalErros = 0, totalOmissoes = 0;
+
+    prefixes.forEach(prefix => {
+        const brutos = parseInt(document.querySelector(`[name="${prefix}_brutos"]`)?.value) || 0;
+        const erros = parseInt(document.querySelector(`[name="${prefix}_erros"]`)?.value) || 0;
+        const omissoes = parseInt(document.querySelector(`[name="${prefix}_omissoes"]`)?.value) || 0;
+        const total = brutos - erros - omissoes;
+
+        document.getElementById(`${prefix}_total`).value = total;
+        totalBrutos += brutos;
+        totalErros += erros;
+        totalOmissoes += omissoes;
+    });
+
+    document.getElementById('ag_brutos').value = totalBrutos;
+    document.getElementById('ag_erros').value = totalErros;
+    document.getElementById('ag_omissoes').value = totalOmissoes;
+    document.getElementById('ag_total').value = totalBrutos - totalErros - totalOmissoes;
+}
+
+document.querySelectorAll('.subtest-input').forEach(input => {
+    input.addEventListener('input', updateTotals);
+});
+</script>
+{% endblock %}

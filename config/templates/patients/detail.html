@@ -1,0 +1,87 @@
+{% extends "base/base.html" %}
+{% block title %}{{ patient.full_name }} - NeuroAvalia{% endblock %}
+{% block nav_patients %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<a href="{% url 'patients:list' %}">Pacientes</a>
+<span class="separator">/</span>
+<span>{{ patient.full_name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 class="page-title">{{ patient.full_name }}</h1>
+        <p class="page-subtitle">Detalhes do paciente</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <a href="{% url 'patients:edit' patient.pk %}" class="btn btn-secondary">Editar</a>
+        <a href="{% url 'tests:bpa2_standalone' %}" class="btn btn-primary">Aplicar Teste</a>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Dados Pessoais</h3>
+        </div>
+        <div class="card-body">
+            <table>
+                <tr><td style="width: 40%; color: var(--text-secondary);">Nome Completo</td><td><strong>{{ patient.full_name }}</strong></td></tr>
+                <tr><td style="color: var(--text-secondary);">Data de Nascimento</td><td>{{ patient.birth_date|date:"d/m/Y"|default:"-" }}</td></tr>
+                <tr><td style="color: var(--text-secondary);">Sexo</td><td>{{ patient.sex|default:"-" }}</td></tr>
+                <tr><td style="color: var(--text-secondary);">Escolaridade</td><td>{{ patient.schooling|default:"-" }}</td></tr>
+                <tr><td style="color: var(--text-secondary);">Escola</td><td>{{ patient.school_name|default:"-" }}</td></tr>
+                <tr><td style="color: var(--text-secondary);">Mãe</td><td>{{ patient.mother_name|default:"-" }}</td></tr>
+                <tr><td style="color: var(--text-secondary);">Pai</td><td>{{ patient.father_name|default:"-" }}</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Contato</h3>
+        </div>
+        <div class="card-body">
+            <table>
+                <tr><td style="width: 40%; color: var(--text-secondary);">Telefone</td><td>{{ patient.phone|default:"-" }}</td></tr>
+                <tr><td style="color: var(--text-secondary);">E-mail</td><td>{{ patient.email|default:"-" }}</td></tr>
+                <tr><td style="color: var(--text-secondary);">Cidade</td><td>{{ patient.city|default:"-" }}</td></tr>
+                <tr><td style="color: var(--text-secondary);">Estado</td><td>{{ patient.state|default:"-" }}</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+        <h3 class="card-title">Avaliações</h3>
+    </div>
+    <div class="card-body table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Data Início</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eval in patient.evaluations.all %}
+                <tr>
+                    <td><span class="badge badge-info">{{ eval.get_status_display }}</span></td>
+                    <td>{{ eval.start_date|date:"d/m/Y"|default:"-" }}</td>
+                    <td><a href="{% url 'evaluations:detail' eval.pk %}" class="btn btn-secondary btn-sm">Ver</a></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center; color: var(--text-secondary);">Nenhuma avaliação registrada</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

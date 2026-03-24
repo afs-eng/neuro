@@ -14,6 +14,11 @@ class EvaluationStatus(models.TextChoices):
     ARCHIVED = "archived", "Arquivado"
 
 
+class EvaluationQuerySet(models.QuerySet):
+    def with_details(self):
+        return self.select_related("patient", "examiner")
+
+
 class Evaluation(models.Model):
     patient = models.ForeignKey(
         Patient,
@@ -26,6 +31,8 @@ class Evaluation(models.Model):
         on_delete=models.PROTECT,
         related_name="evaluations",
         verbose_name="profissional responsável",
+        null=True,
+        blank=True,
     )
     referral_reason = models.TextField("motivo do encaminhamento", blank=True)
     evaluation_purpose = models.TextField("finalidade da avaliação", blank=True)
@@ -45,6 +52,8 @@ class Evaluation(models.Model):
         ordering = ["-created_at"]
         verbose_name = "Avaliação"
         verbose_name_plural = "Avaliações"
+
+    objects = EvaluationQuerySet.as_manager()
 
     def __str__(self):
         return f"{self.patient.full_name} - {self.get_status_display()}"

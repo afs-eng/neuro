@@ -3,6 +3,7 @@ from ninja import NinjaAPI
 from apps.accounts.api.router import router as accounts_router
 from apps.patients.api.router import router as patients_router 
 from apps.evaluations.api.router import router as evaluations_router
+from apps.tests.api.router import router as tests_router
 
 api = NinjaAPI(
     title="Laudos AI API",
@@ -13,3 +14,4 @@ api = NinjaAPI(
 api.add_router("/accounts/", accounts_router)
 api.add_router("/patients/", patients_router)
 api.add_router("/evaluations/", evaluations_router)
+api.add_router("/tests/", tests_router)

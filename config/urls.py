@@ -1,26 +1,24 @@
-"""
-URL configuration for config project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
-
+from django.urls import path, include
 
 from apps.api.router import api
+from apps.patients import views as patient_views
+from apps.evaluations import views as eval_views
+from apps.tests import views as test_views
+from apps.reports import views as report_views
+
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
     path("api/", api.urls),
+    # Dashboard
+    path("", patient_views.dashboard_view, name="dashboard"),
+    # Pacientes
+    path("pacientes/", include("apps.patients.urls")),
+    # Avaliações
+    path("avaliacoes/", include("apps.evaluations.urls")),
+    # Testes
+    path("testes/", include("apps.tests.urls")),
+    # Relatórios
+    path("relatorios/", include("apps.reports.urls")),
 ]

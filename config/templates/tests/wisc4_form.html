@@ -1,0 +1,26 @@
+{% extends "base/base.html" %}
+{% block title %}WISC-4 - NeuroAvalia{% endblock %}
+{% block nav_wisc4 %}active{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}">Início</a>
+<span class="separator">/</span>
+<a href="{% url 'tests:list' %}">Testes</a>
+<span class="separator">/</span>
+<span>WISC-4</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">WISC-4</h1>
+    <p class="page-subtitle">Em desenvolvimento</p>
+</div>
+
+<div class="card">
+    <div class="card-body" style="text-align: center; padding: 60px;">
+        <div style="font-size: 64px; margin-bottom: 16px;">&#9829;</div>
+        <h3>WISC-4 em breve</h3>
+        <p style="color: var(--text-secondary);">O módulo WISC-4 será disponibilizado em breve.</p>
+    </div>
+</div>
+{% endblock %}
