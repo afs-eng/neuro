@@ -9,24 +9,221 @@ from apps.tests.base.types import TestContext
 from apps.tests.bpa2.interpreters import get_report_interpretation, get_synthesis
 
 
+def _get_application(application_id):
+    return get_object_or_404(
+        TestApplication.objects.select_related(
+            "evaluation", "evaluation__patient", "instrument"
+        ),
+        pk=application_id,
+    )
+
+
+def _get_existing_application(patient, instrument_code):
+    existing_eval = Evaluation.objects.filter(
+        patient=patient,
+        test_applications__instrument__code=instrument_code,
+        test_applications__is_validated=True,
+    ).first()
+    if existing_eval:
+        return existing_eval.test_applications.filter(
+            instrument__code=instrument_code, is_validated=True
+        ).first(), existing_eval
+    return None, None
+
+
+def _process_and_save_test(
+    patient,
+    evaluation,
+    instrument_code,
+    raw_scores,
+    evaluation_date,
+    extra_classify_kwargs=None,
+):
+    module = get_test_module(instrument_code)
+    reviewed_scores = {}
+    if hasattr(patient, "birth_date") and patient.birth_date:
+        reviewed_scores["birth_date"] = str(patient.birth_date)
+    if evaluation_date:
+        reviewed_scores["evaluation_date"] = str(evaluation_date)
+    ctx = TestContext(
+        patient_name=patient.full_name,
+        evaluation_id=evaluation.pk if evaluation else 0,
+        instrument_code=instrument_code,
+        raw_scores=raw_scores,
+        reviewed_scores=reviewed_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return None, errors
+
+    computed = module.compute(ctx)
+    if extra_classify_kwargs:
+        classified = module.classify(computed, **extra_classify_kwargs)
+    else:
+        classified = module.classify(computed)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    if not evaluation:
+        evaluation, _ = Evaluation.objects.get_or_create(
+            patient=patient,
+            status="collecting_data",
+            defaults={"referral_reason": "Avaliação neuropsicológica"},
+        )
+
+    instrument = Instrument.objects.get(code=instrument_code)
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": evaluation_date or date.today()},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = evaluation_date or date.today()
+    application.save()
+
+    return application, classified, interpretation
+
+
 def test_list_view(request):
     return render(request, "tests/list.html")
+
+
+def apply_test_for_patient(request, patient_id):
+    patient = get_object_or_404(Patient, pk=patient_id)
+    return render(request, "tests/apply_for_patient.html", {"patient": patient})
 
 
 def add_test_to_evaluation(request, evaluation_id, instrument_code):
     evaluation = get_object_or_404(Evaluation, pk=evaluation_id)
     instrument = get_object_or_404(Instrument, code=instrument_code, is_active=True)
 
-    app, created = TestApplication.objects.get_or_create(
+    app, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
         defaults={"applied_on": date.today()},
     )
 
-    if instrument_code == "bpa2":
-        return redirect("tests:bpa2", application_id=app.pk)
+    return redirect(f"tests:{instrument_code}", application_id=app.pk)
 
-    return redirect("evaluations:detail", pk=evaluation_id)
+
+def test_result_view(request, application_id):
+    application = _get_application(application_id)
+    classified = application.classified_payload or {}
+    context = {
+        "patient": application.evaluation.patient,
+        "evaluation": application.evaluation,
+        "application": application,
+        "evaluation_date": application.applied_on,
+        "classified": classified,
+        "interpretation": application.interpretation_text or "",
+        "raw_scores": application.raw_payload or {},
+    }
+    return render(request, f"tests/{application.instrument.code}_result.html", context)
+
+
+def _item_form_view(
+    request, application_id, instrument_code, item_count, form_template
+):
+    patients = Patient.objects.all()
+    application = None
+    evaluation = None
+
+    if application_id:
+        application = _get_application(application_id)
+        evaluation = application.evaluation
+        patients = Patient.objects.filter(pk=evaluation.patient.pk)
+
+    if request.method == "POST":
+        patient_id = request.POST.get("patient")
+        evaluation_date = request.POST.get("evaluation_date")
+        patient = get_object_or_404(Patient, pk=patient_id)
+
+        existing_app, existing_eval = _get_existing_application(
+            patient, instrument_code
+        )
+        if existing_app and not application:
+            return render(
+                request,
+                form_template,
+                {
+                    "patients": patients,
+                    "errors": [
+                        f"Paciente já possui teste aplicado em {existing_app.applied_on.strftime('%d/%m/%Y')}."
+                    ],
+                    "evaluation": evaluation,
+                    "application": application,
+                    "existing_app": existing_app,
+                },
+            )
+
+        raw_scores = {}
+        for i in range(1, item_count + 1):
+            key = f"item_{i:02d}"
+            raw_value = request.POST.get(key)
+            raw_scores[key] = (
+                int(raw_value) if raw_value is not None and raw_value != "" else 0
+            )
+
+        result = _process_and_save_test(
+            patient, evaluation, instrument_code, raw_scores, evaluation_date
+        )
+        if isinstance(result[1], list):
+            return render(
+                request,
+                form_template,
+                {
+                    "patients": patients,
+                    "errors": result[1],
+                    "evaluation": evaluation,
+                    "application": application,
+                },
+            )
+
+        app_result, classified, interpretation = result
+        return render(
+            request,
+            f"tests/{instrument_code}_result.html",
+            {
+                "patient": patient,
+                "evaluation": evaluation,
+                "application": app_result,
+                "evaluation_date": evaluation_date,
+                "classified": classified,
+                "interpretation": interpretation,
+                "raw_scores": raw_scores,
+            },
+        )
+
+    existing_data = (
+        application.raw_payload if application and application.raw_payload else None
+    )
+    return render(
+        request,
+        form_template,
+        {
+            "patients": patients,
+            "evaluation": evaluation,
+            "application": application,
+            "existing_data": existing_data,
+        },
+    )
+
+
+def ebadep_a_form_view(request, application_id=None):
+    return _item_form_view(
+        request, application_id, "ebadep_a", 45, "tests/ebadep_a_form.html"
+    )
+
+
+def ebaped_ij_form_view(request, application_id=None):
+    return _item_form_view(
+        request, application_id, "ebaped_ij", 27, "tests/ebaped_ij_form.html"
+    )
 
 
 def bpa2_form_view(request, application_id=None):
@@ -35,12 +232,7 @@ def bpa2_form_view(request, application_id=None):
     evaluation = None
 
     if application_id:
-        application = get_object_or_404(
-            TestApplication.objects.select_related(
-                "evaluation", "evaluation__patient", "instrument"
-            ),
-            pk=application_id,
-        )
+        application = _get_application(application_id)
         evaluation = application.evaluation
         patients = Patient.objects.filter(pk=evaluation.patient.pk)
 
@@ -48,26 +240,17 @@ def bpa2_form_view(request, application_id=None):
         patient_id = request.POST.get("patient")
         evaluation_date = request.POST.get("evaluation_date")
         norm_type = request.POST.get("norm_type", "idade")
-
         patient = get_object_or_404(Patient, pk=patient_id)
 
-        existing_eval = Evaluation.objects.filter(
-            patient=patient,
-            test_applications__instrument__code="bpa2",
-            test_applications__is_validated=True,
-        ).first()
-
-        if existing_eval and not application:
-            existing_app = existing_eval.test_applications.filter(
-                instrument__code="bpa2", is_validated=True
-            ).first()
+        existing_app, existing_eval = _get_existing_application(patient, "bpa2")
+        if existing_app and not application:
             return render(
                 request,
                 "tests/bpa2_form.html",
                 {
                     "patients": patients,
                     "errors": [
-                        f"Paciente já possui BPA-2 aplicado em {existing_app.applied_on.strftime('%d/%m/%Y')}. Avaliação #{existing_eval.pk}."
+                        f"Paciente já possui BPA-2 aplicado em {existing_app.applied_on.strftime('%d/%m/%Y')}."
                     ],
                     "evaluation": evaluation,
                     "application": application,
@@ -75,156 +258,193 @@ def bpa2_form_view(request, application_id=None):
                 },
             )
 
-        raw_scores = {
-            "ac": {
-                "brutos": int(request.POST.get("ac_brutos", 0)),
-                "erros": int(request.POST.get("ac_erros", 0)),
-                "omissoes": int(request.POST.get("ac_omissoes", 0)),
-            },
-            "ad": {
-                "brutos": int(request.POST.get("ad_brutos", 0)),
-                "erros": int(request.POST.get("ad_erros", 0)),
-                "omissoes": int(request.POST.get("ad_omissoes", 0)),
-            },
-            "aa": {
-                "brutos": int(request.POST.get("aa_brutos", 0)),
-                "erros": int(request.POST.get("aa_erros", 0)),
-                "omissoes": int(request.POST.get("aa_omissoes", 0)),
-            },
-        }
+        raw_scores = {}
+        for code in ["ac", "ad", "aa"]:
+            raw_scores[code] = {
+                "brutos": int(request.POST.get(f"{code}_brutos", 0)),
+                "erros": int(request.POST.get(f"{code}_erros", 0)),
+                "omissoes": int(request.POST.get(f"{code}_omissoes", 0)),
+            }
 
-        ctx = TestContext(
-            patient_name=patient.full_name,
-            evaluation_id=evaluation.pk if evaluation else 0,
-            instrument_code="bpa2",
-            raw_scores=raw_scores,
+        faixa = _get_age_group(patient, evaluation_date, norm_type)
+        result = _process_and_save_test(
+            patient,
+            evaluation,
+            "bpa2",
+            raw_scores,
+            evaluation_date,
+            extra_classify_kwargs={"faixa": faixa},
         )
-
-        module = get_test_module("bpa2")
-        errors = module.validate(ctx)
-
-        if errors:
+        if isinstance(result[1], list):
             return render(
                 request,
                 "tests/bpa2_form.html",
                 {
                     "patients": patients,
-                    "errors": errors,
+                    "errors": result[1],
                     "evaluation": evaluation,
                     "application": application,
                 },
             )
 
-        computed = module.compute(ctx)
-        faixa = _get_age_group(patient, evaluation_date, norm_type)
-        classified = module.classify(computed, faixa=faixa)
+        app_result, classified, interpretation = result
         classified["faixa"] = faixa
         classified["norm_type"] = norm_type
-        interpretation = module.interpret(ctx, classified)
-
-        if not evaluation:
-            evaluation, _ = Evaluation.objects.get_or_create(
-                patient=patient,
-                status="collecting_data",
-                defaults={
-                    "referral_reason": "Avaliação neuropsicológica",
-                },
-            )
-
-        instrument = Instrument.objects.get(code="bpa2")
-        application, _ = TestApplication.objects.get_or_create(
-            evaluation=evaluation,
-            instrument=instrument,
-            defaults={"applied_on": evaluation_date or date.today()},
+        return render(
+            request,
+            "tests/bpa2_result.html",
+            {
+                "patient": patient,
+                "evaluation": evaluation,
+                "application": app_result,
+                "evaluation_date": evaluation_date,
+                "norm_type": norm_type,
+                "faixa": faixa,
+                "classified": classified,
+                "interpretation": interpretation,
+                "raw_scores": raw_scores,
+            },
         )
 
-        application.raw_payload = raw_scores
-        application.computed_payload = computed
-        application.classified_payload = classified
-        application.interpretation_text = interpretation
-        application.is_validated = True
-        application.applied_on = evaluation_date or date.today()
-        application.save()
-
-        context = {
-            "patient": patient,
+    existing_data = (
+        application.raw_payload if application and application.raw_payload else None
+    )
+    return render(
+        request,
+        "tests/bpa2_form.html",
+        {
+            "patients": patients,
             "evaluation": evaluation,
             "application": application,
-            "evaluation_date": evaluation_date,
-            "norm_type": norm_type,
-            "faixa": faixa,
-            "classified": classified,
-            "interpretation": interpretation,
-            "raw_scores": raw_scores,
-        }
-        return render(request, "tests/bpa2_result.html", context)
-
-    context = {
-        "patients": patients,
-        "evaluation": evaluation,
-        "application": application,
-    }
-    return render(request, "tests/bpa2_form.html", context)
-
-
-def test_result_view(request, application_id):
-    application = get_object_or_404(
-        TestApplication.objects.select_related(
-            "evaluation", "evaluation__patient", "instrument"
-        ),
-        pk=application_id,
+            "existing_data": existing_data,
+        },
     )
-
-    classified = application.classified_payload or {}
-    raw_scores = application.raw_payload or {}
-
-    context = {
-        "patient": application.evaluation.patient,
-        "evaluation": application.evaluation,
-        "application": application,
-        "evaluation_date": application.applied_on,
-        "classified": classified,
-        "interpretation": application.interpretation_text or "",
-        "raw_scores": raw_scores,
-    }
-
-    if application.instrument.code == "bpa2":
-        return render(request, "tests/bpa2_result.html", context)
-
-    return render(request, "tests/generic_result.html", context)
 
 
 def wisc4_form_view(request, application_id=None):
     patients = Patient.objects.all()
+    application = None
+    evaluation = None
+
+    if application_id:
+        application = _get_application(application_id)
+        evaluation = application.evaluation
+        patients = Patient.objects.filter(pk=evaluation.patient.pk)
+
     if request.method == "POST":
-        return redirect("tests:wisc4")
-    return render(request, "tests/wisc4_form.html", {"patients": patients})
+        patient_id = request.POST.get("patient")
+        evaluation_date = request.POST.get("evaluation_date")
+        patient = get_object_or_404(Patient, pk=patient_id)
+
+        existing_app, existing_eval = _get_existing_application(patient, "wisc4")
+        if existing_app and not application:
+            return render(
+                request,
+                "tests/wisc4_form.html",
+                {
+                    "patients": patients,
+                    "errors": [
+                        f"Paciente já possui WISC-IV aplicado em {existing_app.applied_on.strftime('%d/%m/%Y')}."
+                    ],
+                    "evaluation": evaluation,
+                    "application": application,
+                    "existing_app": existing_app,
+                },
+            )
+
+        raw_scores = {}
+        subtest_codes = [
+            "cubos",
+            "semelhancas",
+            "digitos",
+            "conceitos",
+            "codigos",
+            "vocabulario",
+            "sequencias",
+            "matricial",
+            "compreensao",
+            "procura_simbolos",
+        ]
+        for code in subtest_codes:
+            raw_value = request.POST.get(code)
+            raw_scores[code] = (
+                int(raw_value) if raw_value is not None and raw_value != "" else 0
+            )
+
+        from datetime import date as date_cls
+
+        confidence_level = request.POST.get("confidence_level", "95")
+
+        reviewed_scores = {
+            "birth_date": str(patient.birth_date) if patient.birth_date else None,
+            "evaluation_date": str(evaluation_date or date_cls.today()),
+            "confidence_level": confidence_level,
+        }
+
+        result = _process_and_save_test(
+            patient,
+            evaluation,
+            "wisc4",
+            raw_scores,
+            evaluation_date,
+            extra_classify_kwargs={"faixa": confidence_level},
+        )
+        if isinstance(result[1], list):
+            return render(
+                request,
+                "tests/wisc4_form.html",
+                {
+                    "patients": patients,
+                    "errors": result[1],
+                    "evaluation": evaluation,
+                    "application": application,
+                },
+            )
+
+        app_result, classified, interpretation = result
+        return render(
+            request,
+            "tests/wisc4_result.html",
+            {
+                "patient": patient,
+                "evaluation": evaluation,
+                "application": app_result,
+                "evaluation_date": evaluation_date,
+                "classified": classified,
+                "interpretation": interpretation,
+                "raw_scores": raw_scores,
+            },
+        )
+
+    existing_data = (
+        application.raw_payload if application and application.raw_payload else None
+    )
+    return render(
+        request,
+        "tests/wisc4_form.html",
+        {
+            "patients": patients,
+            "evaluation": evaluation,
+            "application": application,
+            "existing_data": existing_data,
+        },
+    )
 
 
 def bpa2_report_view(request, application_id):
-    application = get_object_or_404(
-        TestApplication.objects.select_related(
-            "evaluation", "evaluation__patient", "instrument", "evaluation__examiner"
-        ),
-        pk=application_id,
-    )
-
+    application = _get_application(application_id)
     patient = application.evaluation.patient
     classified = application.classified_payload or {}
-    raw_scores = application.raw_payload or {}
 
     subtestes = []
     for st in classified.get("subtestes", []):
         code = st.get("codigo", "")
         classificacao = st.get("classificacao", "")
-
         badge_class = "badge-media"
         if "Superior" in classificacao and "Média" not in classificacao:
             badge_class = "badge-superior"
         elif "Média Superior" in classificacao:
             badge_class = "badge-media-sup"
-        elif classificacao == "Média":
-            badge_class = "badge-media"
         elif "Média Inferior" in classificacao:
             badge_class = "badge-media-inf"
         elif "Inferior" in classificacao and "Muito" not in classificacao:
@@ -245,34 +465,65 @@ def bpa2_report_view(request, application_id):
     ag_st = next(
         (s for s in classified.get("subtestes", []) if s.get("codigo") == "ag"), {}
     )
-    ag_classificacao = ag_st.get("classificacao", "Média")
-
     examiner = application.evaluation.examiner
-    examiner_name = examiner.get_full_name() if examiner else "-"
-
     faixa = classified.get("faixa", "-")
     norm_type = classified.get("norm_type", "idade")
 
-    if norm_type == "escolaridade":
-        referencia_normativa = f"Percentis - 2022 - {faixa} de escolaridade - Brasil"
-    else:
-        referencia_normativa = f"Percentis - 2022 - {faixa} - Brasil"
+    return render(
+        request,
+        "tests/bpa2_report.html",
+        {
+            "patient": patient,
+            "evaluation": application.evaluation,
+            "application": application,
+            "evaluation_date": application.applied_on,
+            "faixa": faixa,
+            "referencia_normativa": f"Percentis - 2022 - {faixa}{' de escolaridade' if norm_type == 'escolaridade' else ''} - Brasil",
+            "subtestes": subtestes,
+            "ag_classificacao": ag_st.get("classificacao", "Média"),
+            "sintese_atencional": get_synthesis(ag_st.get("classificacao", "Média")),
+            "examiner_name": examiner.get_full_name() if examiner else "-",
+            "raw_scores": application.raw_payload or {},
+        },
+    )
 
-    context = {
-        "patient": patient,
-        "evaluation": application.evaluation,
-        "application": application,
-        "evaluation_date": application.applied_on,
-        "faixa": faixa,
-        "referencia_normativa": referencia_normativa,
-        "subtestes": subtestes,
-        "ag_classificacao": ag_classificacao,
-        "sintese_atencional": get_synthesis(ag_classificacao),
-        "examiner_name": examiner_name,
-        "raw_scores": raw_scores,
-    }
 
-    return render(request, "tests/bpa2_report.html", context)
+def ebaped_ij_report_view(request, application_id):
+    application = _get_application(application_id)
+    examiner = application.evaluation.examiner
+    return render(
+        request,
+        "tests/ebaped_ij_report.html",
+        {
+            "patient": application.evaluation.patient,
+            "evaluation": application.evaluation,
+            "application": application,
+            "evaluation_date": application.applied_on,
+            "classified": application.classified_payload or {},
+            "interpretation": application.interpretation_text or "",
+            "examiner_name": examiner.get_full_name() if examiner else "-",
+            "raw_scores": application.raw_payload or {},
+        },
+    )
+
+
+def ebadep_a_report_view(request, application_id):
+    application = _get_application(application_id)
+    examiner = application.evaluation.examiner
+    return render(
+        request,
+        "tests/ebadep_a_report.html",
+        {
+            "patient": application.evaluation.patient,
+            "evaluation": application.evaluation,
+            "application": application,
+            "evaluation_date": application.applied_on,
+            "classified": application.classified_payload or {},
+            "interpretation_text": application.interpretation_text or "",
+            "examiner_name": examiner.get_full_name() if examiner else "-",
+            "raw_scores": application.raw_payload or {},
+        },
+    )
 
 
 def _get_age_group(patient, evaluation_date_str, norm_type):
@@ -286,7 +537,7 @@ def _get_age_group(patient, evaluation_date_str, norm_type):
 
     try:
         eval_date = date.fromisoformat(evaluation_date_str)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
         eval_date = date.today()
 
     age = eval_date.year - patient.birth_date.year

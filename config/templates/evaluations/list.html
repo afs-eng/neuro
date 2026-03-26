@@ -1,45 +1,49 @@
 {% extends "base/base.html" %}
 {% block title %}Avaliações - NeuroAvalia{% endblock %}
-{% block nav_evaluations %}active{% endblock %}
 
 {% block breadcrumb %}
-<a href="{% url 'dashboard' %}">Início</a>
-<span class="separator">/</span>
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
 <span>Avaliações</span>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">Avaliações</h1>
-    <p class="page-subtitle">Gerencie suas avaliações</p>
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-semibold text-slate-900">Avaliações</h1>
+        <p class="text-sm text-slate-500 mt-1">Gerencie suas avaliações neuropsicológicas</p>
+    </div>
+    <a href="{% url 'evaluations:create' %}" class="btn btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Nova Avaliação
+    </a>
 </div>
 
 <div class="card">
-    <div class="card-body table-container">
-        <table>
+    <div class="overflow-x-auto">
+        <table class="w-full">
             <thead>
-                <tr>
-                    <th>Paciente</th>
-                    <th>Status</th>
-                    <th>Data Início</th>
-                    <th>Ações</th>
+                <tr class="bg-slate-50">
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Paciente</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Data Início</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 {% for eval in evaluations %}
-                <tr>
-                    <td><strong>{{ eval.patient.full_name }}</strong></td>
-                    <td><span class="badge badge-info">{{ eval.get_status_display }}</span></td>
-                    <td>{{ eval.start_date|date:"d/m/Y"|default:"-" }}</td>
-                    <td><a href="{% url 'evaluations:detail' eval.pk %}" class="btn btn-secondary btn-sm">Ver</a></td>
+                <tr class="border-t border-slate-100 hover:bg-slate-50">
+                    <td class="px-5 py-3 text-sm font-medium text-slate-900">{{ eval.patient.full_name }}</td>
+                    <td class="px-5 py-3">{% include "partials/badge.html" with text=eval.get_status_display status=eval.status %}</td>
+                    <td class="px-5 py-3 text-sm text-slate-600">{{ eval.start_date|date:"d/m/Y"|default:"-" }}</td>
+                    <td class="px-5 py-3"><a href="{% url 'evaluations:detail' eval.pk %}" class="btn btn-secondary btn-sm">Ver</a></td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-secondary);">Nenhuma avaliação</td>
-                </tr>
+                <tr><td colspan="4" class="px-5 py-12 text-center text-sm text-slate-400">Nenhuma avaliação registrada. Clique em "Nova Avaliação" para começar.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% include "partials/pagination.html" %}
 </div>
 {% endblock %}

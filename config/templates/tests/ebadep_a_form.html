@@ -1,0 +1,104 @@
+{% extends "base/base.html" %}
+{% load form_helpers %}
+{% block title %}EBADEP-A - Aplicação de Teste{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'tests:list' %}" class="text-blue-600 hover:underline">Testes</a>
+<span class="mx-2 text-slate-300">/</span>
+<span>EBADEP-A</span>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">EBADEP-A</h1>
+    <p class="text-sm text-slate-500 mt-1">Escala Baptista de Depressão – Versão Adulto · 45 itens</p>
+</div>
+
+{% if errors %}
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+    <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+        <h3 class="font-semibold text-amber-800">Aviso</h3>
+    </div>
+    {% for error in errors %}
+    <p class="text-sm text-amber-700 mb-1">{{ error }}</p>
+    {% endfor %}
+    {% if existing_app %}
+    <a href="{% url 'tests:result' existing_app.pk %}" class="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">Ver resultado existente</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<form method="post" id="ebadep-a-form">
+    {% csrf_token %}
+
+    <!-- Dados da Avaliação -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Dados da Avaliação</h3>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Paciente *</label>
+                    <select name="patient" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        <option value="">Selecione...</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}" {% if application and application.evaluation.patient.pk == p.pk %}selected{% endif %}>{{ p.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Data da Avaliação</label>
+                    <input type="date" name="evaluation_date" required value="{% if application %}{{ application.applied_on|date:'Y-m-d' }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legenda -->
+    <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 mb-6">
+        <div class="flex flex-wrap items-center gap-6 text-sm text-slate-600">
+            <span class="font-semibold text-slate-700">Legenda:</span>
+            <span><strong class="text-green-600">0</strong> = Primeiro círculo (menor intensidade)</span>
+            <span><strong class="text-amber-500">1</strong> = Segundo círculo</span>
+            <span><strong class="text-amber-600">2</strong> = Terceiro círculo</span>
+            <span><strong class="text-red-600">3</strong> = Quarto círculo (maior intensidade)</span>
+        </div>
+    </div>
+
+    <!-- Itens -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+        <div class="px-5 py-3 border-b border-slate-200 bg-slate-50">
+            <h3 class="font-semibold text-slate-900">Itens do Instrumento</h3>
+        </div>
+        <div id="items-container">
+        {% with items="1. Choro: ausência de vontade de chorar <-> vontade de chorar|2. Bem-estar: sentir-se muito bem <-> sentir-se mais angustiado|3. Tarefas: consegue realizar tarefas <-> sente-se impotente para realizá-las|4. Problemas: resolve problemas <-> sente-se menos capaz de enfrentá-los|5. Prazer: faz coisas de que gosta <-> não tem mais vontade de fazê-las|6. Choro recente: não tem chorado <-> tem chorado|7. Solidão: não sente solidão <-> sente-se cada vez mais sozinho|8. Comportamento: sabe agir nas situações <-> não sabe mais como agir|9. Autonomia: consegue se virar sozinho <-> não consegue mais|10. Futuro: acredita que será melhor <-> não acredita em melhora|11. Atitudes: parecem normais <-> parecem menos adequadas que antes|12. Planejamento: faz planos para o futuro <-> não consegue planejar|13. Crença em si: acredita em si mesmo <-> está acreditando menos em si|14. Decisão: não tem problemas para decidir <-> está mais difícil decidir|15. Escolhas: escolhe com facilidade <-> não consegue mais escolher sozinho|16. Independência: faz tarefas sem ajuda <-> precisa de ajuda para realizá-las|17. Atividades: sente prazer em realizá-las <-> elas não agradam como antes|18. Vida: sente-se feliz com a vida <-> antes era mais feliz|19. Situação atual: acha que as coisas vão bem <-> acha que nada vai bem|20. Utilidade: faz coisas que ajudam os outros <-> acha que não ajuda mais ninguém|21. Convívio: estar com pessoas é bom <-> passou a evitar encontros|22. Eventos sociais: vai a festas/reuniões <-> tem evitado mesmo convidado|23. Concentração: consegue se concentrar <-> não consegue mais|24. Ritmo de trabalho: realiza tarefas normalmente <-> está mais lento|25. Agitação: realiza tarefas normalmente <-> sente-se mais agitado|26. História de vida: sempre achou a vida boa <-> hoje avalia o passado como ruim|27. Energia matinal: sente-se disposto <-> acorda esgotado|28. Vida atual: acha a vida boa <-> percebe a vida cada vez pior|29. Ideias sobre morrer: morrer não é solução <-> pensa que seria melhor estar morto|30. Autoeficácia: acredita em si <-> não acredita mais em si|31. Sono: dorme bem <-> não consegue dormir a noite inteira|32. Necessário do dia a dia: faz o necessário normalmente <-> não consegue mais|33. Valor da vida: gosta muito da própria vida <-> não dá mais valor à vida|34. Autoimagem: gosta de si <-> não gosta mais de si|35. Finalização: termina tarefas <-> não termina mais|36. Tranquilidade: está tranquilo <-> perde a paciência com pouco|37. Nervosismo: não tem se sentido nervoso <-> qualquer coisa o deixa nervoso|38. Disposição: sente-se com disposição <-> anda mais cansado|39. Vontade de agir: sente-se disposto <-> não tem mais vontade de fazer as coisas|40. Padrão de sono: dorme normalmente <-> tem dormido muito|41. Apetite: fome continua como sempre <-> tem comido menos|42. Desejo sexual: continua como antes <-> vem diminuindo muito|43. Peso: continua o mesmo <-> emagreceu sem fazer regime|44. Medicação: toma remédio apenas quando precisa <-> toma por precaução|45. Culpa: não costuma sentir culpa <-> vem se sentindo culpado pelos problemas" %}
+        {% for item_text in items|split:"|" %}
+        <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors item-row">
+            <span class="flex-shrink-0 w-8 text-right text-sm font-bold text-slate-400">{{ forloop.counter|stringformat:"02d" }}</span>
+            <span class="flex-1 text-sm text-slate-700">{{ item_text }}</span>
+            <input type="number" name="item_{{ forloop.counter|stringformat:'02d' }}" min="0" max="3" step="1" required placeholder="—" autocomplete="off"
+                {% if existing_data %}value="{{ existing_data|get_item:forloop.counter|stringformat:'02d' }}"{% endif %}
+                class="item-input flex-shrink-0 w-14 text-center px-2 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+        </div>
+        {% endfor %}
+        {% endwith %}
+        </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'tests:list' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Cancelar
+        </a>
+        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            Salvar e Processar
+        </button>
+    </div>
+</form>
+{% endblock %}

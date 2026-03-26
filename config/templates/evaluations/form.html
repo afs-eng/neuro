@@ -1,50 +1,61 @@
 {% extends "base/base.html" %}
 {% block title %}Nova Avaliação - NeuroAvalia{% endblock %}
-{% block nav_evaluations %}active{% endblock %}
 
 {% block breadcrumb %}
-<a href="{% url 'dashboard' %}">Início</a>
-<span class="separator">/</span>
-<a href="{% url 'evaluations:list' %}">Avaliações</a>
-<span class="separator">/</span>
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'evaluations:list' %}" class="text-blue-600 hover:underline">Avaliações</a>
+<span class="mx-2 text-slate-300">/</span>
 <span>Nova</span>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">Nova Avaliação</h1>
-    <p class="page-subtitle">Inicie uma avaliação neuropsicológica</p>
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">Nova Avaliação</h1>
+    <p class="text-sm text-slate-500 mt-1">Inicie uma avaliação neuropsicológica</p>
 </div>
+
+{% if form.errors %}
+<div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+    <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span class="text-sm font-medium text-red-800">Corrija os erros abaixo:</span>
+    </div>
+    <ul class="list-disc list-inside text-sm text-red-700">
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 
 <div class="card">
     <form method="post">
         {% csrf_token %}
         <div class="card-body">
-            <div class="form-row">
+            <div class="space-y-5">
                 <div class="form-group">
                     <label class="form-label">Paciente *</label>
-                    <select name="patient" class="form-control" required id="patient-select">
+                    <select name="patient" required class="form-control">
                         <option value="">Selecione o paciente...</option>
                         {% for patient in patients %}
                         <option value="{{ patient.id }}">{{ patient.full_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Motivo do Encaminhamento</label>
-                    <textarea name="referral_reason" class="form-control" rows="3" placeholder="Ex: Dificuldades de atenção e aprendizagem"></textarea>
+                    <textarea name="referral_reason" rows="3" placeholder="Ex: Dificuldades de atenção e aprendizagem" class="form-control"></textarea>
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Finalidade da Avaliação</label>
-                    <textarea name="evaluation_purpose" class="form-control" rows="2" placeholder="Ex: Avaliação neuropsicológica completa"></textarea>
+                    <textarea name="evaluation_purpose" rows="2" placeholder="Ex: Avaliação neuropsicológica completa" class="form-control"></textarea>
                 </div>
             </div>
         </div>
-        <div class="card-footer" style="display: flex; gap: 12px;">
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex gap-3">
             <button type="submit" class="btn btn-primary">Criar Avaliação</button>
             <a href="{% url 'evaluations:list' %}" class="btn btn-secondary">Cancelar</a>
         </div>

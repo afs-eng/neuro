@@ -21,6 +21,7 @@
     <div style="display: flex; gap: 12px;">
         <a href="{% url 'tests:bpa2_standalone' %}" class="btn btn-secondary">Nova Aplicação</a>
         {% if application %}
+        <a href="{% url 'tests:bpa2' application.pk %}" class="btn btn-secondary">Editar</a>
         <a href="{% url 'tests:report' application.pk %}" class="btn btn-primary">Gerar Relatório</a>
         {% endif %}
         <button class="btn btn-secondary" onclick="window.print()">Imprimir</button>

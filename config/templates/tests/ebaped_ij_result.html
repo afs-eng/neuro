@@ -1,0 +1,175 @@
+{% extends "base/base.html" %}
+{% block title %}Resultado EBADEP-IJ - {{ patient.full_name }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'tests:list' %}" class="text-blue-600 hover:underline">Testes</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'tests:ebaped_ij_standalone' %}" class="text-blue-600 hover:underline">EBADEP-IJ</a>
+<span class="mx-2 text-slate-300">/</span>
+<span>Resultado</span>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-semibold text-slate-900">Resultado EBADEP-IJ</h1>
+        <p class="text-sm text-slate-500 mt-1">{{ patient.full_name }} - {{ evaluation_date }}</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'tests:ebaped_ij_standalone' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">Nova Aplicação</a>
+        {% if application %}
+        <a href="{% url 'tests:ebaped_ij' application.pk %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">Editar</a>
+        <a href="{% url 'tests:ebaped_ij_report' application.pk %}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Gerar Relatório</a>
+        {% endif %}
+        <button class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors" onclick="window.print()">Imprimir</button>
+    </div>
+</div>
+
+<!-- Dados do Paciente -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+    <div class="px-5 py-4 border-b border-slate-200">
+        <h3 class="font-semibold text-slate-900">Dados da Avaliação</h3>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+            <div><span class="text-slate-500">Paciente:</span> <strong>{{ patient.full_name }}</strong></div>
+            <div><span class="text-slate-500">Data de Nasc.:</span> {{ patient.birth_date|date:"d/m/Y"|default:"-" }}</div>
+            <div><span class="text-slate-500">Data da Avaliação:</span> {{ evaluation_date }}</div>
+            <div><span class="text-slate-500">Idade:</span> {{ patient.age|default:"-" }} anos</div>
+        </div>
+    </div>
+</div>
+
+<!-- Resultado Principal -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Pontuação Total -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Pontuação Total</h3>
+        </div>
+        <div class="p-5 text-center">
+            <div class="text-5xl font-bold text-blue-600 mb-2">{{ classified.pontuacao_total }}</div>
+            <div class="text-sm text-slate-500">de 54 pontos possíveis</div>
+        </div>
+    </div>
+
+    <!-- Classificação -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Classificação (Tabela 18)</h3>
+        </div>
+        <div class="p-5 text-center">
+            {% if "Comportamento positivo" in classified.classificacao %}
+            <span class="inline-block px-4 py-2 rounded-lg text-lg font-semibold bg-green-100 text-green-800">{{ classified.classificacao }}</span>
+            {% elif "leve" in classified.classificacao %}
+            <span class="inline-block px-4 py-2 rounded-lg text-lg font-semibold bg-yellow-100 text-yellow-800">{{ classified.classificacao }}</span>
+            {% elif "moderada" in classified.classificacao %}
+            <span class="inline-block px-4 py-2 rounded-lg text-lg font-semibold bg-orange-100 text-orange-800">{{ classified.classificacao }}</span>
+            {% elif "grave" in classified.classificacao %}
+            <span class="inline-block px-4 py-2 rounded-lg text-lg font-semibold bg-red-100 text-red-800">{{ classified.classificacao }}</span>
+            {% else %}
+            <span class="inline-block px-4 py-2 rounded-lg text-lg font-semibold bg-slate-100 text-slate-800">{{ classified.classificacao }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Normas -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Normas (Amostra Geral)</h3>
+        </div>
+        <div class="p-5">
+            {% if classified.normas %}
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between"><span class="text-slate-500">Percentil:</span> <strong>{{ classified.normas.percentil }}</strong></div>
+                <div class="flex justify-between"><span class="text-slate-500">Escore T:</span> <strong>{{ classified.normas.T }}</strong></div>
+                <div class="flex justify-between"><span class="text-slate-500">Estanino:</span> <strong>{{ classified.normas.estanino }}</strong></div>
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-400">Normas não disponíveis para esta pontuação.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Somas por Tipo de Item -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+    <div class="px-5 py-4 border-b border-slate-200">
+        <h3 class="font-semibold text-slate-900">Composição da Pontuação</h3>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-slate-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-slate-900">{{ classified.result.soma_itens_negativos }}</div>
+                <div class="text-xs text-slate-500 mt-1">Soma Itens Negativos (16 itens)</div>
+            </div>
+            <div class="bg-amber-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-amber-700">{{ classified.result.soma_itens_positivos }}</div>
+                <div class="text-xs text-amber-600 mt-1">Soma Itens Positivos Invertidos (11 itens)</div>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-700">{{ classified.pontuacao_total }}</div>
+                <div class="text-xs text-blue-600 mt-1">Pontuação Total</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Itens Críticos -->
+{% if classified.items_criticos %}
+<div class="bg-red-50 rounded-xl border border-red-200 overflow-hidden mb-6">
+    <div class="px-5 py-4 border-b border-red-200">
+        <h3 class="font-semibold text-red-900">Itens com Escore Máximo (pontuação 2 corrigido)</h3>
+    </div>
+    <div class="p-5">
+        <div class="flex flex-wrap gap-2">
+            {% for item in classified.items_criticos %}
+            <span class="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">Item {{ item.item|stringformat:"02d" }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Detalhamento Item a Item -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+    <div class="px-5 py-4 border-b border-slate-200 flex justify-between items-center">
+        <h3 class="font-semibold text-slate-900">Detalhamento Item a Item</h3>
+        <button onclick="document.getElementById('detalhe-table').classList.toggle('hidden')" class="text-sm text-blue-600 hover:underline">Mostrar/Ocultar</button>
+    </div>
+    <div class="overflow-x-auto hidden" id="detalhe-table">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-slate-50">
+                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Item</th>
+                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Resposta</th>
+                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Invertido</th>
+                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Corrigido</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in classified.result.detalhe_itens %}
+                <tr class="border-t border-slate-100 {% if d.invertido %}bg-amber-50{% endif %}">
+                    <td class="px-4 py-2 text-sm font-medium">{{ d.item|stringformat:"02d" }}</td>
+                    <td class="px-4 py-2 text-sm">{{ d.resposta }}</td>
+                    <td class="px-4 py-2 text-sm">{% if d.invertido %}<span class="text-amber-600">Sim</span>{% else %}Não{% endif %}</td>
+                    <td class="px-4 py-2 text-sm font-semibold {% if d.corrigido == 2 %}text-red-600{% elif d.corrigido == 1 %}text-amber-600{% else %}text-green-600{% endif %}">{{ d.corrigido }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Interpretação -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+    <div class="px-5 py-4 border-b border-slate-200">
+        <h3 class="font-semibold text-slate-900">Interpretação</h3>
+    </div>
+    <div class="p-5">
+        <p class="text-sm text-slate-700 leading-relaxed">{{ interpretation }}</p>
+    </div>
+</div>
+{% endblock %}

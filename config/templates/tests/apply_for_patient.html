@@ -1,0 +1,42 @@
+{% extends "base/base.html" %}
+{% block title %}Aplicar Teste - {{ patient.full_name }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'patients:list' %}" class="text-blue-600 hover:underline">Pacientes</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'patients:detail' patient.pk %}" class="text-blue-600 hover:underline">{{ patient.full_name }}</a>
+<span class="mx-2 text-slate-300">/</span>
+<span>Aplicar Teste</span>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">Aplicar Teste</h1>
+    <p class="text-sm text-slate-500 mt-1">Paciente: <strong>{{ patient.full_name }}</strong></p>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <a href="{% url 'tests:bpa2_standalone' %}" class="bg-white rounded-xl border border-slate-200 p-8 text-center hover:border-blue-400 hover:shadow-lg transition-all group">
+        <div class="text-5xl mb-4 text-blue-600 group-hover:scale-110 transition-transform">&#9827;</div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">BPA-2</h3>
+        <p class="text-sm text-slate-500">Bateria de Provas Neuropsicológicas de Atenção</p>
+    </a>
+    <a href="{% url 'tests:ebaped_ij_standalone' %}" class="bg-white rounded-xl border border-slate-200 p-8 text-center hover:border-purple-400 hover:shadow-lg transition-all group">
+        <div class="text-5xl mb-4 text-purple-600 group-hover:scale-110 transition-transform">&#9826;</div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">EBADEP-IJ</h3>
+        <p class="text-sm text-slate-500">Escala Baptista de Depressão – Versão Infantojuvenil</p>
+    </a>
+    <a href="{% url 'tests:ebadep_a_standalone' %}" class="bg-white rounded-xl border border-slate-200 p-8 text-center hover:border-rose-400 hover:shadow-lg transition-all group">
+        <div class="text-5xl mb-4 text-rose-500 group-hover:scale-110 transition-transform">&#9830;</div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">EBADEP-A</h3>
+        <p class="text-sm text-slate-500">Escala Baptista de Depressão – Versão Adulto</p>
+    </a>
+    <a href="{% url 'tests:wisc4_standalone' %}" class="bg-white rounded-xl border border-slate-200 p-8 text-center hover:border-red-400 hover:shadow-lg transition-all group">
+        <div class="text-5xl mb-4 text-red-500 group-hover:scale-110 transition-transform">&#9829;</div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">WISC-IV</h3>
+        <p class="text-sm text-slate-500">Escala de Inteligência Wechsler para Crianças</p>
+    </a>
+</div>
+{% endblock %}

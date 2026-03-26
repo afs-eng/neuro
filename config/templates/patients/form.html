@@ -1,34 +1,47 @@
 {% extends "base/base.html" %}
 {% block title %}{% if patient %}Editar{% else %}Novo{% endif %} Paciente - NeuroAvalia{% endblock %}
-{% block nav_patients %}active{% endblock %}
 
 {% block breadcrumb %}
-<a href="{% url 'dashboard' %}">Início</a>
-<span class="separator">/</span>
-<a href="{% url 'patients:list' %}">Pacientes</a>
-<span class="separator">/</span>
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'patients:list' %}" class="text-blue-600 hover:underline">Pacientes</a>
+<span class="mx-2 text-slate-300">/</span>
 <span>{% if patient %}Editar{% else %}Novo{% endif %}</span>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">{% if patient %}Editar Paciente{% else %}Novo Paciente{% endif %}</h1>
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">{% if patient %}Editar Paciente{% else %}Novo Paciente{% endif %}</h1>
 </div>
+
+{% if form.errors %}
+<div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+    <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span class="text-sm font-medium text-red-800">Corrija os erros abaixo:</span>
+    </div>
+    <ul class="list-disc list-inside text-sm text-red-700">
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 
 <div class="card">
     <form method="post">
         {% csrf_token %}
         <div class="card-body">
-            <div class="form-row">
-                <div class="form-group" style="grid-column: span 2;">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="md:col-span-2">
                     <label class="form-label">Nome Completo *</label>
-                    <input type="text" name="full_name" class="form-control" required value="{{ patient.full_name|default:'' }}">
+                    <input type="text" name="full_name" required value="{{ patient.full_name|default:'' }}" class="form-control">
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Data de Nascimento</label>
-                    <input type="date" name="birth_date" class="form-control" value="{{ patient.birth_date|date:'Y-m-d'|default:'' }}">
+                    <input type="date" name="birth_date" value="{{ patient.birth_date|date:'Y-m-d'|default:'' }}" class="form-control">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Sexo</label>
@@ -38,53 +51,45 @@
                         <option value="Feminino" {% if patient.sex == 'Feminino' %}selected{% endif %}>Feminino</option>
                     </select>
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Escolaridade</label>
-                    <input type="text" name="schooling" class="form-control" value="{{ patient.schooling|default:'' }}" placeholder="Ex: 5º ano fundamental">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Telefone</label>
-                    <input type="text" name="phone" class="form-control" value="{{ patient.phone|default:'' }}">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">E-mail</label>
-                    <input type="email" name="email" class="form-control" value="{{ patient.email|default:'' }}">
+                    <input type="text" name="schooling" value="{{ patient.schooling|default:'' }}" placeholder="Ex: 5º ano fundamental" class="form-control">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Escola</label>
-                    <input type="text" name="school_name" class="form-control" value="{{ patient.school_name|default:'' }}">
+                    <input type="text" name="school_name" value="{{ patient.school_name|default:'' }}" class="form-control">
                 </div>
-            </div>
-            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Telefone</label>
+                    <input type="text" name="phone" value="{{ patient.phone|default:'' }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">E-mail</label>
+                    <input type="email" name="email" value="{{ patient.email|default:'' }}" class="form-control">
+                </div>
                 <div class="form-group">
                     <label class="form-label">Nome da Mãe</label>
-                    <input type="text" name="mother_name" class="form-control" value="{{ patient.mother_name|default:'' }}">
+                    <input type="text" name="mother_name" value="{{ patient.mother_name|default:'' }}" class="form-control">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Nome do Pai</label>
-                    <input type="text" name="father_name" class="form-control" value="{{ patient.father_name|default:'' }}">
+                    <input type="text" name="father_name" value="{{ patient.father_name|default:'' }}" class="form-control">
                 </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Cidade</label>
-                    <input type="text" name="city" class="form-control" value="{{ patient.city|default:'' }}">
+                    <input type="text" name="city" value="{{ patient.city|default:'' }}" class="form-control">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Estado</label>
-                    <input type="text" name="state" class="form-control" value="{{ patient.state|default:'' }}">
+                    <input type="text" name="state" value="{{ patient.state|default:'' }}" class="form-control">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="form-label">Observações</label>
+                    <textarea name="notes" rows="3" class="form-control">{{ patient.notes|default:'' }}</textarea>
                 </div>
             </div>
-            <div class="form-group">
-                <label class="form-label">Observações</label>
-                <textarea name="notes" class="form-control" rows="3">{{ patient.notes|default:'' }}</textarea>
-            </div>
         </div>
-        <div class="card-footer" style="display: flex; gap: 12px;">
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex gap-3">
             <button type="submit" class="btn btn-primary">Salvar</button>
             <a href="{% url 'patients:list' %}" class="btn btn-secondary">Cancelar</a>
         </div>

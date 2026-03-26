@@ -29,7 +29,21 @@ def patient_list_view(request):
 
 def patient_detail_view(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
-    return render(request, "patients/detail.html", {"patient": patient})
+    from apps.tests.models.applications import TestApplication
+
+    test_applications = (
+        TestApplication.objects.filter(evaluation__patient=patient)
+        .select_related("instrument", "evaluation")
+        .order_by("-applied_on", "-created_at")
+    )
+    return render(
+        request,
+        "patients/detail.html",
+        {
+            "patient": patient,
+            "test_applications": test_applications,
+        },
+    )
 
 
 def patient_create_view(request):

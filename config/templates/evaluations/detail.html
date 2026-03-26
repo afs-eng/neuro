@@ -1,71 +1,66 @@
 {% extends "base/base.html" %}
 {% block title %}Avaliação - {{ evaluation.patient.full_name }}{% endblock %}
-{% block nav_evaluations %}active{% endblock %}
 
 {% block breadcrumb %}
-<a href="{% url 'dashboard' %}">Início</a>
-<span class="separator">/</span>
-<a href="{% url 'evaluations:list' %}">Avaliações</a>
-<span class="separator">/</span>
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'evaluations:list' %}" class="text-blue-600 hover:underline">Avaliações</a>
+<span class="mx-2 text-slate-300">/</span>
 <span>{{ evaluation.patient.full_name }}</span>
 {% endblock %}
 
 {% block content %}
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
-    <div>
-        <h1 class="page-title">Avaliação - {{ evaluation.patient.full_name }}</h1>
-        <p class="page-subtitle">
-            Status: <span class="badge badge-info">{{ evaluation.get_status_display }}</span>
-            {% if evaluation.referral_reason %}
-            | {{ evaluation.referral_reason }}
-            {% endif %}
-        </p>
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">Avaliação - {{ evaluation.patient.full_name }}</h1>
+    <div class="flex items-center gap-3 mt-2">
+        {% include "partials/badge.html" with text=evaluation.get_status_display status=evaluation.status %}
+        {% if evaluation.referral_reason %}
+        <span class="text-sm text-slate-500">{{ evaluation.referral_reason }}</span>
+        {% endif %}
     </div>
 </div>
 
 <!-- Dados do Paciente -->
-<div class="card" style="margin-bottom: 24px;">
+<div class="card mb-6">
     <div class="card-header">
         <h3 class="card-title">Dados do Paciente</h3>
     </div>
-    <div class="card-body">
-        <div class="form-row">
-            <div><strong>Nome:</strong> {{ evaluation.patient.full_name }}</div>
-            <div><strong>Data de Nasc.:</strong> {{ evaluation.patient.birth_date|date:"d/m/Y"|default:"-" }}</div>
-            <div><strong>Idade:</strong> {{ evaluation.patient.age|default:"-" }} anos</div>
-            <div><strong>Escolaridade:</strong> {{ evaluation.patient.schooling|default:"-" }}</div>
-        </div>
+    <div class="card-body grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div><span class="text-sm text-slate-500">Nome:</span> <span class="text-sm font-medium text-slate-900 ml-1">{{ evaluation.patient.full_name }}</span></div>
+        <div><span class="text-sm text-slate-500">Data de Nasc.:</span> <span class="text-sm text-slate-900 ml-1">{{ evaluation.patient.birth_date|date:"d/m/Y"|default:"-" }}</span></div>
+        <div><span class="text-sm text-slate-500">Idade:</span> <span class="text-sm text-slate-900 ml-1">{{ evaluation.patient.age|default:"-" }} anos</span></div>
+        <div><span class="text-sm text-slate-500">Escolaridade:</span> <span class="text-sm text-slate-900 ml-1">{{ evaluation.patient.schooling|default:"-" }}</span></div>
     </div>
 </div>
 
 <!-- Testes Aplicados -->
-<div class="card" style="margin-bottom: 24px;">
+<div class="card mb-6">
     <div class="card-header">
         <h3 class="card-title">Testes Aplicados ({{ applications|length }})</h3>
     </div>
-    <div class="card-body table-container">
-        <table>
+    <div class="overflow-x-auto">
+        <table class="w-full">
             <thead>
-                <tr>
-                    <th>Teste</th>
-                    <th>Data</th>
-                    <th>Status</th>
-                    <th>Ações</th>
+                <tr class="bg-slate-50">
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Teste</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Data</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
+                    <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 {% for app in applications %}
-                <tr>
-                    <td><strong>{{ app.instrument.name }}</strong></td>
-                    <td>{{ app.applied_on|date:"d/m/Y"|default:"-" }}</td>
-                    <td>
+                <tr class="border-t border-slate-100 hover:bg-slate-50">
+                    <td class="px-5 py-3 text-sm font-medium text-slate-900">{{ app.instrument.name }}</td>
+                    <td class="px-5 py-3 text-sm text-slate-600">{{ app.applied_on|date:"d/m/Y"|default:"-" }}</td>
+                    <td class="px-5 py-3">
                         {% if app.is_validated %}
-                            <span class="badge badge-success">Processado</span>
+                            {% include "partials/badge.html" with text="Processado" status="concluida" %}
                         {% else %}
-                            <span class="badge badge-warning">Pendente</span>
+                            {% include "partials/badge.html" with text="Pendente" status="pendente" %}
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="px-5 py-3">
                         {% if app.computed_payload %}
                             <a href="{% url 'tests:result' app.pk %}" class="btn btn-secondary btn-sm">Ver Resultado</a>
                         {% else %}
@@ -74,11 +69,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 20px;">
-                        Nenhum teste aplicado ainda. Adicione um teste abaixo.
-                    </td>
-                </tr>
+                <tr><td colspan="4" class="px-5 py-8 text-center text-sm text-slate-400">Nenhum teste aplicado ainda. Adicione um teste abaixo.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -91,22 +82,17 @@
     <div class="card-header">
         <h3 class="card-title">Adicionar Teste</h3>
     </div>
-    <div class="card-body">
-        <div class="stats-grid">
-            {% for instrument in available_instruments %}
-            <div class="card" style="border: 1px dashed var(--border);">
-                <div class="card-body" style="text-align: center; padding: 20px;">
-                    <h4 style="margin-bottom: 8px;">{{ instrument.name }}</h4>
-                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
-                        {{ instrument.category|default:"Teste" }} - v{{ instrument.version }}
-                    </p>
-                    <a href="{% url 'tests:add' evaluation.pk instrument.code %}" class="btn btn-primary btn-sm">
-                        Adicionar
-                    </a>
-                </div>
+    <div class="card-body grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for instrument in available_instruments %}
+        <div class="border border-dashed border-slate-300 rounded-xl p-5 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all">
+            <div class="text-3xl mb-3">
+                {% if instrument.code == "bpa2" %} &#9827; {% elif instrument.code == "wisc4" %} &#9829; {% else %} &#9733; {% endif %}
             </div>
-            {% endfor %}
+            <h4 class="font-semibold text-slate-900 mb-1">{{ instrument.name }}</h4>
+            <p class="text-xs text-slate-500 mb-3">{{ instrument.category|default:"Teste" }} - v{{ instrument.version }}</p>
+            <a href="{% url 'tests:add' evaluation.pk instrument.code %}" class="btn btn-primary">Adicionar</a>
         </div>
+        {% endfor %}
     </div>
 </div>
 {% endif %}

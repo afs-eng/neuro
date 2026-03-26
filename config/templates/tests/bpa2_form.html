@@ -1,65 +1,61 @@
 {% extends "base/base.html" %}
-{% load static %}
-
 {% block title %}BPA-2 - Aplicação de Teste{% endblock %}
-{% block nav_bpa2 %}active{% endblock %}
 
 {% block breadcrumb %}
-<a href="{% url 'dashboard' %}">Início</a>
-<span class="separator">/</span>
-<a href="{% url 'tests:list' %}">Testes</a>
-<span class="separator">/</span>
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'tests:list' %}" class="text-blue-600 hover:underline">Testes</a>
+<span class="mx-2 text-slate-300">/</span>
 <span>BPA-2</span>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">BPA-2 - Bateria de Atenção</h1>
-    <p class="page-subtitle">Preenchimento dos dados do teste</p>
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">BPA-2 - Bateria de Atenção</h1>
+    <p class="text-sm text-slate-500 mt-1">Preenchimento dos dados do teste</p>
 </div>
 
 {% if errors %}
-<div class="card" style="margin-bottom: 24px; border-color: var(--warning);">
-    <div class="card-header" style="background: #fef3c7;">
-        <h3 class="card-title" style="color: #92400e;">&#9888; Aviso</h3>
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+    <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+        <h3 class="font-semibold text-amber-800">Aviso</h3>
     </div>
-    <div class="card-body">
-        {% for error in errors %}
-        <p style="color: #92400e; margin-bottom: 8px;">{{ error }}</p>
-        {% endfor %}
-        {% if existing_app %}
-        <a href="{% url 'tests:result' existing_app.pk %}" class="btn btn-primary" style="margin-top: 8px;">Ver resultado existente</a>
-        {% endif %}
-    </div>
+    {% for error in errors %}
+    <p class="text-sm text-amber-700 mb-1">{{ error }}</p>
+    {% endfor %}
+    {% if existing_app %}
+    <a href="{% url 'tests:result' existing_app.pk %}" class="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">Ver resultado existente</a>
+    {% endif %}
 </div>
 {% endif %}
 
-<form method="post" id="bpa2-form">
+<form method="post">
     {% csrf_token %}
 
-    <!-- Dados do Paciente -->
-    <div class="card" style="margin-bottom: 24px;">
-        <div class="card-header">
-            <h3 class="card-title">Dados da Avaliação</h3>
+    <!-- Dados da Avaliação -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Dados da Avaliação</h3>
         </div>
-        <div class="card-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Paciente</label>
-                    <select name="patient" class="form-control" required>
+        <div class="p-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Paciente *</label>
+                    <select name="patient" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
                         <option value="">Selecione...</option>
-                        {% for patient in patients %}
-                        <option value="{{ patient.id }}">{{ patient.full_name }}</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}" {% if application and application.evaluation.patient.pk == p.pk %}selected{% endif %}>{{ p.full_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Data da Avaliação</label>
-                    <input type="date" name="evaluation_date" class="form-control" required>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Data da Avaliação</label>
+                    <input type="date" name="evaluation_date" required value="{% if application %}{{ application.applied_on|date:'Y-m-d' }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Normatização</label>
-                    <select name="norm_type" class="form-control" id="norm-type" required>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Normatização</label>
+                    <select name="norm_type" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
                         <option value="idade">Por Idade</option>
                         <option value="escolaridade">Por Escolaridade</option>
                     </select>
@@ -68,128 +64,123 @@
         </div>
     </div>
 
-    <!-- Subtestes -->
-    <div class="card" style="margin-bottom: 24px;">
-        <div class="card-header">
-            <h3 class="card-title">Atenção Concentrada (AC)</h3>
+    <!-- Atenção Concentrada -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Atenção Concentrada (AC)</h3>
         </div>
-        <div class="card-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Pontos Brutos</label>
-                    <input type="number" name="ac_brutos" class="form-control subtest-input" data-subtest="ac" min="0" required>
+        <div class="p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Pontos Brutos</label>
+                    <input type="number" name="ac_brutos" min="0" required value="{% if existing_data %}{{ existing_data.ac.brutos }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="ac">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Erros</label>
-                    <input type="number" name="ac_erros" class="form-control subtest-input" data-subtest="ac" min="0" required>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Erros</label>
+                    <input type="number" name="ac_erros" min="0" required value="{% if existing_data %}{{ existing_data.ac.erros }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="ac">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Omissões</label>
-                    <input type="number" name="ac_omissoes" class="form-control subtest-input" data-subtest="ac" min="0" required>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Omissões</label>
+                    <input type="number" name="ac_omissoes" min="0" required value="{% if existing_data %}{{ existing_data.ac.omissoes }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="ac">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Total</label>
-                    <input type="number" name="ac_total" class="form-control" id="ac_total" readonly style="background: #f1f5f9; font-weight: 600;">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Total</label>
+                    <input type="number" id="ac_total" readonly class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-semibold">
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card" style="margin-bottom: 24px;">
-        <div class="card-header">
-            <h3 class="card-title">Atenção Dividida (AD)</h3>
+    <!-- Atenção Dividida -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Atenção Dividida (AD)</h3>
         </div>
-        <div class="card-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Pontos Brutos</label>
-                    <input type="number" name="ad_brutos" class="form-control subtest-input" data-subtest="ad" min="0" required>
+        <div class="p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Pontos Brutos</label>
+                    <input type="number" name="ad_brutos" min="0" required value="{% if existing_data %}{{ existing_data.ad.brutos }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="ad">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Erros</label>
-                    <input type="number" name="ad_erros" class="form-control subtest-input" data-subtest="ad" min="0" required>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Erros</label>
+                    <input type="number" name="ad_erros" min="0" required value="{% if existing_data %}{{ existing_data.ad.erros }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="ad">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Omissões</label>
-                    <input type="number" name="ad_omissoes" class="form-control subtest-input" data-subtest="ad" min="0" required>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Omissões</label>
+                    <input type="number" name="ad_omissoes" min="0" required value="{% if existing_data %}{{ existing_data.ad.omissoes }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="ad">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Total</label>
-                    <input type="number" name="ad_total" class="form-control" id="ad_total" readonly style="background: #f1f5f9; font-weight: 600;">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Total</label>
+                    <input type="number" id="ad_total" readonly class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-semibold">
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card" style="margin-bottom: 24px;">
-        <div class="card-header">
-            <h3 class="card-title">Atenção Alternada (AA)</h3>
+    <!-- Atenção Alternada -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Atenção Alternada (AA)</h3>
         </div>
-        <div class="card-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Pontos Brutos</label>
-                    <input type="number" name="aa_brutos" class="form-control subtest-input" data-subtest="aa" min="0" required>
+        <div class="p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Pontos Brutos</label>
+                    <input type="number" name="aa_brutos" min="0" required value="{% if existing_data %}{{ existing_data.aa.brutos }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="aa">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Erros</label>
-                    <input type="number" name="aa_erros" class="form-control subtest-input" data-subtest="aa" min="0" required>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Erros</label>
+                    <input type="number" name="aa_erros" min="0" required value="{% if existing_data %}{{ existing_data.aa.erros }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="aa">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Omissões</label>
-                    <input type="number" name="aa_omissoes" class="form-control subtest-input" data-subtest="aa" min="0" required>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Omissões</label>
+                    <input type="number" name="aa_omissoes" min="0" required value="{% if existing_data %}{{ existing_data.aa.omissoes }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 subtest-input" data-subtest="aa">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Total</label>
-                    <input type="number" name="aa_total" class="form-control" id="aa_total" readonly style="background: #f1f5f9; font-weight: 600;">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Total</label>
+                    <input type="number" id="aa_total" readonly class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm font-semibold">
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Atenção Geral (calculado) -->
-    <div class="card" style="margin-bottom: 24px; border-color: var(--primary);">
-        <div class="card-header">
-            <h3 class="card-title">Atenção Geral (AG) - Calculado Automaticamente</h3>
+    <!-- Atenção Geral -->
+    <div class="bg-blue-50 rounded-xl border border-blue-200 overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-blue-200">
+            <h3 class="font-semibold text-blue-900">Atenção Geral (AG) - Calculado Automaticamente</h3>
         </div>
-        <div class="card-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Total Brutos</label>
-                    <input type="number" name="ag_brutos" class="form-control" id="ag_brutos" readonly style="background: #dbeafe; font-weight: 600;">
+        <div class="p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-blue-700 mb-1.5">Total Brutos</label>
+                    <input type="number" id="ag_brutos" readonly class="w-full px-3.5 py-2.5 bg-blue-100 border border-blue-200 rounded-lg text-sm font-semibold">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Total Erros</label>
-                    <input type="number" name="ag_erros" class="form-control" id="ag_erros" readonly style="background: #dbeafe; font-weight: 600;">
+                <div>
+                    <label class="block text-sm font-medium text-blue-700 mb-1.5">Total Erros</label>
+                    <input type="number" id="ag_erros" readonly class="w-full px-3.5 py-2.5 bg-blue-100 border border-blue-200 rounded-lg text-sm font-semibold">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Total Omissões</label>
-                    <input type="number" name="ag_omissoes" class="form-control" id="ag_omissoes" readonly style="background: #dbeafe; font-weight: 600;">
+                <div>
+                    <label class="block text-sm font-medium text-blue-700 mb-1.5">Total Omissões</label>
+                    <input type="number" id="ag_omissoes" readonly class="w-full px-3.5 py-2.5 bg-blue-100 border border-blue-200 rounded-lg text-sm font-semibold">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Total Geral</label>
-                    <input type="number" name="ag_total" class="form-control" id="ag_total" readonly style="background: var(--primary); color: #fff; font-weight: 700; font-size: 18px;">
+                <div>
+                    <label class="block text-sm font-medium text-blue-700 mb-1.5">Total Geral</label>
+                    <input type="number" id="ag_total" readonly class="w-full px-3.5 py-2.5 bg-blue-600 text-white border border-blue-600 rounded-lg text-lg font-bold">
                 </div>
             </div>
         </div>
     </div>
 
-    <div style="display: flex; gap: 12px;">
-        <button type="submit" class="btn btn-primary">Salvar e Processar</button>
-        <a href="{% url 'tests:list' %}" class="btn btn-secondary">Cancelar</a>
+    <div class="flex gap-3">
+        <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Salvar e Processar</button>
+        <a href="{% url 'tests:list' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">Cancelar</a>
     </div>
 </form>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function calculateTotal(prefix) {
-    const brutos = parseInt(document.querySelector(`[name="${prefix}_brutos"]`)?.value) || 0;
-    const erros = parseInt(document.querySelector(`[name="${prefix}_erros"]`)?.value) || 0;
-    const omissoes = parseInt(document.querySelector(`[name="${prefix}_omissoes"]`)?.value) || 0;
-    return brutos - erros - omissoes;
-}
-
 function updateTotals() {
     const prefixes = ['ac', 'ad', 'aa'];
     let totalBrutos = 0, totalErros = 0, totalOmissoes = 0;
@@ -198,9 +189,8 @@ function updateTotals() {
         const brutos = parseInt(document.querySelector(`[name="${prefix}_brutos"]`)?.value) || 0;
         const erros = parseInt(document.querySelector(`[name="${prefix}_erros"]`)?.value) || 0;
         const omissoes = parseInt(document.querySelector(`[name="${prefix}_omissoes"]`)?.value) || 0;
-        const total = brutos - erros - omissoes;
 
-        document.getElementById(`${prefix}_total`).value = total;
+        document.getElementById(`${prefix}_total`).value = brutos - erros - omissoes;
         totalBrutos += brutos;
         totalErros += erros;
         totalOmissoes += omissoes;
@@ -215,5 +205,6 @@ function updateTotals() {
 document.querySelectorAll('.subtest-input').forEach(input => {
     input.addEventListener('input', updateTotals);
 });
+updateTotals();
 </script>
 {% endblock %}

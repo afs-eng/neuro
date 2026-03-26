@@ -1,26 +1,256 @@
 {% extends "base/base.html" %}
-{% block title %}WISC-4 - NeuroAvalia{% endblock %}
-{% block nav_wisc4 %}active{% endblock %}
+{% block title %}WISC-IV - Aplicação de Teste{% endblock %}
 
 {% block breadcrumb %}
-<a href="{% url 'dashboard' %}">Início</a>
-<span class="separator">/</span>
-<a href="{% url 'tests:list' %}">Testes</a>
-<span class="separator">/</span>
-<span>WISC-4</span>
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'tests:list' %}" class="text-blue-600 hover:underline">Testes</a>
+<span class="mx-2 text-slate-300">/</span>
+<span>WISC-IV</span>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">WISC-4</h1>
-    <p class="page-subtitle">Em desenvolvimento</p>
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">WISC-IV - Escala de Inteligência Wechsler</h1>
+    <p class="text-sm text-slate-500 mt-1">Conversão dos pontos brutos para escores ponderados</p>
 </div>
 
-<div class="card">
-    <div class="card-body" style="text-align: center; padding: 60px;">
-        <div style="font-size: 64px; margin-bottom: 16px;">&#9829;</div>
-        <h3>WISC-4 em breve</h3>
-        <p style="color: var(--text-secondary);">O módulo WISC-4 será disponibilizado em breve.</p>
+{% if errors %}
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+    <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+        <h3 class="font-semibold text-amber-800">Aviso</h3>
     </div>
+    {% for error in errors %}
+    <p class="text-sm text-amber-700 mb-1">{{ error }}</p>
+    {% endfor %}
+    {% if existing_app %}
+    <a href="{% url 'tests:result' existing_app.pk %}" class="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">Ver resultado existente</a>
+    {% endif %}
 </div>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Dados da Avaliação -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Dados da Avaliação</h3>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Paciente *</label>
+                    <select name="patient" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        <option value="">Selecione...</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}" {% if application and application.evaluation.patient.pk == p.pk %}selected{% endif %}>{{ p.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Data da Avaliação</label>
+                    <input type="date" name="evaluation_date" required value="{% if application %}{{ application.applied_on|date:'Y-m-d' }}{% endif %}" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Nível de Confiança</label>
+                    <select name="confidence_level" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        <option value="95" {% if existing_data.confidence_level == '95' or not existing_data %}selected{% endif %}>95% (Recomendado)</option>
+                        <option value="90" {% if existing_data.confidence_level == '90' %}selected{% endif %}>90%</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subtestes Padrão -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h3 class="font-semibold text-slate-900">Pontos Brutos</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200">
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Subteste</th>
+                        <th class="px-5 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-32">PB</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+
+                    <!-- Índice de Compreensão Verbal -->
+                    <tr class="bg-blue-50/60">
+                        <td colspan="2" class="px-5 py-2.5 text-xs font-semibold text-blue-800 uppercase tracking-wide">Índice de Compreensão Verbal (ICV)</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Semelhanças <span class="text-slate-400">(SM)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 33</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="semelhancas" min="0" max="33" required placeholder="—" value="{% if existing_data %}{{ existing_data.semelhancas }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Vocabulário <span class="text-slate-400">(VC)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 36</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="vocabulario" min="0" max="36" required placeholder="—" value="{% if existing_data %}{{ existing_data.vocabulario }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Compreensão <span class="text-slate-400">(CO)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 28</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="compreensao" min="0" max="28" required placeholder="—" value="{% if existing_data %}{{ existing_data.compreensao }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+
+                    <!-- Índice de Organização Perceptual -->
+                    <tr class="bg-purple-50/60">
+                        <td colspan="2" class="px-5 py-2.5 text-xs font-semibold text-purple-800 uppercase tracking-wide">Índice de Organização Perceptual (IOP)</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Cubos <span class="text-slate-400">(CB)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 68</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="cubos" min="0" max="68" required placeholder="—" value="{% if existing_data %}{{ existing_data.cubos }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Conceitos Figurativos <span class="text-slate-400">(CN)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 28</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="conceitos" min="0" max="28" required placeholder="—" value="{% if existing_data %}{{ existing_data.conceitos }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Raciocínio Matricial <span class="text-slate-400">(RM)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 35</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="matricial" min="0" max="35" required placeholder="—" value="{% if existing_data %}{{ existing_data.matricial }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+
+                    <!-- Índice de Memória de Trabalho -->
+                    <tr class="bg-amber-50/60">
+                        <td colspan="2" class="px-5 py-2.5 text-xs font-semibold text-amber-800 uppercase tracking-wide">Índice de Memória de Trabalho (IMT)</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Dígitos <span class="text-slate-400">(DG)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 42</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="digitos" min="0" max="42" required placeholder="—" value="{% if existing_data %}{{ existing_data.digitos }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Seq. Letras e Números <span class="text-slate-400">(SNL)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 44</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="sequencias" min="0" max="44" required placeholder="—" value="{% if existing_data %}{{ existing_data.sequencias }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+
+                    <!-- Índice de Velocidade de Processamento -->
+                    <tr class="bg-green-50/60">
+                        <td colspan="2" class="px-5 py-2.5 text-xs font-semibold text-green-800 uppercase tracking-wide">Índice de Velocidade de Processamento (IVP)</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Códigos <span class="text-slate-400">(CD)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 119</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="codigos" min="0" max="119" required placeholder="—" value="{% if existing_data %}{{ existing_data.codigos }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-700">
+                            Procura de Símbolos <span class="text-slate-400">(PS)</span>
+                            <span class="text-xs text-slate-400 ml-1">máx. 60</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="procura_simbolos" min="0" max="60" required placeholder="—" value="{% if existing_data %}{{ existing_data.procura_simbolos }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                        </td>
+                    </tr>
+
+                    <!-- Subtestes Opcionais -->
+                    <tr class="bg-slate-100/80">
+                        <td colspan="2" class="px-5 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Subtestes Suplementares</td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-500">
+                            Completar Figuras <span class="text-slate-400">(CF)</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="cf" min="0" placeholder="—" value="{% if existing_data %}{{ existing_data.cf }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-slate-50">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-500">
+                            Cancelamento <span class="text-slate-400">(CA)</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="ca" min="0" placeholder="—" value="{% if existing_data %}{{ existing_data.ca }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-slate-50">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-500">
+                            Informação <span class="text-slate-400">(IN)</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="in" min="0" placeholder="—" value="{% if existing_data %}{{ existing_data.in }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-slate-50">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-500">
+                            Aritmética <span class="text-slate-400">(AR)</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="ar" min="0" placeholder="—" value="{% if existing_data %}{{ existing_data.ar }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-slate-50">
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-3 text-sm text-slate-500">
+                            Raciocínio com Palavras <span class="text-slate-400">(RP)</span>
+                        </td>
+                        <td class="px-5 py-3 text-center">
+                            <input type="number" name="rp" min="0" placeholder="—" value="{% if existing_data %}{{ existing_data.rp }}{% endif %}" class="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-slate-50">
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="px-5 py-3 border-t border-slate-200 bg-slate-50">
+            <p class="text-xs text-slate-500">Os subtestes suplementares não entram no cálculo dos índices, mas podem ser usados para análise complementar.</p>
+        </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'tests:list' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Voltar
+        </a>
+        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            Calcular e Salvar
+        </button>
+    </div>
+</form>
 {% endblock %}

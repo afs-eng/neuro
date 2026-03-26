@@ -69,3 +69,109 @@ class TestApplicationUpdateIn(Schema):
 
 class MessageOut(Schema):
     message: str
+
+
+# --- EBADEP-A ---
+
+
+class EBADEPASubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    item_01: int
+    item_02: int
+    item_03: int
+    item_04: int
+    item_05: int
+    item_06: int
+    item_07: int
+    item_08: int
+    item_09: int
+    item_10: int
+    item_11: int
+    item_12: int
+    item_13: int
+    item_14: int
+    item_15: int
+    item_16: int
+    item_17: int
+    item_18: int
+    item_19: int
+    item_20: int
+    item_21: int
+    item_22: int
+    item_23: int
+    item_24: int
+    item_25: int
+    item_26: int
+    item_27: int
+    item_28: int
+    item_29: int
+    item_30: int
+    item_31: int
+    item_32: int
+    item_33: int
+    item_34: int
+    item_35: int
+    item_36: int
+    item_37: int
+    item_38: int
+    item_39: int
+    item_40: int
+    item_41: int
+    item_42: int
+    item_43: int
+    item_44: int
+    item_45: int
+
+
+# --- EBADEP-IJ ---
+
+
+class EBADEPIJSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    item_01: int
+    item_02: int
+    item_03: int
+    item_04: int
+    item_05: int
+    item_06: int
+    item_07: int
+    item_08: int
+    item_09: int
+    item_10: int
+    item_11: int
+    item_12: int
+    item_13: int
+    item_14: int
+    item_15: int
+    item_16: int
+    item_17: int
+    item_18: int
+    item_19: int
+    item_20: int
+    item_21: int
+    item_22: int
+    item_23: int
+    item_24: int
+    item_25: int
+    item_26: int
+    item_27: int
+
+
+# --- BPA-2 ---
+
+
+class BPA2SubtestIn(Schema):
+    brutos: int = 0
+    erros: int = 0
+    omissoes: int = 0
+
+
+class BPA2SubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    norm_type: Optional[str] = "idade"
+    ac: BPA2SubtestIn
+    ad: BPA2SubtestIn
+    aa: BPA2SubtestIn

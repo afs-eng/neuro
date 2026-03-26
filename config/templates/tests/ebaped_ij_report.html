@@ -1,0 +1,232 @@
+{% extends "base/base.html" %}
+{% block title %}Relatório EBADEP-IJ - {{ patient.full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .report h1 { font-size: 22px; text-align: center; margin-bottom: 8px; color: #1e293b; }
+    .report h1 small { display: block; font-size: 14px; font-weight: 400; color: #64748b; margin-top: 4px; }
+    .report h2 { font-size: 16px; margin-top: 30px; margin-bottom: 12px; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    .report h3 { font-size: 14px; margin-top: 20px; margin-bottom: 8px; color: #334155; }
+    .report p { font-size: 13px; line-height: 1.7; margin-bottom: 12px; color: #334155; text-align: justify; }
+    .report hr { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+    .report strong { color: #1e293b; }
+    .report ul { font-size: 13px; color: #334155; padding-left: 20px; margin-bottom: 12px; }
+    .report ul li { margin-bottom: 4px; }
+    .dados-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 16px; }
+    .dados-grid .item { font-size: 13px; line-height: 1.6; }
+    .dados-grid .item span { color: #64748b; }
+    .tabela-resumo { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .tabela-resumo th { background: #1e293b; color: #fff; padding: 10px 12px; text-align: center; font-size: 12px; }
+    .tabela-resumo td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: center; }
+    .tabela-resumo tr:last-child { background: #f0f9ff; font-weight: 600; }
+    .respostas-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+    .resposta-item { display: inline-flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-family: 'Courier New', monospace; }
+    .resposta-item .num { color: #64748b; font-weight: 600; }
+    .resposta-item .val { font-weight: 700; }
+    .resposta-item .val-0 { color: #166534; }
+    .resposta-item .val-1 { color: #92400e; }
+    .resposta-item .val-2 { color: #991b1b; }
+    .badge-class { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; }
+    .badge-positivo1 { background: #dcfce7; color: #166534; }
+    .badge-positivo2 { background: #d1fae5; color: #065f46; }
+    .badge-leve { background: #fef3c7; color: #92400e; }
+    .badge-moderado { background: #fed7aa; color: #9a3412; }
+    .badge-grave { background: #fecaca; color: #991b1b; }
+    .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .info-box p { margin-bottom: 4px; font-size: 12px; }
+    .print-btn { margin-bottom: 20px; }
+    @media print {
+        .sidebar, .header, .nav-item, .print-btn, .btn { display: none !important; }
+        .main-content { margin-left: 0 !important; }
+        .report { padding: 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'evaluations:detail' evaluation.pk %}" class="text-blue-600 hover:underline">Avaliação</a>
+<span class="mx-2 text-slate-300">/</span>
+<span>Relatório EBADEP-IJ</span>
+{% endblock %}
+
+{% block content %}
+<div class="print-btn flex gap-3 mb-5">
+    <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Imprimir / PDF</button>
+    <a href="{% url 'tests:result' application.pk %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">Voltar ao Resultado</a>
+</div>
+
+<div class="report">
+    <h1>
+        EBADEP-IJ
+        <small>Escala Baptista de Depressão – Versão Infantojuvenil</small>
+        <small>Formato Completo</small>
+    </h1>
+
+    <hr>
+
+    <!-- Dados do Avaliado -->
+    <h2>Dados do Avaliado</h2>
+    <div class="dados-grid">
+        <div class="item"><span>Nome:</span> <strong>{{ patient.full_name }}</strong></div>
+        <div class="item"><span>Data da Aplicação:</span> {{ evaluation_date|date:"d/m/Y"|default:"-" }}</div>
+        <div class="item"><span>CPF:</span> —</div>
+        <div class="item"><span>Sexo:</span> {{ patient.sex|default:"-" }}</div>
+        <div class="item"><span>Idade:</span> {{ patient.age|default:"-" }} anos</div>
+        <div class="item"><span>Escolaridade:</span> {{ patient.schooling|default:"-" }}</div>
+        <div class="item"><span>Estado da Aplicação:</span> {{ patient.state|default:"-" }}</div>
+        <div class="item"><span>E-mail:</span> {{ patient.email|default:"-" }}</div>
+        <div class="item"><span>Profissional Responsável:</span> {{ examiner_name|default:"-" }}</div>
+    </div>
+
+    <h3>Tabela Normativa</h3>
+    <p style="font-size: 12px; color: #64748b;">Escore Bruto e T, Percentis e Estanino – 2018 – Amostra Geral</p>
+
+    <hr>
+
+    <!-- Introdução -->
+    <h2>Introdução</h2>
+    <p>
+        Condições clínicas relacionadas aos transtornos depressivos na infância e na adolescência vêm sendo
+        mais frequentes no contexto mundial atual. O DSM-5-TR descreve que, nessa faixa etária, o
+        Episódio Depressivo Maior pode se manifestar com humor mais irritável do que deprimido, especialmente
+        em crianças e pré-adolescentes.
+    </p>
+    <p>
+        Os sintomas depressivos podem ocorrer mesmo sem diagnóstico formal, variando em frequência, intensidade
+        e duração. Podem impactar relações sociais, familiares e o funcionamento cognitivo, afetivo e
+        comportamental. Em alguns casos, pode haver comportamento suicida, sendo essencial o diagnóstico diferencial.
+    </p>
+    <p>
+        A EBADEP-IJ foi desenvolvida com base em manuais psiquiátricos e teorias psicológicas relevantes
+        (cognitiva e comportamental), considerando a diversidade de expressão dos sintomas em crianças e adolescentes.
+    </p>
+
+    <hr>
+
+    <!-- Definição -->
+    <h2>Definição</h2>
+    <p>
+        A Escala Baptista de Depressão – versão Infantojuvenil (EBADEP-IJ) avalia a presença de sintomatologia
+        depressiva em crianças e adolescentes (7 a 18 anos), independentemente de diagnóstico prévio, sendo útil
+        para rastreamento e identificação de sintomas clinicamente significativos.
+    </p>
+
+    <hr>
+
+    <!-- Utilização do Relatório -->
+    <h2>Utilização do Relatório</h2>
+    <p>
+        Este documento não se constitui em um laudo técnico e não tem como finalidade traçar o perfil
+        psicológico completo do avaliado. Os dados apresentados devem ser interpretados em conjunto com
+        avaliação clínica aprofundada.
+    </p>
+
+    <hr>
+
+    <!-- Identificação do Relatório -->
+    <h2>Identificação do Relatório</h2>
+    <p><strong>Código do Avaliado:</strong> {{ application.evaluation.patient.pk }}</p>
+    <p><strong>Código do Relatório:</strong> {{ application.pk }}</p>
+    <p><strong>Data da Aplicação:</strong> {{ evaluation_date|date:"d/m/Y"|default:"-" }}</p>
+
+    <hr>
+
+    <!-- Resultados -->
+    <h2>Resultados</h2>
+    <p>O avaliado obteve:</p>
+    <ul>
+        <li><strong>Pontuação Bruta:</strong> {{ classified.pontuacao_total }}</li>
+        <li><strong>Percentil:</strong> {{ classified.normas.percentil|default:"—" }}</li>
+        <li><strong>Escore T:</strong> {{ classified.normas.T|default:"—" }}</li>
+        <li><strong>Estanino:</strong> {{ classified.normas.estanino|default:"—" }}</li>
+    </ul>
+
+    <h3>Classificação</h3>
+    {% if "Comportamento positivo 1" in classified.classificacao %}
+    <span class="badge-class badge-positivo1">{{ classified.classificacao }}</span>
+    {% elif "Comportamento positivo 2" in classified.classificacao %}
+    <span class="badge-class badge-positivo2">{{ classified.classificacao }}</span>
+    {% elif "leve" in classified.classificacao %}
+    <span class="badge-class badge-leve">{{ classified.classificacao }}</span>
+    {% elif "moderada" in classified.classificacao %}
+    <span class="badge-class badge-moderado">{{ classified.classificacao }}</span>
+    {% elif "grave" in classified.classificacao %}
+    <span class="badge-class badge-grave">{{ classified.classificacao }}</span>
+    {% else %}
+    <span class="badge-class">{{ classified.classificacao }}</span>
+    {% endif %}
+
+    <h3>Interpretação</h3>
+    <p>{{ interpretation_text }}</p>
+    {% if "leve" in classified.classificacao or "moderada" in classified.classificacao or "grave" in classified.classificacao %}
+    <p>Ainda assim, recomenda-se avaliação clínica complementar, especialmente quanto a:</p>
+    <ul>
+        <li>Humor deprimido ou irritável</li>
+        <li>Anedonia</li>
+        <li>Desesperança</li>
+        <li>Ideação suicida</li>
+    </ul>
+    {% endif %}
+
+    <hr>
+
+    <!-- Tabela Resumo -->
+    <h2>Tabela Resumo</h2>
+    <table class="tabela-resumo">
+        <thead>
+            <tr>
+                <th>Pontuação</th>
+                <th>Percentil</th>
+                <th>Escore T</th>
+                <th>Estanino</th>
+                <th>Categoria</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ classified.pontuacao_total }}</td>
+                <td>{{ classified.normas.percentil|default:"—" }}</td>
+                <td>{{ classified.normas.T|default:"—" }}</td>
+                <td>{{ classified.normas.estanino|default:"—" }}</td>
+                <td>{{ classified.classificacao }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <!-- Legenda de Respostas -->
+    <h2>Legenda de Respostas</h2>
+    <ul>
+        <li><strong>0</strong> = Nunca / Poucas vezes</li>
+        <li><strong>1</strong> = Algumas vezes</li>
+        <li><strong>2</strong> = Muitas vezes / Sempre</li>
+        <li><strong>99</strong> = Sem resposta</li>
+    </ul>
+
+    <hr>
+
+    <!-- Respostas do Instrumento -->
+    <h2>Respostas do Instrumento</h2>
+    <div class="respostas-grid">
+        {% for d in classified.result.detalhe_itens %}
+        <span class="resposta-item">
+            <span class="num">{{ d.item|stringformat:"03d" }}:</span>
+            <span class="val val-{{ d.corrigido }}">{{ d.resposta }}</span>
+        </span>
+        {% endfor %}
+    </div>
+
+    <hr>
+
+    <!-- Direitos Autorais -->
+    <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+        © 2025 Vetor Editora Psico-Pedagógica Ltda – São Paulo (Brasil)<br>
+        Reproduzido por Giunti Psychometrics Holding S.r.l. – Florence (Italy)<br>
+        Todos os direitos reservados.
+    </p>
+</div>
+{% endblock %}

@@ -1,45 +1,44 @@
 {% extends "base/base.html" %}
 {% block title %}Testes - NeuroAvalia{% endblock %}
-{% block nav_bpa2 %}active{% endblock %}
 
 {% block breadcrumb %}
-<a href="{% url 'dashboard' %}">Início</a>
-<span class="separator">/</span>
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
 <span>Testes</span>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">Testes Disponíveis</h1>
-    <p class="page-subtitle">Selecione um teste para aplicar (sem avaliação vinculada)</p>
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">Testes Disponíveis</h1>
+    <p class="text-sm text-slate-500 mt-1">Selecione um teste para aplicar (sem avaliação vinculada)</p>
 </div>
 
-<div class="stats-grid">
-    <a href="{% url 'tests:bpa2_standalone' %}" class="card" style="text-decoration: none; color: inherit;">
-        <div class="card-body" style="text-align: center; padding: 40px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">&#9827;</div>
-            <h3 style="margin-bottom: 8px;">BPA-2</h3>
-            <p style="color: var(--text-secondary); font-size: 14px;">Bateria de Provas Neuropsicológicas de Atenção</p>
-        </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <a href="{% url 'tests:bpa2_standalone' %}" class="bg-white rounded-xl border border-slate-200 p-8 text-center hover:border-blue-400 hover:shadow-lg transition-all group">
+        <div class="text-5xl mb-4 text-blue-600 group-hover:scale-110 transition-transform">&#9827;</div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">BPA-2</h3>
+        <p class="text-sm text-slate-500">Bateria de Provas Neuropsicológicas de Atenção</p>
     </a>
-    <a href="{% url 'tests:wisc4' %}" class="card" style="text-decoration: none; color: inherit;">
-        <div class="card-body" style="text-align: center; padding: 40px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">&#9829;</div>
-            <h3 style="margin-bottom: 8px;">WISC-4</h3>
-            <p style="color: var(--text-secondary); font-size: 14px;">Escala de Inteligência Wechsler para Crianças</p>
-        </div>
+    <a href="{% url 'tests:ebaped_ij_standalone' %}" class="bg-white rounded-xl border border-slate-200 p-8 text-center hover:border-purple-400 hover:shadow-lg transition-all group">
+        <div class="text-5xl mb-4 text-purple-600 group-hover:scale-110 transition-transform">&#9826;</div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">EBADEP-IJ</h3>
+        <p class="text-sm text-slate-500">Escala Baptista de Depressão – Versão Infantojuvenil</p>
+    </a>
+    <a href="{% url 'tests:ebadep_a_standalone' %}" class="bg-white rounded-xl border border-slate-200 p-8 text-center hover:border-rose-400 hover:shadow-lg transition-all group">
+        <div class="text-5xl mb-4 text-rose-500 group-hover:scale-110 transition-transform">&#9830;</div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">EBADEP-A</h3>
+        <p class="text-sm text-slate-500">Escala Baptista de Depressão – Versão Adulto</p>
+    </a>
+    <a href="{% url 'tests:wisc4_standalone' %}" class="bg-white rounded-xl border border-slate-200 p-8 text-center hover:border-red-400 hover:shadow-lg transition-all group">
+        <div class="text-5xl mb-4 text-red-500 group-hover:scale-110 transition-transform">&#9829;</div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">WISC-IV</h3>
+        <p class="text-sm text-slate-500">Escala de Inteligência Wechsler para Crianças</p>
     </a>
 </div>
 
-<div class="card" style="margin-top: 24px;">
-    <div class="card-header">
-        <h3 class="card-title">Dica</h3>
-    </div>
-    <div class="card-body">
-        <p style="color: var(--text-secondary);">
-            Para vincular testes a uma avaliação, acesse <strong>Avaliações</strong> e crie uma nova avaliação para o paciente.
-            Lá você poderá adicionar múltiplos testes e gerar o laudo final.
-        </p>
-    </div>
+<div class="bg-white rounded-xl border border-slate-200 p-5 mt-8">
+    <p class="text-sm text-slate-500">
+        <strong class="text-slate-700">Dica:</strong> Para vincular testes a uma avaliação, acesse <strong>Avaliações</strong> e crie uma nova avaliação para o paciente. Lá você poderá adicionar múltiplos testes e gerar o laudo final.
+    </p>
 </div>
 {% endblock %}

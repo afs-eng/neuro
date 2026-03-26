@@ -1,0 +1,255 @@
+{% extends "base/base.html" %}
+{% block title %}Relatório EBADEP-A - {{ patient.full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .report h1 { font-size: 22px; text-align: center; margin-bottom: 8px; color: #1e293b; }
+    .report h1 small { display: block; font-size: 14px; font-weight: 400; color: #64748b; margin-top: 4px; }
+    .report h2 { font-size: 16px; margin-top: 30px; margin-bottom: 12px; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    .report h3 { font-size: 14px; margin-top: 20px; margin-bottom: 8px; color: #334155; }
+    .report h4 { font-size: 13px; margin-top: 16px; margin-bottom: 8px; color: #475569; }
+    .report p { font-size: 13px; line-height: 1.7; margin-bottom: 12px; color: #334155; text-align: justify; }
+    .report hr { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+    .report strong { color: #1e293b; }
+    .report ul { font-size: 13px; color: #334155; padding-left: 20px; margin-bottom: 12px; }
+    .report ul li { margin-bottom: 4px; }
+    .dados-tabela { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+    .dados-tabela td { padding: 6px 12px; border: 1px solid #e2e8f0; }
+    .dados-tabela td:first-child { background: #f8fafc; font-weight: 600; color: #1e293b; width: 220px; }
+    .tabela-resumo { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .tabela-resumo th { background: #1e293b; color: #fff; padding: 10px 12px; text-align: center; font-size: 12px; }
+    .tabela-resumo td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: center; }
+    .tabela-resumo tr:last-child td { background: #f0f9ff; font-weight: 700; }
+    .tabela-respostas { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+    .tabela-respostas th { background: #f1f5f9; color: #475569; padding: 6px 8px; text-align: center; border: 1px solid #e2e8f0; font-size: 11px; }
+    .tabela-respostas td { padding: 6px 8px; text-align: center; border: 1px solid #e2e8f0; }
+    .badge-class { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; }
+    .badge-minima { background: #dcfce7; color: #166534; }
+    .badge-leve { background: #fef3c7; color: #92400e; }
+    .badge-moderada { background: #fed7aa; color: #9a3412; }
+    .badge-severa { background: #fecaca; color: #991b1b; }
+    .print-btn { margin-bottom: 20px; }
+    @media print {
+        .sidebar, .header, .nav-item, .print-btn, .btn { display: none !important; }
+        .main-content { margin-left: 0 !important; }
+        .report { padding: 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline">Início</a>
+<span class="mx-2 text-slate-300">/</span>
+<a href="{% url 'evaluations:detail' evaluation.pk %}" class="text-blue-600 hover:underline">Avaliação</a>
+<span class="mx-2 text-slate-300">/</span>
+<span>Relatório EBADEP-A</span>
+{% endblock %}
+
+{% block content %}
+<div class="print-btn flex gap-3 mb-5">
+    <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Imprimir / PDF</button>
+    <a href="{% url 'tests:result' application.pk %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">Voltar ao Resultado</a>
+</div>
+
+<div class="report">
+    <h1>
+        EBADEP-A
+        <small>Escala Baptista de Depressão – Versão Adulto</small>
+        <small>Formato Completo</small>
+    </h1>
+
+    <hr>
+
+    <!-- Dados do Avaliado -->
+    <h2>Dados do Avaliado</h2>
+    <table class="dados-tabela">
+        <tr><td>Nome</td><td>{{ patient.full_name }}</td></tr>
+        <tr><td>Data da Aplicação</td><td>{{ evaluation_date|date:"d/m/Y"|default:"-" }}</td></tr>
+        <tr><td>CPF</td><td></td></tr>
+        <tr><td>Sexo</td><td>{{ patient.sex|default:"-" }}</td></tr>
+        <tr><td>Idade</td><td>{{ patient.age|default:"-" }}</td></tr>
+        <tr><td>Escolaridade</td><td>{{ patient.schooling|default:"-" }}</td></tr>
+        <tr><td>Estado da Aplicação</td><td>{{ patient.state|default:"-" }}</td></tr>
+        <tr><td>E-mail</td><td>{{ patient.email|default:"-" }}</td></tr>
+        <tr><td>Profissional Responsável</td><td>{{ examiner_name|default:"-" }}</td></tr>
+        <tr><td>Tabela Normativa</td><td>Percentis - 2012 - Tabela Geral</td></tr>
+    </table>
+
+    <hr>
+
+    <!-- Introdução -->
+    <h2>Introdução</h2>
+    <p>
+        Os transtornos depressivos vêm sendo considerados altamente frequentes na atualidade. No entanto,
+        os sintomas depressivos podem ser observados nas pessoas independentemente da presença de transtornos
+        mentais, sejam de humor ou de outra natureza. Assim, considerando a visão dimensional dos transtornos
+        mentais, todos os indivíduos podem apresentar variação em termos de sintomas depressivos como traço
+        latente, podendo não expressar sintoma algum ou, em outro extremo, apresentar todos os sintomas em
+        determinada medida específica, variando também em intensidade e duração.
+    </p>
+    <p>
+        Os sintomas clinicamente significativos de depressão podem estar relacionados a diversos fatores de
+        risco e proteção, bem como ocasionar sofrimento importante, interferência nas relações sociais e
+        alterações cognitivas, afetivas e comportamentais, podendo inclusive culminar em comportamento suicida
+        ou estar associados a ele. Além disso, tais sintomas podem acarretar consequências negativas nas
+        atividades e relações do cotidiano, incluindo contextos ocupacionais, familiares e de lazer.
+    </p>
+    <p>
+        Diante da importância da avaliação da frequência, intensidade e duração dos sintomas depressivos, a
+        <strong>Escala Baptista de Depressão – Versão Adulto (EBADEP-A)</strong> oferece contribuição fundamental
+        para a avaliação dos sintomas de depressão, partindo da construção de itens baseados nos principais
+        manuais psiquiátricos e nas teorias psicológicas mais relevantes e cientificamente comprovadas,
+        especialmente as abordagens cognitiva e comportamental.
+    </p>
+    <p>O objetivo da EBADEP-A é situar o indivíduo em categorias específicas de sintomas de depressão, a saber:</p>
+    <ul>
+        <li>sem sintomas ou sintomas mínimos</li>
+        <li>sintomas depressivos leves</li>
+        <li>sintomas depressivos moderados</li>
+        <li>sintomas depressivos severos</li>
+    </ul>
+    <p>Essas categorias são organizadas em graus crescentes de sintomas, comparados à amostra normativa expressiva.</p>
+
+    <hr>
+
+    <!-- Definição -->
+    <h2>Definição</h2>
+    <p>
+        A <strong>Escala Baptista de Depressão – Versão Adulto (EBADEP-A)</strong> avalia a presença de
+        sintomatologia depressiva nos indivíduos, independentemente de diagnóstico prévio, sendo uma
+        ferramenta útil no rastreamento e no auxílio à detecção de transtornos de humor e/ou sintomas
+        clinicamente significativos de depressão.
+    </p>
+
+    <hr>
+
+    <!-- Utilização do Relatório -->
+    <h2>Utilização do Relatório</h2>
+    <p>
+        Este documento não se constitui em um laudo técnico, tampouco tem por finalidade traçar o perfil
+        psicológico ou comportamental da pessoa avaliada. Expressa dados qualitativos ou quantitativos
+        traduzidos em medidas e conceitos objetivos, que não esgotam a necessidade de uma compreensão mais
+        ampla do construto avaliado, conforme descrito no manual do instrumento.
+    </p>
+
+    <!-- Identificação do Relatório -->
+    <table class="dados-tabela">
+        <tr><td>Código do Avaliado</td><td>{{ application.evaluation.patient.pk }}</td></tr>
+        <tr><td>Código do Relatório</td><td>{{ application.pk }}</td></tr>
+        <tr><td>Data da Aplicação</td><td>{{ evaluation_date|date:"d/m/Y"|default:"-" }}</td></tr>
+    </table>
+
+    <hr>
+
+    <!-- Resultados -->
+    <h2>Resultados</h2>
+    <h3>Percentis - 2012 - Tabela Geral</h3>
+
+    <h4>Interpretação dos Resultados</h4>
+    <p>
+        {{ patient.full_name }} foi submetido(a) à <strong>EBADEP-A</strong> e obteve uma
+        <strong>pontuação bruta total de {{ classified.escore_total }} pontos</strong>, correspondente ao
+        <strong>percentil {{ classified.percentil }}</strong>.
+    </p>
+    <p>{{ interpretation_text }}</p>
+
+    {% if "Moderada" in classified.classificacao or "Severa" in classified.classificacao %}
+    <p>
+        A chance de haver um possível diagnóstico de transtorno de humor nessa faixa é relativamente alta,
+        principalmente se estiverem presentes os dois sintomas fundamentais para um possível diagnóstico de
+        transtorno de humor:
+    </p>
+    <ul>
+        <li>humor deprimido</li>
+        <li>perda de interesse ou prazer (anedonia)</li>
+    </ul>
+    <p>
+        É importante que o clínico avalie, em etapa subsequente, por meio de entrevista ou avaliação
+        aprofundada, a presença de sintomas fundamentais para um possível diagnóstico, tais como os
+        relacionados ao humor deprimido (por exemplo, itens 1, 2, 6 e 18) e à anedonia (por exemplo,
+        itens 5 e 17).
+    </p>
+    <p>
+        Também é importante investigar possíveis sintomas de desesperança e/ou ideação suicida (por exemplo,
+        itens 10, 12, 28, 29 e 33), pois tais sintomas, quando associados a diversos outros, podem aumentar
+        as chances de tentativa de suicídio, especialmente se houver histórico de tentativas anteriores.
+    </p>
+    {% endif %}
+
+    <h4>Resumo dos Resultados</h4>
+    <table class="tabela-resumo">
+        <thead>
+            <tr><th>Pontos</th><th>Percentil</th><th>Classificação</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>{{ classified.escore_total }}</strong></td>
+                <td><strong>{{ classified.percentil }}</strong></td>
+                <td><strong>{{ classified.classificacao }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Identificação repetida -->
+    <table class="dados-tabela">
+        <tr><td>Código do Avaliado</td><td>{{ application.evaluation.patient.pk }}</td></tr>
+        <tr><td>Código do Relatório</td><td>{{ application.pk }}</td></tr>
+        <tr><td>Data da Aplicação</td><td>{{ evaluation_date|date:"d/m/Y"|default:"-" }}</td></tr>
+    </table>
+
+    <hr>
+
+    <!-- Legenda -->
+    <h2>Legenda</h2>
+    <p>Considerando a posição dos círculos na folha de respostas, da esquerda para a direita:</p>
+    <ul>
+        <li><strong>(0)</strong> para o primeiro círculo</li>
+        <li><strong>(1)</strong> para o segundo círculo</li>
+        <li><strong>(2)</strong> para o terceiro círculo</li>
+        <li><strong>(3)</strong> para o quarto círculo</li>
+        <li><strong>(99)</strong> sem resposta</li>
+    </ul>
+
+    <hr>
+
+    <!-- Respostas -->
+    <h2>Respostas</h2>
+    <table class="tabela-respostas">
+        <thead>
+            <tr>
+                {% for i in "12345" %}
+                <th>Item</th><th>Resposta</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in classified.result.detalhe_itens %}
+            {% if forloop.counter0|divisibleby:5 %}
+            {% if not forloop.first %}</tr>{% endif %}
+            <tr>
+            {% endif %}
+                <td>{{ d.item|stringformat:"03d" }}</td>
+                <td>{{ d.resposta }}</td>
+            {% if forloop.last %}</tr>{% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Identificação repetida -->
+    <table class="dados-tabela">
+        <tr><td>Código do Avaliado</td><td>{{ application.evaluation.patient.pk }}</td></tr>
+        <tr><td>Código do Relatório</td><td>{{ application.pk }}</td></tr>
+        <tr><td>Data da Aplicação</td><td>{{ evaluation_date|date:"d/m/Y"|default:"-" }}</td></tr>
+    </table>
+
+    <hr style="margin-top: 40px;">
+
+    <!-- Direitos Autorais -->
+    <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+        © 2025 Vetor Editora Psico-Pedagógica Ltda – São Paulo (Brasil)<br>
+        Reproduzido por Giunti Psychometrics Holding S.r.l. – Florence (Italy)<br>
+        Todos os direitos reservados.
+    </p>
+</div>
+{% endblock %}

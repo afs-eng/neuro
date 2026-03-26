@@ -1,11 +1,8 @@
-from email.policy import default
 from enum import unique
-from annotated_types import MaxLen
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 import secrets
 
-from django.utils.html import MAX_URL_LENGTH 
 
 class UserRole(models.TextChoices):
     ADMIN = "admin", "Administrador"
@@ -14,8 +11,10 @@ class UserRole(models.TextChoices):
     REVIEWER = "reviewer", "Revisor"
     READONLY = "readonly", "Somente leitura"
 
+
 def generate_api_token():
     return secrets.token_hex(32)
+
 
 class User(AbstractUser):
     full_name = models.CharField(max_length=255, blank=True)
@@ -29,11 +28,11 @@ class User(AbstractUser):
     specialty = models.CharField(max_length=120, blank=True)
     is_active_clinical = models.BooleanField(default=True)
     api_token = models.CharField(
-        max_length= 128,
-        unique= True,
-        default = generate_api_token,
+        max_length=128,
+        unique=True,
+        default=generate_api_token,
     )
-    
+
     def __str__(self):
         return self.display_name
 
