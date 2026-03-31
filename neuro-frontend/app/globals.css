@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f3f0e4;
+  --foreground: #1a1a1a;
+  --card: #f6f4ed;
+  --card-foreground: #1a1a1a;
+  --primary: #1a1a1a;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e4d6;
+  --secondary-foreground: #1a1a1a;
+  --muted: #d6d0c8;
+  --muted-foreground: #525252;
+  --accent: #cbb79d;
+  --accent-foreground: #1a1a1a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #d4d0c8;
+  --input: #e8e4d6;
+  --ring: #1a1a1a;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5;
+  }
+  
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-zinc-900 text-white hover:bg-zinc-800;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-zinc-900 border border-black/10 hover:bg-zinc-50;
+  }
+  
+  .input {
+    @apply rounded-xl border border-black/10 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20;
+  }
+  
+  .sidebar {
+    @apply fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-zinc-900 to-zinc-800 text-white;
+  }
+  
+  .nav-item {
+    @apply flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-zinc-300 transition-all hover:bg-white/10 hover:text-white;
+  }
+  
+  .nav-item-active {
+    @apply bg-gradient-to-r from-amber-400 to-amber-500 text-zinc-900 shadow-lg shadow-amber-500/25;
+  }
+}

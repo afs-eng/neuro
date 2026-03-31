@@ -9,26 +9,28 @@ class PatientOut(Schema):
     id: int
     full_name: str
     birth_date: Optional[date] = None
-    sex: str
-    schooling: str
-    school_name: str
-    occupation: str
-    mother_name: str
-    father_name: str
-    phone: str
-    email: str
-    city: str
-    state: str
-    notes: str
+    sex: Optional[str] = None
+    schooling: Optional[str] = None
+    school_name: Optional[str] = None
+    grade_year: Optional[str] = None
+    mother_name: Optional[str] = None
+    father_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    notes: Optional[str] = None
+    responsible_name: Optional[str] = None
+    responsible_phone: Optional[str] = None
 
 
 class PatientCreateIn(Schema):
     full_name: str
-    birth_date: Optional[date] = None
-    sex: Optional[str] = ""
-    schooling: Optional[str] = ""
-    school_name: Optional[str] = ""
-    occupation: Optional[str] = ""
+    birth_date: date
+    sex: str
+    schooling: str
+    school_name: str
+    grade_year: Optional[str] = ""
     mother_name: Optional[str] = ""
     father_name: Optional[str] = ""
     phone: Optional[str] = ""
@@ -36,6 +38,8 @@ class PatientCreateIn(Schema):
     city: Optional[str] = ""
     state: Optional[str] = ""
     notes: Optional[str] = ""
+    responsible_name: Optional[str] = ""
+    responsible_phone: Optional[str] = ""
 
 
 class PatientUpdateIn(Schema):
@@ -44,7 +48,7 @@ class PatientUpdateIn(Schema):
     sex: Optional[str] = None
     schooling: Optional[str] = None
     school_name: Optional[str] = None
-    occupation: Optional[str] = None
+    grade_year: Optional[str] = None
     mother_name: Optional[str] = None
     father_name: Optional[str] = None
     phone: Optional[str] = None
@@ -52,6 +56,8 @@ class PatientUpdateIn(Schema):
     city: Optional[str] = None
     state: Optional[str] = None
     notes: Optional[str] = None
+    responsible_name: Optional[str] = None
+    responsible_phone: Optional[str] = None
 
 
 class MessageOut(Schema):

@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import authenticate
 from ninja import Router
 from ninja.errors import HttpError
 from ninja.security import django_auth
@@ -11,10 +12,38 @@ from apps.accounts.selectors import get_active_users
 from apps.accounts.services import create_user, update_user
 from apps.accounts.services import regenerate_api_token
 
-from .schemas import ApiTokenOut, UserOut, MeOut, CreateUserIn, UpdateUserIn, MessageOut
+from .schemas import (
+    ApiTokenOut,
+    UserOut,
+    MeOut,
+    CreateUserIn,
+    UpdateUserIn,
+    MessageOut,
+    LoginIn,
+    LoginOut,
+)
 
 
 router = Router(tags=["accounts"])
+
+
+@router.post("/login", response=LoginOut)
+def login(request, payload: LoginIn):
+    user = authenticate(username=payload.username, password=payload.password)
+    if not user:
+        raise HttpError(401, "Credenciais inválidas")
+    if not user.is_active:
+        raise HttpError(403, "Usuário inativo")
+    return {
+        "access": user.api_token,
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.display_name,
+            "role": user.role,
+        },
+    }
 
 
 @router.get("/me", response=MeOut, auth=django_auth)
@@ -76,7 +105,9 @@ def create_user_endpoint(request, payload: CreateUserIn):
     }
 
 
-@router.patch("/users/{user_id}", response={200: UserOut, 403: MessageOut}, auth=django_auth)
+@router.patch(
+    "/users/{user_id}", response={200: UserOut, 403: MessageOut}, auth=django_auth
+)
 def update_user_endpoint(request, user_id: int, payload: UpdateUserIn):
     if not can_manage_users(request):
         return 403, {"message": "Você não tem permissão para editar usuários."}
@@ -98,11 +129,13 @@ def update_user_endpoint(request, user_id: int, payload: UpdateUserIn):
         "is_active_clinical": user.is_active_clinical,
     }
 
-@router.get('/token', response=ApiTokenOut, auth=bearer_auth)
-def get_api_token(request):
-    return {'api_token': request.auth.api_token}
 
-@router.post('/token/regenerate', response=ApiTokenOut, auth=bearer_auth)
+@router.get("/token", response=ApiTokenOut, auth=bearer_auth)
+def get_api_token(request):
+    return {"api_token": request.auth.api_token}
+
+
+@router.post("/token/regenerate", response=ApiTokenOut, auth=bearer_auth)
 def regenerate_token_endpoint(request):
     user = regenerate_api_token(request.auth)
-    return {'api_token': user.api_token}
+    return {"api_token": user.api_token}

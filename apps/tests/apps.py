@@ -11,3 +11,5 @@ class TestsConfig(AppConfig):
         from apps.tests.wisc4 import WISC4Module  # noqa
         from apps.tests.ebaped_ij import EBADEPIJModule  # noqa
         from apps.tests.ebadep_a import EBADEPAModule  # noqa
+        from apps.tests.epq_j import EPQJModule  # noqa
+        from apps.tests.etdah_ad import ETDAHADModule  # noqa

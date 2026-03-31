@@ -2,10 +2,11 @@ from ninja import Schema
 from pydantic import EmailStr
 from typing import Optional
 
+
 class ApiTokenOut(Schema):
     api_token: str
 
-    
+
 class UserOut(Schema):
     id: int
     username: str
@@ -57,3 +58,13 @@ class UpdateUserIn(Schema):
 
 class MessageOut(Schema):
     message: str
+
+
+class LoginIn(Schema):
+    username: str
+    password: str
+
+
+class LoginOut(Schema):
+    access: str
+    user: dict

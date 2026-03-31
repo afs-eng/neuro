@@ -35,8 +35,8 @@ class PatientAdmin(admin.ModelAdmin):
                     "birth_date",
                     "sex",
                     "schooling",
+                    "grade_year",
                     "school_name",
-                    "occupation",
                 )
             },
         ),
@@ -54,15 +54,20 @@ class PatientAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Observações",
+            "Responsável",
             {
-                "fields": ("notes",)
+                "fields": (
+                    "responsible_name",
+                    "responsible_phone",
+                )
             },
         ),
         (
+            "Observações",
+            {"fields": ("notes",)},
+        ),
+        (
             "Controle",
-            {
-                "fields": ("created_at", "updated_at")
-            },
+            {"fields": ("created_at", "updated_at")},
         ),
     )

@@ -5,6 +5,7 @@ from apps.api.auth import bearer_auth
 from apps.accounts.models import UserRole
 from apps.evaluations.models import Evaluation
 from apps.tests.models import Instrument
+from apps.tests.api.schemas import EPQJSubmitIn
 from apps.tests.selectors import (
     get_instrument_by_id,
     get_instruments,
@@ -17,11 +18,36 @@ from apps.tests.services import (
     update_test_application,
     TestScoringService,
 )
+from datetime import date as date_cls
+from dateutil.relativedelta import relativedelta
+
+
+def calcAge(birth_date):
+    today = date_cls.today()
+    return relativedelta(today, birth_date).years
+
+
+def get_faixa_wisc(age):
+    if 6 <= age <= 7:
+        return "6-7 anos"
+    elif 8 <= age <= 9:
+        return "8-9 anos"
+    elif 10 <= age <= 11:
+        return "10-11 anos"
+    elif 12 <= age <= 13:
+        return "12-13 anos"
+    elif 14 <= age <= 15:
+        return "14-15 anos"
+    elif age == 16:
+        return "16 anos"
+    return "6-7 anos"
+
 
 from .schemas import (
     BPA2SubmitIn,
     EBADEPIJSubmitIn,
     EBADEPASubmitIn,
+    ETDAHADSubmitIn,
     InstrumentOut,
     InstrumentCreateIn,
     InstrumentUpdateIn,
@@ -29,6 +55,7 @@ from .schemas import (
     TestApplicationCreateIn,
     TestApplicationUpdateIn,
     MessageOut,
+    WISC4SubmitIn,
 )
 
 
@@ -375,6 +402,9 @@ def ebadep_ij_submit(request, payload: EBADEPIJSubmitIn) -> tuple[int, dict]:
     from datetime import date as date_cls
     from apps.tests.ebaped_ij import EBADEPIJModule
     from apps.tests.base.types import TestContext
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from apps.evaluations.models import Evaluation
 
     if not can_edit_tests(request.auth):
         return 403, {"message": "Você não tem permissão para submeter testes."}
@@ -472,6 +502,8 @@ def bpa2_submit(request, payload: BPA2SubmitIn) -> tuple[int, dict]:
     from apps.tests.bpa2 import BPA2Module
     from apps.tests.base.types import TestContext
     from apps.tests.bpa2.calculators import get_age_group
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
 
     if not can_edit_tests(request.auth):
         return 403, {"message": "Você não tem permissão para submeter testes."}
@@ -596,4 +628,325 @@ def bpa2_result(request, application_id: int) -> tuple[int, dict]:
         "norm_type": classified.get("norm_type", ""),
         "ag_classificacao": ag.get("classificacao", ""),
         "interpretation": application.interpretation_text or "",
+    }
+
+
+# --- WISC-IV ---
+
+
+@router.post(
+    "/wisc4/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def wisc4_submit(request, payload: WISC4SubmitIn) -> tuple[int, dict]:
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from datetime import timedelta
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    patient = evaluation.patient
+    if not patient.birth_date:
+        return 400, {"message": "Paciente não tem data de nascimento."}
+
+    age = calcAge(patient.birth_date)
+
+    # WISC-IV é indicado para pacientes de 6 anos até 16 anos e 11 meses
+    today = date_cls.today()
+    max_age_date = patient.birth_date + timedelta(
+        days=16 * 365 + 364
+    )  # 16 anos e 364 dias
+    min_age_date = patient.birth_date + timedelta(days=6 * 365)  # 6 anos
+
+    if today < min_age_date:
+        return 400, {"message": "WISC-IV é indicado para pacientes a partir de 6 anos."}
+    if today > max_age_date:
+        return 400, {
+            "message": "WISC-IV é indicado para pacientes de até 16 anos e 11 meses."
+        }
+    raw_scores = {
+        "cubos": int(payload.cb) if payload.cb else 0,
+        "semelhancas": int(payload.sm) if payload.sm else 0,
+        "digitos": int(payload.dg) if payload.dg else 0,
+        "conceitos": int(payload.cn) if payload.cn else 0,
+        "codigos": int(payload.cd) if payload.cd else 0,
+        "vocabulario": int(payload.vc) if payload.vc else 0,
+        "sequencias": int(payload.snl) if payload.snl else 0,
+        "matricial": int(payload.rm) if payload.rm else 0,
+        "compreensao": int(payload.co) if payload.co else 0,
+        "procura_simbolos": int(payload.ps) if payload.ps else 0,
+        "cf": int(payload.cf) if payload.cf else 0,
+        "ca": int(payload.ca) if payload.ca else 0,
+        "in": int(payload.in_) if payload.in_ else 0,
+        "rp": int(payload.rp) if payload.rp else 0,
+    }
+
+    faixa = get_faixa_wisc(age)
+
+    from apps.tests.wisc4 import WISC4Module
+    from apps.tests.base.types import TestContext
+
+    reviewed_scores = {
+        "birth_date": str(patient.birth_date),
+        "evaluation_date": str(date_cls.today()),
+        "confidence_level": "95",
+    }
+
+    ctx = TestContext(
+        patient_name=patient.full_name,
+        evaluation_id=evaluation.id,
+        instrument_code="wisc4",
+        raw_scores=raw_scores,
+        reviewed_scores=reviewed_scores,
+    )
+
+    wisc_module = WISC4Module()
+    computed = wisc_module.compute(ctx)
+    classified = wisc_module.classify(computed, faixa="95")
+    interpretation = wisc_module.interpret(ctx, {**computed, **classified})
+
+    instrument = Instrument.objects.filter(code="wisc4", is_active=True).first()
+    if not instrument:
+        instrument = Instrument.objects.filter(code="WISC-IV", is_active=True).first()
+    if not instrument:
+        instrument = Instrument.objects.filter(code="WISC-4", is_active=True).first()
+    if not instrument:
+        instrument = Instrument.objects.filter(
+            code__icontains="wisc", is_active=True
+        ).first()
+
+    if not instrument:
+        return 404, {"message": "Instrumento WISC-IV não encontrado."}
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": date_cls.today()},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.save()
+
+    return 200, {
+        "application_id": application.id,
+        "age": age,
+        "faixa": faixa,
+        "scores": raw_scores,
+        "classified": classified,
+    }
+
+
+# --- Generic Application Result ---
+
+
+@router.get(
+    "/applications/{application_id}",
+    response={200: dict, 404: MessageOut},
+    auth=bearer_auth,
+)
+def get_application_result(request, application_id: int) -> tuple[int, dict]:
+    application = get_test_application_by_id(application_id)
+    if not application:
+        return 404, {"message": "Aplicação de teste não encontrada."}
+
+    return 200, {
+        "application_id": application.pk,
+        "evaluation_id": application.evaluation_id,
+        "patient_name": application.evaluation.patient.full_name,
+        "patient_birth_date": application.evaluation.patient.birth_date,
+        "instrument_code": application.instrument.code,
+        "instrument_name": application.instrument.name,
+        "applied_on": application.applied_on,
+        "raw_payload": application.raw_payload or {},
+        "computed_payload": application.computed_payload or {},
+        "classified_payload": application.classified_payload or {},
+        "interpretation_text": application.interpretation_text or "",
+        "is_validated": application.is_validated,
+    }
+
+
+# --- EPQ-J ---
+
+
+@router.post(
+    "/epq-j/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def epq_j_submit(request, payload: EPQJSubmitIn) -> tuple[int, dict]:
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from apps.tests.epq_j.calculators import (
+        calcular_escore,
+        obter_percentil_e_classificacao,
+    )
+    from datetime import date as date_cls
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    instrument = Instrument.objects.filter(code="epq_j", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento EPQ-J não encontrado."}
+
+    raw_scores = {}
+    for i in range(1, 61):
+        key = f"item_{i:02d}"
+        raw_scores[key] = getattr(payload, key, 0) or 0
+
+    escores = calcular_escore(raw_scores)
+    resultados = obter_percentil_e_classificacao(
+        escores["P"], escores["E"], escores["N"], escores["S"], payload.sexo
+    )
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": payload.applied_on or date_cls.today()},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = {
+        "escore_bruto": escores,
+        "resultados": resultados,
+        "sexo": payload.sexo,
+    }
+    application.classified_payload = {
+        "fatores": resultados,
+        "sexo": payload.sexo,
+    }
+    application.is_validated = True
+    application.applied_on = payload.applied_on or date_cls.today()
+    application.save()
+
+    return 200, {
+        "application_id": application.pk,
+        "escore_bruto": escores,
+        "resultados": resultados,
+    }
+
+
+# --- ETDAH-AD ---
+
+
+@router.post(
+    "/etdah-ad/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def etdah_ad_submit(request, payload: ETDAHADSubmitIn) -> tuple[int, dict]:
+    from datetime import date as date_cls
+    from apps.tests.etdah_ad import ETDAHADModule
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from apps.evaluations.models import Evaluation
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    patient = evaluation.patient
+    examiner = evaluation.examiner
+
+    responses = {}
+    for i in range(1, 70):
+        key = f"item_{i:02d}"
+        responses[i] = getattr(payload, key, 0)
+
+    raw_scores = {
+        "patient_id": patient.pk,
+        "examiner_id": examiner.pk if examiner else None,
+        "age": patient.age or 0,
+        "schooling": patient.schooling or "elementary",
+        "responses": responses,
+    }
+
+    module = ETDAHADModule()
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="etdah_ad",
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    instrument = Instrument.objects.filter(code="etdah_ad", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento ETDAH-AD não encontrado."}
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": payload.applied_on or date_cls.today()},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = payload.applied_on or date_cls.today()
+    application.save()
+
+    results = classified.get("results", {})
+
+    return 200, {
+        "application_id": application.pk,
+        "raw_scores": classified.get("raw_scores", {}),
+        "results": results,
+        "interpretation": interpretation,
+    }
+
+
+@router.get(
+    "/etdah-ad/result/{application_id}",
+    response={200: dict, 404: MessageOut},
+    auth=bearer_auth,
+)
+def etdah_ad_result(request, application_id: int) -> tuple[int, dict]:
+    application = get_test_application_by_id(application_id)
+    if not application:
+        return 404, {"message": "Aplicação de teste não encontrada."}
+
+    if application.instrument.code != "etdah_ad":
+        return 404, {"message": "Aplicação não é do tipo ETDAH-AD."}
+
+    classified = application.classified_payload or {}
+
+    return 200, {
+        "application_id": application.pk,
+        "evaluation_id": application.evaluation_id,
+        "patient_name": application.evaluation.patient.full_name,
+        "applied_on": application.applied_on,
+        "raw_scores": classified.get("raw_scores", {}),
+        "results": classified.get("results", {}),
+        "interpretation": application.interpretation_text or "",
+        "raw_payload": application.raw_payload or {},
+        "computed_payload": application.computed_payload or {},
+        "classified_payload": application.classified_payload or {},
     }

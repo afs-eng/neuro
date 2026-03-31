@@ -1,0 +1,264 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { api } from '@/lib/api'
+
+interface Subtest {
+  code: string
+  name: string
+  maxScore: number
+  optional: boolean
+}
+
+const subtests: Subtest[] = [
+  { code: 'CB', name: 'Cubos', maxScore: 68, optional: false },
+  { code: 'SM', name: 'Semelhanças', maxScore: 44, optional: false },
+  { code: 'DG', name: 'Dígitos', maxScore: 32, optional: false },
+  { code: 'CN', name: 'Conceitos Figurativos', maxScore: 28, optional: false },
+  { code: 'CD', name: 'Código', maxScore: 119, optional: false },
+  { code: 'VC', name: 'Vocabulário', maxScore: 68, optional: false },
+  { code: 'SNL', name: 'Seq. de Núm. e Letras', maxScore: 30, optional: false },
+  { code: 'RM', name: 'Raciocínio Matricial', maxScore: 41, optional: false },
+  { code: 'CO', name: 'Compreensão', maxScore: 47, optional: false },
+  { code: 'PS', name: 'Procurar Símbolos', maxScore: 60, optional: false },
+  { code: 'CF', name: 'Completar Figuras', maxScore: 38, optional: true },
+  { code: 'CA', name: 'Cancelamento', maxScore: 60, optional: true },
+  { code: 'IN', name: 'Informação', maxScore: 30, optional: true },
+  { code: 'RP', name: 'Raciocínio com Palavras', maxScore: 32, optional: true },
+]
+
+const indices = [
+  { code: 'ICV', name: 'Compreensão Verbal', subtests: ['SM', 'VC', 'CO'] },
+  { code: 'IOP', name: 'Organização Perceptual', subtests: ['CB', 'CN', 'RM'] },
+  { code: 'IMO', name: 'Memória Operacional', subtests: ['DG', 'SNL'] },
+  { code: 'IVP', name: 'Velocidade de Processamento', subtests: ['CD', 'PS'] },
+]
+
+export default function WISC4FormPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [scores, setScores] = useState<Record<string, number>>({})
+  const [evaluation, setEvaluation] = useState<any>(null)
+  const [loadingEvaluation, setLoadingEvaluation] = useState(true)
+
+  const evaluationId = searchParams.get("evaluation_id");
+  const applicationId = searchParams.get("application_id");
+
+  useEffect(() => {
+    async function fetchEvaluation() {
+      if (!evaluationId) {
+        setLoadingEvaluation(false);
+        return;
+      }
+
+      if (applicationId) {
+        try {
+          const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
+          if (result && result.is_validated) {
+            router.push(`/dashboard/tests/wisc4/${applicationId}/result`)
+            return
+          }
+          if (result && result.raw_payload) {
+            const raw = result.raw_payload
+            const existingScores: Record<string, number> = {}
+            const codes = ['CB', 'SM', 'DG', 'CN', 'CD', 'VC', 'SNL', 'RM', 'CO', 'PS', 'CF', 'CA', 'IN', 'RP']
+            const keys = ['cubos', 'semelhancas', 'digitos', 'conceitos', 'codigos', 'vocabulario', 'sequencias', 'matricial', 'compreensao', 'procura_simbolos', 'cf', 'ca', 'in', 'rp']
+            keys.forEach((key, idx) => {
+              if (raw[key] !== undefined) {
+                existingScores[codes[idx]] = raw[key]
+              }
+            })
+            setScores(existingScores)
+          }
+        } catch (error) {
+          console.log("Teste não encontrado, redirecionando para formulário...")
+        }
+      }
+
+      try {
+        const data = await api.get<any>(`/api/evaluations/${evaluationId}`)
+        setEvaluation(data)
+      } catch (error: any) {
+        console.error("Erro ao buscar avaliação:", error)
+      } finally {
+        setLoadingEvaluation(false)
+      }
+    }
+    fetchEvaluation()
+  }, [evaluationId, applicationId])
+
+  const handleScoreChange = (code: string, value: string) => {
+    const numValue = parseInt(value) || 0
+    setScores(prev => ({ ...prev, [code]: numValue }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!evaluationId) {
+      alert('ID da avaliação não encontrado. Acesse este teste através de uma avaliação.')
+      return
+    }
+
+    const payload = {
+      evaluation_id: parseInt(evaluationId),
+      cb: String(scores['CB'] || ''),
+      sm: String(scores['SM'] || ''),
+      dg: String(scores['DG'] || ''),
+      cn: String(scores['CN'] || ''),
+      cd: String(scores['CD'] || ''),
+      vc: String(scores['VC'] || ''),
+      snl: String(scores['SNL'] || ''),
+      rm: String(scores['RM'] || ''),
+      co: String(scores['CO'] || ''),
+      ps: String(scores['PS'] || ''),
+      cf: String(scores['CF'] || ''),
+      ca: String(scores['CA'] || ''),
+      in_: String(scores['IN'] || ''),
+      rp: String(scores['RP'] || ''),
+    }
+
+    console.log('Payload WISC-IV:', payload)
+
+    try {
+      const result = await api.post<{ application_id: number }>('/api/tests/wisc4/submit', payload)
+      alert('WISC-IV salvo com sucesso!')
+      router.push(`/dashboard/tests/wisc4/${result.application_id}/result`)
+    } catch (error: any) {
+      console.error('Erro completo:', error)
+      alert('Erro ao salvar. Ver console para detalhes.')
+    }
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-slate-300 p-6 md:p-10">
+      <div className="mx-auto max-w-7xl rounded-[36px] bg-[#f3f0e4] p-5 shadow-2xl ring-1 ring-black/5 md:p-7">
+        <div className="rounded-[28px] bg-gradient-to-r from-[#f6f4ed] via-[#f2efe4] to-[#efe7bf] p-5 md:p-6">
+          {/* Header */}
+          <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="rounded-full border border-black/20 bg-white/70 px-5 py-2 text-lg font-medium tracking-tight text-zinc-800 shadow-sm">
+                NeuroAvalia
+              </div>
+            </div>
+
+            <nav className="flex flex-wrap items-center gap-2 rounded-full bg-white/70 px-3 py-2 text-sm text-zinc-700 shadow-sm">
+              <Link href="/dashboard" className="rounded-full px-4 py-2 hover:bg-black/5">Dashboard</Link>
+              <Link href="/dashboard/patients" className="rounded-full px-4 py-2 hover:bg-black/5">Pacientes</Link>
+              <Link href="/dashboard/evaluations" className="rounded-full px-4 py-2 hover:bg-black/5">Avaliações</Link>
+              <Link href="/dashboard/tests" className="rounded-full px-4 py-2 bg-zinc-900 text-white shadow">Testes</Link>
+              <Link href="/dashboard/reports" className="rounded-full px-4 py-2 hover:bg-black/5">Laudos</Link>
+            </nav>
+          </header>
+
+          {/* Page Title */}
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-medium tracking-tight text-zinc-900">WISC-IV</h1>
+              <p className="mt-1 text-sm text-zinc-600">Escala de Inteligência Wechsler para Crianças</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Patient Selection */}
+            <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+              <h3 className="mb-4 text-lg font-semibold text-zinc-900">Informações</h3>
+              {loadingEvaluation ? (
+                <div className="text-center py-4 text-zinc-500">Carregando dados do paciente...</div>
+              ) : evaluation ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-zinc-700">Paciente</label>
+                    <div className="w-full rounded-2xl border border-black/10 bg-slate-50 px-4 py-3 text-sm shadow-sm">
+                      {evaluation.patient_name}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-zinc-700">Data de nascimento</label>
+                    <div className="w-full rounded-2xl border border-black/10 bg-slate-50 px-4 py-3 text-sm shadow-sm">
+                      {evaluation.patient_birth_date || "—"}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-red-500">Avaliação não encontrada</div>
+              )}
+            </div>
+
+            {/* Subtests */}
+            <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+              <h3 className="mb-4 text-lg font-semibold text-zinc-900">Escores Brutos</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {subtests.map((subtest) => (
+                  <div key={subtest.code} className={`rounded-2xl border p-4 shadow-sm ${subtest.optional ? 'border-dashed border-amber-200 bg-amber-50/50' : 'border-black/10 bg-white'}`}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-medium text-zinc-900">{subtest.name}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${subtest.optional ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                        {subtest.code}
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      max={subtest.maxScore}
+                      value={scores[subtest.code] || ''}
+                      onChange={(e) => handleScoreChange(subtest.code, e.target.value)}
+                      placeholder={`0 - ${subtest.maxScore}`}
+                      className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                    />
+                    {subtest.optional && (
+                      <span className="mt-1 block text-xs text-amber-600">Opcional</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Indexes Preview */}
+            <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+              <h3 className="mb-4 text-lg font-semibold text-zinc-900">Índices</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {indices.map((idx) => {
+                  const subtestScores = idx.subtests.map(code => scores[code] || 0)
+                  const sum = subtestScores.reduce((a, b) => a + b, 0)
+                  return (
+                    <div key={idx.code} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-zinc-900">{idx.name}</span>
+                        <span className="text-sm text-zinc-500">({idx.code})</span>
+                      </div>
+                      <div className="mt-2 text-2xl font-semibold text-zinc-900">
+                        {sum > 0 ? sum : '—'}
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500">
+                        Soma dos escores: {subtestScores.join(' + ')}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-4">
+              <Link
+                href="/patients"
+                className="rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
+              >
+                Cancelar
+              </Link>
+              <button
+                type="submit"
+                className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-medium text-white shadow-lg hover:bg-zinc-800"
+              >
+                Calcular Resultado
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}

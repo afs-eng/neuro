@@ -77,51 +77,51 @@ class MessageOut(Schema):
 class EBADEPASubmitIn(Schema):
     evaluation_id: int
     applied_on: Optional[date] = None
-    item_01: int
-    item_02: int
-    item_03: int
-    item_04: int
-    item_05: int
-    item_06: int
-    item_07: int
-    item_08: int
-    item_09: int
-    item_10: int
-    item_11: int
-    item_12: int
-    item_13: int
-    item_14: int
-    item_15: int
-    item_16: int
-    item_17: int
-    item_18: int
-    item_19: int
-    item_20: int
-    item_21: int
-    item_22: int
-    item_23: int
-    item_24: int
-    item_25: int
-    item_26: int
-    item_27: int
-    item_28: int
-    item_29: int
-    item_30: int
-    item_31: int
-    item_32: int
-    item_33: int
-    item_34: int
-    item_35: int
-    item_36: int
-    item_37: int
-    item_38: int
-    item_39: int
-    item_40: int
-    item_41: int
-    item_42: int
-    item_43: int
-    item_44: int
-    item_45: int
+    item_01: int = 0
+    item_02: int = 0
+    item_03: int = 0
+    item_04: int = 0
+    item_05: int = 0
+    item_06: int = 0
+    item_07: int = 0
+    item_08: int = 0
+    item_09: int = 0
+    item_10: int = 0
+    item_11: int = 0
+    item_12: int = 0
+    item_13: int = 0
+    item_14: int = 0
+    item_15: int = 0
+    item_16: int = 0
+    item_17: int = 0
+    item_18: int = 0
+    item_19: int = 0
+    item_20: int = 0
+    item_21: int = 0
+    item_22: int = 0
+    item_23: int = 0
+    item_24: int = 0
+    item_25: int = 0
+    item_26: int = 0
+    item_27: int = 0
+    item_28: int = 0
+    item_29: int = 0
+    item_30: int = 0
+    item_31: int = 0
+    item_32: int = 0
+    item_33: int = 0
+    item_34: int = 0
+    item_35: int = 0
+    item_36: int = 0
+    item_37: int = 0
+    item_38: int = 0
+    item_39: int = 0
+    item_40: int = 0
+    item_41: int = 0
+    item_42: int = 0
+    item_43: int = 0
+    item_44: int = 0
+    item_45: int = 0
 
 
 # --- EBADEP-IJ ---
@@ -130,33 +130,33 @@ class EBADEPASubmitIn(Schema):
 class EBADEPIJSubmitIn(Schema):
     evaluation_id: int
     applied_on: Optional[date] = None
-    item_01: int
-    item_02: int
-    item_03: int
-    item_04: int
-    item_05: int
-    item_06: int
-    item_07: int
-    item_08: int
-    item_09: int
-    item_10: int
-    item_11: int
-    item_12: int
-    item_13: int
-    item_14: int
-    item_15: int
-    item_16: int
-    item_17: int
-    item_18: int
-    item_19: int
-    item_20: int
-    item_21: int
-    item_22: int
-    item_23: int
-    item_24: int
-    item_25: int
-    item_26: int
-    item_27: int
+    item_01: int = 0
+    item_02: int = 0
+    item_03: int = 0
+    item_04: int = 0
+    item_05: int = 0
+    item_06: int = 0
+    item_07: int = 0
+    item_08: int = 0
+    item_09: int = 0
+    item_10: int = 0
+    item_11: int = 0
+    item_12: int = 0
+    item_13: int = 0
+    item_14: int = 0
+    item_15: int = 0
+    item_16: int = 0
+    item_17: int = 0
+    item_18: int = 0
+    item_19: int = 0
+    item_20: int = 0
+    item_21: int = 0
+    item_22: int = 0
+    item_23: int = 0
+    item_24: int = 0
+    item_25: int = 0
+    item_26: int = 0
+    item_27: int = 0
 
 
 # --- BPA-2 ---
@@ -175,3 +175,170 @@ class BPA2SubmitIn(Schema):
     ac: BPA2SubtestIn
     ad: BPA2SubtestIn
     aa: BPA2SubtestIn
+
+
+# --- WISC-IV ---
+
+
+class WISC4SubmitIn(Schema):
+    evaluation_id: int
+    cb: Optional[str] = ""
+    sm: Optional[str] = ""
+    dg: Optional[str] = ""
+    cn: Optional[str] = ""
+    cd: Optional[str] = ""
+    vc: Optional[str] = ""
+    snl: Optional[str] = ""
+    rm: Optional[str] = ""
+    co: Optional[str] = ""
+    ps: Optional[str] = ""
+    cf: Optional[str] = ""
+    ca: Optional[str] = ""
+    in_: Optional[str] = ""
+    rp: Optional[str] = ""
+
+
+# --- EPQ-J ---
+
+
+class EPQJSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    sexo: str = "M"
+    item_01: Optional[int] = 0
+    item_02: Optional[int] = 0
+    item_03: Optional[int] = 0
+    item_04: Optional[int] = 0
+    item_05: Optional[int] = 0
+    item_06: Optional[int] = 0
+    item_07: Optional[int] = 0
+    item_08: Optional[int] = 0
+    item_09: Optional[int] = 0
+    item_10: Optional[int] = 0
+    item_11: Optional[int] = 0
+    item_12: Optional[int] = 0
+    item_13: Optional[int] = 0
+    item_14: Optional[int] = 0
+    item_15: Optional[int] = 0
+    item_16: Optional[int] = 0
+    item_17: Optional[int] = 0
+    item_18: Optional[int] = 0
+    item_19: Optional[int] = 0
+    item_20: Optional[int] = 0
+    item_21: Optional[int] = 0
+    item_22: Optional[int] = 0
+    item_23: Optional[int] = 0
+    item_24: Optional[int] = 0
+    item_25: Optional[int] = 0
+    item_26: Optional[int] = 0
+    item_27: Optional[int] = 0
+    item_28: Optional[int] = 0
+    item_29: Optional[int] = 0
+    item_30: Optional[int] = 0
+    item_31: Optional[int] = 0
+    item_32: Optional[int] = 0
+    item_33: Optional[int] = 0
+    item_34: Optional[int] = 0
+    item_35: Optional[int] = 0
+    item_36: Optional[int] = 0
+    item_37: Optional[int] = 0
+    item_38: Optional[int] = 0
+    item_39: Optional[int] = 0
+    item_40: Optional[int] = 0
+    item_41: Optional[int] = 0
+    item_42: Optional[int] = 0
+    item_43: Optional[int] = 0
+    item_44: Optional[int] = 0
+    item_45: Optional[int] = 0
+    item_46: Optional[int] = 0
+    item_47: Optional[int] = 0
+    item_48: Optional[int] = 0
+    item_49: Optional[int] = 0
+    item_50: Optional[int] = 0
+    item_51: Optional[int] = 0
+    item_52: Optional[int] = 0
+    item_53: Optional[int] = 0
+    item_54: Optional[int] = 0
+    item_55: Optional[int] = 0
+    item_56: Optional[int] = 0
+    item_57: Optional[int] = 0
+    item_58: Optional[int] = 0
+    item_59: Optional[int] = 0
+    item_60: Optional[int] = 0
+
+
+# --- ETDAH-AD ---
+
+
+class ETDAHADSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    item_01: int = 0
+    item_02: int = 0
+    item_03: int = 0
+    item_04: int = 0
+    item_05: int = 0
+    item_06: int = 0
+    item_07: int = 0
+    item_08: int = 0
+    item_09: int = 0
+    item_10: int = 0
+    item_11: int = 0
+    item_12: int = 0
+    item_13: int = 0
+    item_14: int = 0
+    item_15: int = 0
+    item_16: int = 0
+    item_17: int = 0
+    item_18: int = 0
+    item_19: int = 0
+    item_20: int = 0
+    item_21: int = 0
+    item_22: int = 0
+    item_23: int = 0
+    item_24: int = 0
+    item_25: int = 0
+    item_26: int = 0
+    item_27: int = 0
+    item_28: int = 0
+    item_29: int = 0
+    item_30: int = 0
+    item_31: int = 0
+    item_32: int = 0
+    item_33: int = 0
+    item_34: int = 0
+    item_35: int = 0
+    item_36: int = 0
+    item_37: int = 0
+    item_38: int = 0
+    item_39: int = 0
+    item_40: int = 0
+    item_41: int = 0
+    item_42: int = 0
+    item_43: int = 0
+    item_44: int = 0
+    item_45: int = 0
+    item_46: int = 0
+    item_47: int = 0
+    item_48: int = 0
+    item_49: int = 0
+    item_50: int = 0
+    item_51: int = 0
+    item_52: int = 0
+    item_53: int = 0
+    item_54: int = 0
+    item_55: int = 0
+    item_56: int = 0
+    item_57: int = 0
+    item_58: int = 0
+    item_59: int = 0
+    item_60: int = 0
+    item_61: int = 0
+    item_62: int = 0
+    item_63: int = 0
+    item_64: int = 0
+    item_65: int = 0
+    item_66: int = 0
+    item_67: int = 0
+    item_68: int = 0
+    item_69: int = 0

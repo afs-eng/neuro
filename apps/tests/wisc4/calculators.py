@@ -10,14 +10,14 @@ WISC4_NAME = "WISC-IV - Escala de Inteligência Wechsler para Crianças"
 WISC4_VERSION = "4"
 
 WISC4_SUBTESTS = {
-    "semelhancas": {"name": "Semelhanças", "code": "SM", "max": 33},
-    "vocabulario": {"name": "Vocabulário", "code": "VC", "max": 36},
-    "compreensao": {"name": "Compreensão", "code": "CO", "max": 28},
+    "semelhancas": {"name": "Semelhanças", "code": "SM", "max": 44},
+    "vocabulario": {"name": "Vocabulário", "code": "VC", "max": 68},
+    "compreensao": {"name": "Compreensão", "code": "CO", "max": 47},
     "cubos": {"name": "Cubos", "code": "CB", "max": 68},
     "conceitos": {"name": "Conceitos Figurativos", "code": "CN", "max": 28},
-    "matricial": {"name": "Raciocínio Matricial", "code": "RM", "max": 35},
-    "digitos": {"name": "Dígitos", "code": "DG", "max": 42},
-    "sequencias": {"name": "Seq. Letras e Números", "code": "SNL", "max": 44},
+    "matricial": {"name": "Raciocínio Matricial", "code": "RM", "max": 41},
+    "digitos": {"name": "Dígitos", "code": "DG", "max": 32},
+    "sequencias": {"name": "Seq. Letras e Números", "code": "SNL", "max": 30},
     "codigos": {"name": "Códigos", "code": "CD", "max": 119},
     "procura_simbolos": {"name": "Procura de Símbolos", "code": "PS", "max": 60},
 }
@@ -42,26 +42,12 @@ WISC4_INDICES = {
 }
 
 INDEX_CONVERSION = {
-    55: (0, "Extremamente Baixo"),
-    60: (1, "Extremamente Baixo"),
-    65: (1, "Extremamente Baixo"),
-    70: (2, "Muito Baixo"),
-    75: (5, "Muito Baixo"),
-    80: (10, "Baixo"),
-    85: (16, "Baixo"),
-    90: (25, "Médio-Baixo"),
-    95: (37, "Médio-Baixo"),
-    100: (50, "Médio"),
-    105: (63, "Médio"),
-    110: (75, "Médio-Alto"),
-    115: (84, "Médio-Alto"),
-    120: (91, "Superior"),
-    125: (95, "Superior"),
-    130: (98, "Muito Superior"),
-    135: (99, "Muito Superior"),
-    140: (99, "Muito Superior"),
-    145: (99, "Extremamente Superior"),
-    150: (99, "Extremamente Superior"),
+    69: (0, "Extremamente Baixo"),
+    79: (1, "Limítrofe"),
+    89: (2, "Média Inferior"),
+    109: (5, "Média"),
+    119: (16, "Média Superior"),
+    129: (25, "Superior"),
 }
 
 
@@ -136,17 +122,17 @@ def buscar_ponderado(tabela: list[dict], coluna: str, valor_bruto: int) -> int:
 
 
 def get_classification_padrao(escore_padrao: int) -> str:
-    if escore_padrao <= 4:
-        return "Muito Baixo"
-    elif escore_padrao <= 6:
-        return "Baixo"
-    elif escore_padrao <= 8:
-        return "Médio-Baixo"
+    if escore_padrao <= 2:
+        return "Dificuldade Grave"
+    elif escore_padrao <= 4:
+        return "Dificuldade Moderada"
+    elif escore_padrao <= 7:
+        return "Dificuldade Leve"
     elif escore_padrao <= 12:
-        return "Médio"
-    elif escore_padrao <= 14:
-        return "Médio-Alto"
-    elif escore_padrao <= 16:
+        return "Média"
+    elif escore_padrao <= 15:
+        return "Média Superior"
+    elif escore_padrao <= 17:
         return "Superior"
     else:
         return "Muito Superior"
@@ -157,7 +143,7 @@ def get_classification_composto(escore: int) -> tuple[int, str]:
     for key in keys:
         if escore <= key:
             return INDEX_CONVERSION[key]
-    return (99, "Extremamente Superior")
+    return (50, "Muito Superior")
 
 
 def calculate_index_score(standard_scores: list[int]) -> int:

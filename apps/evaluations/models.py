@@ -7,11 +7,19 @@ from apps.patients.models import Patient
 class EvaluationStatus(models.TextChoices):
     DRAFT = "draft", "Rascunho"
     COLLECTING_DATA = "collecting_data", "Coletando dados"
+    TESTS_IN_PROGRESS = "tests_in_progress", "Testes em andamento"
     SCORING = "scoring", "Pontuando testes"
-    WRITING = "writing", "Redigindo laudo"
+    WRITING_REPORT = "writing_report", "Laudo em redação"
     IN_REVIEW = "in_review", "Em revisão"
     APPROVED = "approved", "Aprovado"
     ARCHIVED = "archived", "Arquivado"
+
+
+class EvaluationPriority(models.TextChoices):
+    LOW = "low", "Baixa"
+    MEDIUM = "medium", "Média"
+    HIGH = "high", "Alta"
+    URGENT = "urgent", "Urgente"
 
 
 class EvaluationQuerySet(models.QuerySet):
@@ -20,6 +28,7 @@ class EvaluationQuerySet(models.QuerySet):
 
 
 class Evaluation(models.Model):
+    title = models.CharField("título do caso", max_length=200, blank=True)
     patient = models.ForeignKey(
         Patient,
         on_delete=models.CASCADE,
@@ -36,6 +45,7 @@ class Evaluation(models.Model):
     )
     referral_reason = models.TextField("motivo do encaminhamento", blank=True)
     evaluation_purpose = models.TextField("finalidade da avaliação", blank=True)
+    clinical_hypothesis = models.TextField("hipótese clínica", blank=True)
     start_date = models.DateField("data de início", null=True, blank=True)
     end_date = models.DateField("data de término", null=True, blank=True)
     status = models.CharField(
@@ -44,6 +54,22 @@ class Evaluation(models.Model):
         choices=EvaluationStatus.choices,
         default=EvaluationStatus.DRAFT,
     )
+    priority = models.CharField(
+        "prioridade",
+        max_length=20,
+        choices=EvaluationPriority.choices,
+        default=EvaluationPriority.MEDIUM,
+    )
+    is_archived = models.BooleanField("arquivado", default=False)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="closed_evaluations",
+        verbose_name="encerrado por",
+        null=True,
+        blank=True,
+    )
+    closed_at = models.DateTimeField("encerrado em", null=True, blank=True)
     general_notes = models.TextField("observações gerais", blank=True)
     created_at = models.DateTimeField("criado em", auto_now_add=True)
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
@@ -56,4 +82,11 @@ class Evaluation(models.Model):
     objects = EvaluationQuerySet.as_manager()
 
     def __str__(self):
-        return f"{self.patient.full_name} - {self.get_status_display()}"
+        code = f"AV-{self.id:04d}"
+        if self.title:
+            return f"{code} - {self.title}"
+        return f"{code} - {self.patient.full_name} - {self.get_status_display()}"
+
+    @property
+    def code(self):
+        return f"AV-{self.id:04d}"
