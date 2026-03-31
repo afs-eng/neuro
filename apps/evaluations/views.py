@@ -1,4 +1,5 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404
+from django.http import JsonResponse
 from apps.patients.models import Patient
 from apps.evaluations.models import Evaluation
 from apps.tests.models.instruments import Instrument
@@ -9,7 +10,18 @@ def evaluation_list_view(request):
     evaluations = Evaluation.objects.select_related("patient", "examiner").order_by(
         "-created_at"
     )
-    return render(request, "evaluations/list.html", {"evaluations": evaluations})
+    data = [
+        {
+            "id": e.id,
+            "patient_id": e.patient_id,
+            "status": e.status,
+            "created_at": e.created_at.isoformat()
+            if getattr(e, "created_at", None)
+            else None,
+        }
+        for e in evaluations
+    ]
+    return JsonResponse({"evaluations": data})
 
 
 def evaluation_create_view(request):
@@ -29,9 +41,11 @@ def evaluation_create_view(request):
             status="collecting_data",
         )
 
-        return redirect("evaluations:detail", pk=evaluation.pk)
+        return JsonResponse({"id": evaluation.pk, "ok": True})
 
-    return render(request, "evaluations/form.html", {"patients": patients})
+    return JsonResponse(
+        {"patients": [{"id": p.id, "full_name": p.full_name} for p in patients]}
+    )
 
 
 def evaluation_detail_view(request, pk):
@@ -50,4 +64,18 @@ def evaluation_detail_view(request, pk):
         "applications": applications,
         "available_instruments": available_instruments,
     }
-    return render(request, "evaluations/detail.html", context)
+    apps_data = [
+        {
+            "id": a.id,
+            "instrument": a.instrument.code if a.instrument else None,
+            "applied_on": a.applied_on.isoformat() if a.applied_on else None,
+        }
+        for a in applications
+    ]
+    return JsonResponse(
+        {
+            "evaluation": {"id": evaluation.id, "patient_id": evaluation.patient_id},
+            "applications": apps_data,
+            "available_instruments": [i.code for i in available_instruments],
+        }
+    )

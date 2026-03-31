@@ -1,12 +1,26 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect
+from django.http import JsonResponse
 from apps.patients.models import Patient
 from apps.evaluations.models import Evaluation
 
 
 def dashboard_view(request):
-    patients = Patient.objects.all()[:5]
-    evaluations = Evaluation.objects.select_related("patient").order_by("-created_at")[
-        :5
+    patients_qs = Patient.objects.all()[:5]
+    evaluations_qs = Evaluation.objects.select_related("patient").order_by(
+        "-created_at"
+    )[:5]
+
+    recent_patients = [{"id": p.id, "full_name": p.full_name} for p in patients_qs]
+    recent_evaluations = [
+        {
+            "id": e.id,
+            "patient_id": e.patient_id,
+            "status": e.status,
+            "created_at": e.created_at.isoformat()
+            if getattr(e, "created_at", None)
+            else None,
+        }
+        for e in evaluations_qs
     ]
 
     context = {
@@ -16,15 +30,23 @@ def dashboard_view(request):
         ).count(),
         "tests_applied": 0,
         "pending_reports": 0,
-        "recent_patients": patients,
-        "recent_evaluations": evaluations,
+        "recent_patients": recent_patients,
+        "recent_evaluations": recent_evaluations,
     }
-    return render(request, "dashboard/index.html", context)
+    return JsonResponse(context)
 
 
 def patient_list_view(request):
     patients = Patient.objects.all()
-    return render(request, "patients/list.html", {"patients": patients})
+    data = [
+        {
+            "id": p.id,
+            "full_name": p.full_name,
+            "birth_date": p.birth_date.isoformat() if p.birth_date else None,
+        }
+        for p in patients
+    ]
+    return JsonResponse({"patients": data})
 
 
 def patient_detail_view(request, pk):
@@ -36,19 +58,28 @@ def patient_detail_view(request, pk):
         .select_related("instrument", "evaluation")
         .order_by("-applied_on", "-created_at")
     )
-    return render(
-        request,
-        "patients/detail.html",
+    apps_data = [
         {
-            "patient": patient,
-            "test_applications": test_applications,
-        },
-    )
+            "id": app.id,
+            "instrument": app.instrument.code if app.instrument else None,
+            "is_validated": app.is_validated,
+            "applied_on": app.applied_on.isoformat() if app.applied_on else None,
+        }
+        for app in test_applications
+    ]
+
+    patient_data = {
+        "id": patient.id,
+        "full_name": patient.full_name,
+        "birth_date": patient.birth_date.isoformat() if patient.birth_date else None,
+    }
+
+    return JsonResponse({"patient": patient_data, "test_applications": apps_data})
 
 
 def patient_create_view(request):
     if request.method == "POST":
-        Patient.objects.create(
+        patient = Patient.objects.create(
             full_name=request.POST.get("full_name"),
             birth_date=request.POST.get("birth_date") or None,
             sex=request.POST.get("sex", ""),
@@ -62,8 +93,8 @@ def patient_create_view(request):
             state=request.POST.get("state", ""),
             notes=request.POST.get("notes", ""),
         )
-        return redirect("patients:list")
-    return render(request, "patients/form.html")
+        return JsonResponse({"id": patient.id, "ok": True})
+    return JsonResponse({"error": "method not allowed"}, status=405)
 
 
 def patient_edit_view(request, pk):
@@ -82,5 +113,10 @@ def patient_edit_view(request, pk):
         patient.state = request.POST.get("state", "")
         patient.notes = request.POST.get("notes", "")
         patient.save()
-        return redirect("patients:detail", pk=pk)
-    return render(request, "patients/form.html", {"patient": patient})
+        return JsonResponse({"id": patient.id, "ok": True})
+    patient_data = {
+        "id": patient.id,
+        "full_name": patient.full_name,
+        "birth_date": patient.birth_date.isoformat() if patient.birth_date else None,
+    }
+    return JsonResponse({"patient": patient_data})

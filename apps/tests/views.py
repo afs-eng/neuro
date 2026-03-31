@@ -1,5 +1,6 @@
 from datetime import date
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404
+from django.http import JsonResponse
 from apps.patients.models import Patient
 from apps.evaluations.models import Evaluation
 from apps.tests.models.instruments import Instrument
@@ -7,6 +8,7 @@ from apps.tests.models.applications import TestApplication
 from apps.tests.registry import get_test_module
 from apps.tests.base.types import TestContext
 from apps.tests.bpa2.interpreters import get_report_interpretation, get_synthesis
+from apps.common.utils import get_param
 
 
 def _get_application(application_id):
@@ -90,12 +92,12 @@ def _process_and_save_test(
 
 
 def test_list_view(request):
-    return render(request, "tests/list.html")
+    return JsonResponse({"ok": True})
 
 
 def apply_test_for_patient(request, patient_id):
     patient = get_object_or_404(Patient, pk=patient_id)
-    return render(request, "tests/apply_for_patient.html", {"patient": patient})
+    return JsonResponse({"patient_id": patient.id, "full_name": patient.full_name})
 
 
 def add_test_to_evaluation(request, evaluation_id, instrument_code):
@@ -107,23 +109,32 @@ def add_test_to_evaluation(request, evaluation_id, instrument_code):
         instrument=instrument,
         defaults={"applied_on": date.today()},
     )
-
-    return redirect(f"tests:{instrument_code}", application_id=app.pk)
+    # For API mode return the created application id and a suggested next URL
+    return JsonResponse(
+        {
+            "application_id": app.pk,
+            "instrument_code": instrument_code,
+            "next": f"/tests/{instrument_code}?application_id={app.pk}",
+        },
+        status=201,
+    )
 
 
 def test_result_view(request, application_id):
     application = _get_application(application_id)
     classified = application.classified_payload or {}
-    context = {
-        "patient": application.evaluation.patient,
-        "evaluation": application.evaluation,
-        "application": application,
-        "evaluation_date": application.applied_on,
+    data = {
+        "patient_id": application.evaluation.patient.id,
+        "evaluation_id": application.evaluation.id,
+        "application_id": application.id,
+        "evaluation_date": application.applied_on.isoformat()
+        if application.applied_on
+        else None,
         "classified": classified,
         "interpretation": application.interpretation_text or "",
         "raw_scores": application.raw_payload or {},
     }
-    return render(request, f"tests/{application.instrument.code}_result.html", context)
+    return JsonResponse(data)
 
 
 def _item_form_view(
@@ -139,32 +150,36 @@ def _item_form_view(
         patients = Patient.objects.filter(pk=evaluation.patient.pk)
 
     if request.method == "POST":
-        patient_id = request.POST.get("patient")
-        evaluation_date = request.POST.get("evaluation_date")
+        patient_id = _get_param(request, "patient")
+        evaluation_date = _get_param(request, "evaluation_date")
         patient = get_object_or_404(Patient, pk=patient_id)
 
         existing_app, existing_eval = _get_existing_application(
             patient, instrument_code
         )
         if existing_app and not application:
-            return render(
-                request,
-                form_template,
+            return JsonResponse(
                 {
-                    "patients": patients,
+                    "patients": [p.id for p in patients],
                     "errors": [
                         f"Paciente já possui teste aplicado em {existing_app.applied_on.strftime('%d/%m/%Y')}."
                     ],
-                    "evaluation": evaluation,
-                    "application": application,
-                    "existing_app": existing_app,
+                    "evaluation": evaluation.id if evaluation else None,
+                    "application": application.id if application else None,
+                    "existing_app": {
+                        "id": existing_app.id,
+                        "applied_on": existing_app.applied_on.isoformat()
+                        if existing_app.applied_on
+                        else None,
+                    },
                 },
+                status=400,
             )
 
         raw_scores = {}
         for i in range(1, item_count + 1):
             key = f"item_{i:02d}"
-            raw_value = request.POST.get(key)
+            raw_value = _get_param(request, key)
             raw_scores[key] = (
                 int(raw_value) if raw_value is not None and raw_value != "" else 0
             )
@@ -173,44 +188,39 @@ def _item_form_view(
             patient, evaluation, instrument_code, raw_scores, evaluation_date
         )
         if isinstance(result[1], list):
-            return render(
-                request,
-                form_template,
+            return JsonResponse(
                 {
-                    "patients": patients,
+                    "patients": [p.id for p in patients],
                     "errors": result[1],
-                    "evaluation": evaluation,
-                    "application": application,
+                    "evaluation": evaluation.id if evaluation else None,
+                    "application": application.id if application else None,
                 },
+                status=400,
             )
 
         app_result, classified, interpretation = result
-        return render(
-            request,
-            f"tests/{instrument_code}_result.html",
+        return JsonResponse(
             {
-                "patient": patient,
-                "evaluation": evaluation,
-                "application": app_result,
+                "patient": patient.id,
+                "evaluation": evaluation.id if evaluation else None,
+                "application": app_result.id,
                 "evaluation_date": evaluation_date,
                 "classified": classified,
                 "interpretation": interpretation,
                 "raw_scores": raw_scores,
-            },
+            }
         )
 
     existing_data = (
         application.raw_payload if application and application.raw_payload else None
     )
-    return render(
-        request,
-        form_template,
+    return JsonResponse(
         {
-            "patients": patients,
-            "evaluation": evaluation,
-            "application": application,
+            "patients": [p.id for p in patients],
+            "evaluation": evaluation.id if evaluation else None,
+            "application": application.id if application else None,
             "existing_data": existing_data,
-        },
+        }
     )
 
 
@@ -237,33 +247,37 @@ def bpa2_form_view(request, application_id=None):
         patients = Patient.objects.filter(pk=evaluation.patient.pk)
 
     if request.method == "POST":
-        patient_id = request.POST.get("patient")
-        evaluation_date = request.POST.get("evaluation_date")
-        norm_type = request.POST.get("norm_type", "idade")
+        patient_id = _get_param(request, "patient")
+        evaluation_date = _get_param(request, "evaluation_date")
+        norm_type = _get_param(request, "norm_type", "idade")
         patient = get_object_or_404(Patient, pk=patient_id)
 
         existing_app, existing_eval = _get_existing_application(patient, "bpa2")
         if existing_app and not application:
-            return render(
-                request,
-                "tests/bpa2_form.html",
+            return JsonResponse(
                 {
-                    "patients": patients,
+                    "patients": [p.id for p in patients],
                     "errors": [
                         f"Paciente já possui BPA-2 aplicado em {existing_app.applied_on.strftime('%d/%m/%Y')}."
                     ],
-                    "evaluation": evaluation,
-                    "application": application,
-                    "existing_app": existing_app,
+                    "evaluation": evaluation.id if evaluation else None,
+                    "application": application.id if application else None,
+                    "existing_app": {
+                        "id": existing_app.id,
+                        "applied_on": existing_app.applied_on.isoformat()
+                        if existing_app.applied_on
+                        else None,
+                    },
                 },
+                status=400,
             )
 
         raw_scores = {}
         for code in ["ac", "ad", "aa"]:
             raw_scores[code] = {
-                "brutos": int(request.POST.get(f"{code}_brutos", 0)),
-                "erros": int(request.POST.get(f"{code}_erros", 0)),
-                "omissoes": int(request.POST.get(f"{code}_omissoes", 0)),
+                "brutos": int(_get_param(request, f"{code}_brutos", 0)),
+                "erros": int(_get_param(request, f"{code}_erros", 0)),
+                "omissoes": int(_get_param(request, f"{code}_omissoes", 0)),
             }
 
         faixa = _get_age_group(patient, evaluation_date, norm_type)
@@ -276,48 +290,43 @@ def bpa2_form_view(request, application_id=None):
             extra_classify_kwargs={"faixa": faixa},
         )
         if isinstance(result[1], list):
-            return render(
-                request,
-                "tests/bpa2_form.html",
+            return JsonResponse(
                 {
-                    "patients": patients,
+                    "patients": [p.id for p in patients],
                     "errors": result[1],
-                    "evaluation": evaluation,
-                    "application": application,
+                    "evaluation": evaluation.id if evaluation else None,
+                    "application": application.id if application else None,
                 },
+                status=400,
             )
 
         app_result, classified, interpretation = result
         classified["faixa"] = faixa
         classified["norm_type"] = norm_type
-        return render(
-            request,
-            "tests/bpa2_result.html",
-            {
-                "patient": patient,
-                "evaluation": evaluation,
-                "application": app_result,
-                "evaluation_date": evaluation_date,
-                "norm_type": norm_type,
-                "faixa": faixa,
-                "classified": classified,
-                "interpretation": interpretation,
-                "raw_scores": raw_scores,
-            },
-        )
+    return JsonResponse(
+        {
+            "patient": patient.id,
+            "evaluation": evaluation.id if evaluation else None,
+            "application": app_result.id,
+            "evaluation_date": evaluation_date,
+            "norm_type": norm_type,
+            "faixa": faixa,
+            "classified": classified,
+            "interpretation": interpretation,
+            "raw_scores": raw_scores,
+        }
+    )
 
     existing_data = (
         application.raw_payload if application and application.raw_payload else None
     )
-    return render(
-        request,
-        "tests/bpa2_form.html",
+    return JsonResponse(
         {
-            "patients": patients,
-            "evaluation": evaluation,
-            "application": application,
+            "patients": [p.id for p in patients],
+            "evaluation": evaluation.id if evaluation else None,
+            "application": application.id if application else None,
             "existing_data": existing_data,
-        },
+        }
     )
 
 
@@ -332,24 +341,28 @@ def wisc4_form_view(request, application_id=None):
         patients = Patient.objects.filter(pk=evaluation.patient.pk)
 
     if request.method == "POST":
-        patient_id = request.POST.get("patient")
-        evaluation_date = request.POST.get("evaluation_date")
+        patient_id = _get_param(request, "patient")
+        evaluation_date = _get_param(request, "evaluation_date")
         patient = get_object_or_404(Patient, pk=patient_id)
 
         existing_app, existing_eval = _get_existing_application(patient, "wisc4")
         if existing_app and not application:
-            return render(
-                request,
-                "tests/wisc4_form.html",
+            return JsonResponse(
                 {
-                    "patients": patients,
+                    "patients": [p.id for p in patients],
                     "errors": [
                         f"Paciente já possui WISC-IV aplicado em {existing_app.applied_on.strftime('%d/%m/%Y')}."
                     ],
-                    "evaluation": evaluation,
-                    "application": application,
-                    "existing_app": existing_app,
+                    "evaluation": evaluation.id if evaluation else None,
+                    "application": application.id if application else None,
+                    "existing_app": {
+                        "id": existing_app.id,
+                        "applied_on": existing_app.applied_on.isoformat()
+                        if existing_app.applied_on
+                        else None,
+                    },
                 },
+                status=400,
             )
 
         raw_scores = {}
@@ -366,14 +379,14 @@ def wisc4_form_view(request, application_id=None):
             "procura_simbolos",
         ]
         for code in subtest_codes:
-            raw_value = request.POST.get(code)
+            raw_value = _get_param(request, code)
             raw_scores[code] = (
                 int(raw_value) if raw_value is not None and raw_value != "" else 0
             )
 
         from datetime import date as date_cls
 
-        confidence_level = request.POST.get("confidence_level", "95")
+        confidence_level = _get_param(request, "confidence_level", "95")
 
         reviewed_scores = {
             "birth_date": str(patient.birth_date) if patient.birth_date else None,
@@ -390,44 +403,39 @@ def wisc4_form_view(request, application_id=None):
             extra_classify_kwargs={"faixa": confidence_level},
         )
         if isinstance(result[1], list):
-            return render(
-                request,
-                "tests/wisc4_form.html",
+            return JsonResponse(
                 {
-                    "patients": patients,
+                    "patients": [p.id for p in patients],
                     "errors": result[1],
-                    "evaluation": evaluation,
-                    "application": application,
+                    "evaluation": evaluation.id if evaluation else None,
+                    "application": application.id if application else None,
                 },
+                status=400,
             )
 
         app_result, classified, interpretation = result
-        return render(
-            request,
-            "tests/wisc4_result.html",
+        return JsonResponse(
             {
-                "patient": patient,
-                "evaluation": evaluation,
-                "application": app_result,
+                "patient": patient.id,
+                "evaluation": evaluation.id if evaluation else None,
+                "application": app_result.id,
                 "evaluation_date": evaluation_date,
                 "classified": classified,
                 "interpretation": interpretation,
                 "raw_scores": raw_scores,
-            },
+            }
         )
 
     existing_data = (
         application.raw_payload if application and application.raw_payload else None
     )
-    return render(
-        request,
-        "tests/wisc4_form.html",
+    return JsonResponse(
         {
-            "patients": patients,
-            "evaluation": evaluation,
-            "application": application,
+            "patients": [p.id for p in patients],
+            "evaluation": evaluation.id if evaluation else None,
+            "application": application.id if application else None,
             "existing_data": existing_data,
-        },
+        }
     )
 
 
@@ -469,14 +477,14 @@ def bpa2_report_view(request, application_id):
     faixa = classified.get("faixa", "-")
     norm_type = classified.get("norm_type", "idade")
 
-    return render(
-        request,
-        "tests/bpa2_report.html",
+    return JsonResponse(
         {
-            "patient": patient,
-            "evaluation": application.evaluation,
-            "application": application,
-            "evaluation_date": application.applied_on,
+            "patient": patient.id,
+            "evaluation": application.evaluation.id,
+            "application": application.id,
+            "evaluation_date": application.applied_on.isoformat()
+            if application.applied_on
+            else None,
             "faixa": faixa,
             "referencia_normativa": f"Percentis - 2022 - {faixa}{' de escolaridade' if norm_type == 'escolaridade' else ''} - Brasil",
             "subtestes": subtestes,
@@ -484,45 +492,45 @@ def bpa2_report_view(request, application_id):
             "sintese_atencional": get_synthesis(ag_st.get("classificacao", "Média")),
             "examiner_name": examiner.get_full_name() if examiner else "-",
             "raw_scores": application.raw_payload or {},
-        },
+        }
     )
 
 
 def ebaped_ij_report_view(request, application_id):
     application = _get_application(application_id)
     examiner = application.evaluation.examiner
-    return render(
-        request,
-        "tests/ebaped_ij_report.html",
+    return JsonResponse(
         {
-            "patient": application.evaluation.patient,
-            "evaluation": application.evaluation,
-            "application": application,
-            "evaluation_date": application.applied_on,
+            "patient": application.evaluation.patient.id,
+            "evaluation": application.evaluation.id,
+            "application": application.id,
+            "evaluation_date": application.applied_on.isoformat()
+            if application.applied_on
+            else None,
             "classified": application.classified_payload or {},
             "interpretation": application.interpretation_text or "",
             "examiner_name": examiner.get_full_name() if examiner else "-",
             "raw_scores": application.raw_payload or {},
-        },
+        }
     )
 
 
 def ebadep_a_report_view(request, application_id):
     application = _get_application(application_id)
     examiner = application.evaluation.examiner
-    return render(
-        request,
-        "tests/ebadep_a_report.html",
+    return JsonResponse(
         {
-            "patient": application.evaluation.patient,
-            "evaluation": application.evaluation,
-            "application": application,
-            "evaluation_date": application.applied_on,
+            "patient": application.evaluation.patient.id,
+            "evaluation": application.evaluation.id,
+            "application": application.id,
+            "evaluation_date": application.applied_on.isoformat()
+            if application.applied_on
+            else None,
             "classified": application.classified_payload or {},
             "interpretation_text": application.interpretation_text or "",
             "examiner_name": examiner.get_full_name() if examiner else "-",
             "raw_scores": application.raw_payload or {},
-        },
+        }
     )
 
 

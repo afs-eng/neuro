@@ -1,3 +1,6 @@
-from django.shortcuts import render
+from django.http import JsonResponse
 
-# Create your views here.
+
+# API helper root
+def api_root(request):
+    return JsonResponse({"ok": True})

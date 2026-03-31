@@ -3,8 +3,13 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = env_list("ALLOWED_HOSTS")
-CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") or [".onrender.com"]
+# Provide conservative defaults for Render deployments so an empty/missing
+# env var doesn't immediately raise DisallowedHost. Prefer setting the
+# explicit env vars in the Render service settings or via `render.yaml`.
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS") or [
+    "https://sistema-neuro.onrender.com",
+]
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
 
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)

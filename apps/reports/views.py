@@ -1,5 +1,5 @@
-from django.shortcuts import render
+from django.http import JsonResponse
 
 
 def report_list_view(request):
-    return render(request, "reports/list.html")
+    return JsonResponse({"ok": True})
