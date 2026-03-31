@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
@@ -36,7 +36,7 @@ const indices = [
   { code: 'IVP', name: 'Velocidade de Processamento', subtests: ['CD', 'PS'] },
 ]
 
-export default function WISC4FormPage() {
+function WISC4FormPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [scores, setScores] = useState<Record<string, number>>({})
@@ -45,6 +45,7 @@ export default function WISC4FormPage() {
 
   const evaluationId = searchParams.get("evaluation_id");
   const applicationId = searchParams.get("application_id");
+  const isEditMode = searchParams.get("edit") === "true";
 
   useEffect(() => {
     async function fetchEvaluation() {
@@ -56,7 +57,7 @@ export default function WISC4FormPage() {
       if (applicationId) {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
-          if (result && result.is_validated) {
+          if (result && result.is_validated && !isEditMode) {
             router.push(`/dashboard/tests/wisc4/${applicationId}/result`)
             return
           }
@@ -87,7 +88,7 @@ export default function WISC4FormPage() {
       }
     }
     fetchEvaluation()
-  }, [evaluationId, applicationId])
+  }, [evaluationId, applicationId, isEditMode, router])
 
   const handleScoreChange = (code: string, value: string) => {
     const numValue = parseInt(value) || 0
@@ -260,5 +261,17 @@ export default function WISC4FormPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function WISC4FormPageFallback() {
+  return <div className="min-h-screen w-full bg-slate-300 p-6 md:p-10" />
+}
+
+export default function WISC4FormPage() {
+  return (
+    <Suspense fallback={<WISC4FormPageFallback />}>
+      <WISC4FormPageContent />
+    </Suspense>
   )
 }

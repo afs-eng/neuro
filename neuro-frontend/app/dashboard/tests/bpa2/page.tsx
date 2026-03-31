@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save } from "lucide-react";
 import { api } from "@/lib/api";
 
-export default function BPA2TestPage() {
+function BPA2TestPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [scores, setScores] = useState({
@@ -71,7 +71,7 @@ export default function BPA2TestPage() {
       }
     }
     fetchEvaluation();
-  }, [evaluationId, applicationId]);
+  }, [evaluationId, applicationId, router]);
 
   const domains = [
     { name: "Atenção Concentrada (AC)", fields: ["ac_brutos", "ac_erros", "ac_omissoes"] },
@@ -202,5 +202,17 @@ export default function BPA2TestPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function BPA2TestPageFallback() {
+  return <div className="space-y-6" />;
+}
+
+export default function BPA2TestPage() {
+  return (
+    <Suspense fallback={<BPA2TestPageFallback />}>
+      <BPA2TestPageContent />
+    </Suspense>
   );
 }

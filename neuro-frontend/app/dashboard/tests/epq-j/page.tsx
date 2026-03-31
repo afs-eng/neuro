@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ function calcularEscores(respostas: Record<string, string>) {
   return escores;
 }
 
-export default function EPQJTestPage() {
+function EPQJTestPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [scores, setScores] = useState<Record<string, string>>({});
@@ -326,5 +326,17 @@ export default function EPQJTestPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function EPQJTestPageFallback() {
+  return <div className="space-y-6" />;
+}
+
+export default function EPQJTestPage() {
+  return (
+    <Suspense fallback={<EPQJTestPageFallback />}>
+      <EPQJTestPageContent />
+    </Suspense>
   );
 }

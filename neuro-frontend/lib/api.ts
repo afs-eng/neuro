@@ -1,6 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-
-console.log('API URL:', API_URL)
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
 export interface ApiError {
   message: string
@@ -12,31 +10,26 @@ async function fetchAPI<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-  console.log('Fetching:', API_URL + endpoint, 'token:', token ? 'yes' : 'no')
 
   const isGetRequest = !options.method || options.method === 'GET'
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     cache: isGetRequest ? 'no-store' : undefined,
     headers: {
-      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers,
     },
   })
-
-  console.log('Response:', res.status, res.statusText)
 
   if (!res.ok) {
     let errorMessage = `Erro: ${res.status}`
     try {
       const errorData = await res.json()
-      console.log('Error data:', errorData)
       errorMessage = errorData.message || errorData.detail || errorMessage
-    } catch (e) {
-      console.log('Could not parse error response')
-    }
+    } catch {}
     const error: ApiError = {
       message: errorMessage,
       status: res.status,
@@ -52,11 +45,11 @@ async function fetchAPI<T>(
 export const api = {
   get: <T>(url: string) => fetchAPI<T>(url),
   post: <T>(url: string, data: unknown) =>
-    fetchAPI<T>(url, { method: 'POST', body: JSON.stringify(data) }),
+    fetchAPI<T>(url, { method: 'POST', body: data instanceof FormData ? data : JSON.stringify(data) }),
   put: <T>(url: string, data: unknown) =>
-    fetchAPI<T>(url, { method: 'PUT', body: JSON.stringify(data) }),
+    fetchAPI<T>(url, { method: 'PUT', body: data instanceof FormData ? data : JSON.stringify(data) }),
   patch: <T>(url: string, data: unknown) =>
-    fetchAPI<T>(url, { method: 'PATCH', body: JSON.stringify(data) }),
+    fetchAPI<T>(url, { method: 'PATCH', body: data instanceof FormData ? data : JSON.stringify(data) }),
   delete: <T>(url: string) => fetchAPI<T>(url, { method: 'DELETE' }),
 }
 

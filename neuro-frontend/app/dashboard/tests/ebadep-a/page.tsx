@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ const QUESTIONS = [
   "Culpa: não costuma sentir culpa <-> vem se sentindo culpado pelos problemas",
 ];
 
-export default function EBADEPATestPage() {
+function EBADEPATestPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [scores, setScores] = useState<Record<string, string>>({});
@@ -228,5 +228,17 @@ export default function EBADEPATestPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function EBADEPATestPageFallback() {
+  return <div className="space-y-6" />;
+}
+
+export default function EBADEPATestPage() {
+  return (
+    <Suspense fallback={<EBADEPATestPageFallback />}>
+      <EBADEPATestPageContent />
+    </Suspense>
   );
 }

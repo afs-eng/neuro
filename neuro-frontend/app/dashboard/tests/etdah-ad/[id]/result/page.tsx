@@ -70,6 +70,11 @@ export default function ETDAHADResultPage() {
   }
   items.sort((a, b) => a.number - b.number)
 
+  const responseRows = []
+  for (let i = 0; i < 14; i++) {
+    responseRows.push([i + 1, i + 15, i + 29, i + 43, i + 57].filter((item) => item <= 69))
+  }
+
   const factorOrder = ["D", "I", "AE", "AAMA", "H"]
 
   return (
@@ -140,20 +145,54 @@ export default function ETDAHADResultPage() {
           </div>
 
           <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5 mb-6">
-            <h3 className="mb-4 text-lg font-semibold text-zinc-900">Itens (69 itens)</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <h3 className="mb-4 text-lg font-semibold text-zinc-900">REGISTRO DE RESPOSTAS</h3>
+            <p className="text-sm text-slate-600 mb-4">Legenda: 0 = Nunca | 1 = Pouco | 2 = Bastante | 3 = Demais</p>
+            <div className="border rounded-xl overflow-hidden bg-white">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-dashed border-black/10">
-                    <th className="pb-3 text-left text-xs font-semibold text-zinc-500 uppercase">Item</th>
-                    <th className="pb-3 text-center text-xs font-semibold text-zinc-500 uppercase">Valor</th>
+                  <tr className="bg-slate-100">
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
+                    <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
-                    <tr key={item.number} className="border-b border-dashed border-black/5">
-                      <td className="py-2 text-zinc-900">Item {item.number}</td>
-                      <td className="py-2 text-center font-medium text-zinc-900">{item.value}</td>
+                  {responseRows.map((row, idx) => (
+                    <tr key={idx} className={`border-t ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
+                      {row.map((itemNumber) => {
+                        const item = items.find((entry) => entry.number === itemNumber)
+                        const value = item?.value
+                        const style =
+                          value === 3 ? 'bg-red-100 text-red-800 font-bold' :
+                          value === 2 ? 'bg-amber-100 text-amber-800 font-bold' :
+                          value === 1 ? 'bg-blue-100 text-blue-800 font-bold' :
+                          value === 0 ? 'bg-slate-200 text-slate-700 font-bold' :
+                          'bg-slate-100 text-slate-400'
+
+                        return (
+                          <>
+                            <td className="py-1 px-2 text-center text-slate-700 font-medium">{String(itemNumber).padStart(2, '0')}</td>
+                            <td className="py-1 px-2 text-center">
+                              <span className={`inline-block w-8 h-6 leading-6 rounded ${style}`}>
+                                {value ?? '-'}
+                              </span>
+                            </td>
+                          </>
+                        )
+                      })}
+                      {Array.from({ length: 5 - row.length }).map((_, emptyIdx) => (
+                        <>
+                          <td key={`empty-item-${idx}-${emptyIdx}`} className="py-1 px-2" />
+                          <td key={`empty-resp-${idx}-${emptyIdx}`} className="py-1 px-2" />
+                        </>
+                      ))}
                     </tr>
                   ))}
                 </tbody>

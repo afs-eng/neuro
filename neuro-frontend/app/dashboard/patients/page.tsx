@@ -45,6 +45,14 @@ export default function PatientsPage() {
   const [ageFilter, setAgeFilter] = useState("")
   const [sortBy, setSortBy] = useState("")
 
+  const requiredFieldLabels: Record<string, string> = {
+    full_name: "Nome completo",
+    birth_date: "Data de nascimento",
+    sex: "Sexo",
+    schooling: "Escolaridade",
+    school_name: "Nome da escola",
+  }
+
   const filteredPatients = patients
     .filter((patient) => {
       if (searchTerm) {
@@ -109,6 +117,21 @@ export default function PatientsPage() {
   }
 
   const handleInputChange = (field: string, value: string) => {
+    if (field === "phone" || field === "responsible_phone") {
+      const digits = value.replace(/\D/g, "").slice(0, 11)
+      if (digits.length <= 10) {
+        value = digits.replace(/(\d{0,2})(\d{0,4})(\d{0,4})/, (_, a, b, c) => {
+          return [a && `(${a}`, a && a.length === 2 ? ")" : "", b, c && `-${c}`].join("")
+        }).replace(/\)-/, ") ")
+      } else {
+        value = digits.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")
+      }
+    }
+
+    if (field === "state") {
+      value = value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2)
+    }
+
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -172,6 +195,10 @@ export default function PatientsPage() {
     }
   }
 
+  const pendingRequiredFields = requiredFields.filter(
+    (field) => !formData[field as keyof typeof formData]
+  )
+
   return (
     <div className="min-h-screen w-full bg-slate-300 p-6 md:p-10">
       <div className="mx-auto max-w-7xl rounded-[36px] bg-[#f3f0e4] p-5 shadow-2xl ring-1 ring-black/5 md:p-7">
@@ -206,8 +233,23 @@ export default function PatientsPage() {
           </div>
 
           {showForm && (
-            <div className="mb-6 rounded-2xl bg-white p-6 shadow-lg">
-              <h2 className="text-xl font-semibold mb-4">Cadastrar novo paciente</h2>
+            <div className="mb-6 rounded-[28px] bg-white p-6 shadow-lg ring-1 ring-black/5">
+              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-zinc-900">Cadastrar novo paciente</h2>
+                  <p className="mt-1 text-sm text-zinc-500">Campos com <span className="font-semibold text-rose-600">*</span> são obrigatórios para salvar.</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  {pendingRequiredFields.length === 0
+                    ? "Tudo pronto para salvar."
+                    : `Pendentes: ${pendingRequiredFields.map((field) => requiredFieldLabels[field]).join(", ")}`}
+                </div>
+              </div>
+
+              <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Preencha primeiro os dados principais do paciente. Os demais campos podem ser completados depois, sem bloquear o cadastro.
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Nome completo *</label>
@@ -398,7 +440,8 @@ export default function PatientsPage() {
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={handleSave}
-                  className="rounded-full bg-zinc-900 px-6 py-2 text-sm font-medium text-white"
+                  className="rounded-full bg-zinc-900 px-6 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  disabled={pendingRequiredFields.length > 0}
                 >
                   Salvar paciente
                 </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ const QUESTIONS = [
   "Irritação",
 ];
 
-export default function EBADEPIJTestPage() {
+function EBADEPIJTestPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [scores, setScores] = useState<Record<string, string>>({});
@@ -105,7 +105,7 @@ export default function EBADEPIJTestPage() {
     }
 
     try {
-      const result = await api.post<{ application_id: number }>('/api/tests/ebaped-ij/submit', payload);
+      const result = await api.post<{ application_id: number }>('/api/tests/ebadep-ij/submit', payload);
       alert('EBADEP-IJ salvo com sucesso!');
       router.push(`/dashboard/tests/ebadep-ij/${result.application_id}/result`);
     } catch (error: any) {
@@ -209,5 +209,17 @@ export default function EBADEPIJTestPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function EBADEPIJTestPageFallback() {
+  return <div className="space-y-6" />;
+}
+
+export default function EBADEPIJTestPage() {
+  return (
+    <Suspense fallback={<EBADEPIJTestPageFallback />}>
+      <EBADEPIJTestPageContent />
+    </Suspense>
   );
 }

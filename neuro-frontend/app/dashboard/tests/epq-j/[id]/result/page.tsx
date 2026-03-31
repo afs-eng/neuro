@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -54,7 +55,7 @@ function getClassificacaoStyle(classificacao: string) {
   return CLASSIFICACOES[key] || "bg-slate-100 text-slate-700 border-slate-200";
 }
 
-export default function EPQJResultPage() {
+function EPQJResultPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams();
@@ -470,5 +471,17 @@ export default function EPQJResultPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+function EPQJResultPageFallback() {
+  return <div className="space-y-6" />;
+}
+
+export default function EPQJResultPage() {
+  return (
+    <Suspense fallback={<EPQJResultPageFallback />}>
+      <EPQJResultPageContent />
+    </Suspense>
   );
 }

@@ -27,6 +27,7 @@ import {
 import { useRouter } from "next/navigation";
 
 const TESTS_AVAILABLE = [
+  { code: "fdt", name: "FDT", category: "Funções executivas" },
   { code: "wisc4", name: "WISC-IV", category: "Inteligência infantil" },
   { code: "bpa2", name: "BPA-2", category: "Atenção" },
   { code: "ebadep-a", name: "EBADEP-A", category: "Depressão em adultos" },

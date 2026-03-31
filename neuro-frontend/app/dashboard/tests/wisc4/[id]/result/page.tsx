@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function WISC4ResultPage() {
   const params = useParams()
-  const searchParams = useSearchParams()
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -86,7 +85,7 @@ export default function WISC4ResultPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Link href={`/dashboard/tests/wisc4?evaluation_id=${result.evaluation_id}&application_id=${params.id}`} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50">
+              <Link href={`/dashboard/tests/wisc4?evaluation_id=${result.evaluation_id}&application_id=${params.id}&edit=true`} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50">
                 Editar
               </Link>
               <Link href={`/dashboard/evaluations/${result.evaluation_id}`} className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-lg">

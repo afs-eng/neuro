@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
@@ -12,7 +12,7 @@ interface Patient {
   sex: string
 }
 
-export default function NewEvaluationPage() {
+function NewEvaluationPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const patientId = searchParams.get("patient_id")
@@ -107,6 +107,9 @@ export default function NewEvaluationPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="rounded-2xl bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Esta tela já nasce vinculada a um paciente. O título pode ficar vazio, porque o sistema usa automaticamente o nome do paciente na criação.
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-zinc-700 mb-1">Título</label>
@@ -117,6 +120,7 @@ export default function NewEvaluationPage() {
                   placeholder="Avaliação Neuropsicológica"
                   className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
                 />
+                <p className="mt-1 text-xs text-zinc-500">Opcional. Se não preencher, um título padrão será criado automaticamente.</p>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-zinc-700 mb-1">Hipótese Clínica</label>
@@ -161,5 +165,17 @@ export default function NewEvaluationPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function NewEvaluationPageFallback() {
+  return <div className="min-h-screen w-full bg-slate-300 p-6 md:p-10" />
+}
+
+export default function NewEvaluationPage() {
+  return (
+    <Suspense fallback={<NewEvaluationPageFallback />}>
+      <NewEvaluationPageContent />
+    </Suspense>
   )
 }

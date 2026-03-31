@@ -51,6 +51,7 @@ export default function EvaluationsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [formTouched, setFormTouched] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
     patient_id: "",
     title: "",
@@ -92,6 +93,7 @@ export default function EvaluationsPage() {
   );
 
   const handleSave = async () => {
+    setFormTouched({ patient_id: true });
     if (!formData.patient_id) {
       alert("Selecione um paciente");
       return;
@@ -164,22 +166,29 @@ export default function EvaluationsPage() {
             <Card className="mb-6 rounded-2xl border-slate-200 shadow-sm">
               <CardHeader>
                 <CardTitle>Nova Avaliação</CardTitle>
-                <CardDescription>Crie uma nova avaliação neuropsicológica</CardDescription>
+                <CardDescription>Crie uma nova avaliação neuropsicológica. Campos com * são obrigatórios.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  Obrigatório para salvar: selecionar um paciente.
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Paciente *</label>
                     <select
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
+                      className={`w-full rounded-xl border bg-white px-3 py-2 ${formTouched.patient_id && !formData.patient_id ? "border-red-500" : "border-slate-200"}`}
                       value={formData.patient_id}
                       onChange={(e) => setFormData({ ...formData, patient_id: e.target.value })}
+                      onBlur={() => setFormTouched((prev) => ({ ...prev, patient_id: true }))}
                     >
                       <option value="">Selecione...</option>
                       {patients.map((p) => (
                         <option key={p.id} value={p.id}>{p.full_name}</option>
                       ))}
                     </select>
+                    {formTouched.patient_id && !formData.patient_id && (
+                      <p className="text-xs text-red-500">Campo obrigatório</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Título do caso</label>

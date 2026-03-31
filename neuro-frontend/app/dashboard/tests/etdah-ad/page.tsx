@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,7 +83,7 @@ const QUESTIONS = [
 
 
 
-export default function ETDAHADTestPage() {
+function ETDAHADTestPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [scores, setScores] = useState<Record<string, string>>({});
@@ -301,5 +301,17 @@ export default function ETDAHADTestPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function ETDAHADTestPageFallback() {
+  return <div className="space-y-6" />;
+}
+
+export default function ETDAHADTestPage() {
+  return (
+    <Suspense fallback={<ETDAHADTestPageFallback />}>
+      <ETDAHADTestPageContent />
+    </Suspense>
   );
 }
