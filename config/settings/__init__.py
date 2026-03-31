@@ -3,7 +3,7 @@ import os
 
 environment = os.getenv("DJANGO_ENV")
 if environment:
-    environment = environment.lower()
+    environment = environment.strip().lower()
 elif os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_HOSTNAME"):
     environment = "production"
 else:
