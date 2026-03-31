@@ -5,6 +5,7 @@ from apps.api.auth import bearer_auth
 from apps.accounts.models import UserRole
 from apps.evaluations.models import Evaluation
 from apps.tests.models import Instrument
+from apps.tests.age_rules import get_instrument_age_rule
 from apps.tests.api.schemas import EPQJSubmitIn
 from apps.tests.selectors import (
     get_instrument_by_id,
@@ -43,7 +44,28 @@ def get_faixa_wisc(age):
     return "6-7 anos"
 
 
+def validate_instrument_age(evaluation, instrument):
+    patient = evaluation.patient
+    if not patient or not patient.birth_date:
+        return None
+
+    rules = get_instrument_age_rule(instrument.code)
+    if not rules:
+        return None
+
+    age = calcAge(patient.birth_date)
+    min_age = rules.get("min_age")
+    max_age = rules.get("max_age")
+
+    if min_age is not None and age < min_age:
+        return rules["message"]
+    if max_age is not None and age > max_age:
+        return rules["message"]
+    return None
+
+
 from .schemas import (
+    FDTSubmitIn,
     BPA2SubmitIn,
     EBADEPIJSubmitIn,
     EBADEPASubmitIn,
@@ -81,6 +103,7 @@ def can_edit_tests(user) -> bool:
 
 
 def serialize_instrument(instrument):
+    age_rule = get_instrument_age_rule(instrument.code) or {}
     return {
         "id": instrument.id,
         "code": instrument.code,
@@ -88,6 +111,9 @@ def serialize_instrument(instrument):
         "category": instrument.category,
         "version": instrument.version,
         "is_active": instrument.is_active,
+        "min_age": age_rule.get("min_age"),
+        "max_age": age_rule.get("max_age"),
+        "age_message": age_rule.get("message", ""),
     }
 
 
@@ -188,7 +214,12 @@ def get_test_application_endpoint(request, application_id: int) -> tuple[int, di
 
 @router.post(
     "/applications/",
-    response={201: TestApplicationOut, 403: MessageOut, 404: MessageOut},
+    response={
+        201: TestApplicationOut,
+        400: MessageOut,
+        403: MessageOut,
+        404: MessageOut,
+    },
     auth=bearer_auth,
 )
 def create_test_application_endpoint(
@@ -208,6 +239,10 @@ def create_test_application_endpoint(
     ).first()
     if not instrument:
         return 404, {"message": "Instrumento não encontrado."}
+
+    age_error = validate_instrument_age(evaluation, instrument)
+    if age_error:
+        return 400, {"message": age_error}
 
     application = create_test_application(
         evaluation=evaluation,
@@ -253,11 +288,33 @@ def update_test_application_endpoint(
         ).first()
         if not instrument:
             return 404, {"message": "Instrumento não encontrado."}
+        age_error = validate_instrument_age(application.evaluation, instrument)
+        if age_error:
+            return 400, {"message": age_error}
         data["instrument"] = instrument
         del data["instrument_id"]
 
     application = update_test_application(application, **data)
     return 200, serialize_test_application(application)
+
+
+@router.delete(
+    "/applications/{application_id}",
+    response={200: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def delete_test_application_endpoint(request, application_id: int) -> tuple[int, dict]:
+    if not can_edit_tests(request.auth):
+        return 403, {
+            "message": "Você não tem permissão para remover aplicações de teste."
+        }
+
+    application = get_test_application_by_id(application_id)
+    if not application:
+        return 404, {"message": "Aplicação de teste não encontrada."}
+
+    application.delete()
+    return 200, {"message": "Teste removido com sucesso."}
 
 
 @router.post(
@@ -394,6 +451,11 @@ def ebadep_a_result(request, application_id: int) -> tuple[int, dict]:
 
 
 @router.post(
+    "/ebadep-ij/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+@router.post(
     "/ebaped-ij/submit",
     response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
@@ -422,7 +484,7 @@ def ebadep_ij_submit(request, payload: EBADEPIJSubmitIn) -> tuple[int, dict]:
     ctx = TestContext(
         patient_name=evaluation.patient.full_name,
         evaluation_id=evaluation.pk,
-        instrument_code="ebaped_ij",
+        instrument_code="ebadep_ij",
         raw_scores=raw_scores,
     )
 
@@ -434,7 +496,9 @@ def ebadep_ij_submit(request, payload: EBADEPIJSubmitIn) -> tuple[int, dict]:
     classified = module.classify(computed)
     interpretation = module.interpret(ctx, {**computed, **classified})
 
-    instrument = Instrument.objects.filter(code="ebaped_ij", is_active=True).first()
+    instrument = Instrument.objects.filter(
+        code__in=["ebadep_ij", "ebaped_ij"], is_active=True
+    ).first()
     if not instrument:
         return 404, {"message": "Instrumento EBADEP-IJ não encontrado."}
 
@@ -463,6 +527,11 @@ def ebadep_ij_submit(request, payload: EBADEPIJSubmitIn) -> tuple[int, dict]:
 
 
 @router.get(
+    "/ebadep-ij/result/{application_id}",
+    response={200: dict, 404: MessageOut},
+    auth=bearer_auth,
+)
+@router.get(
     "/ebaped-ij/result/{application_id}",
     response={200: dict, 404: MessageOut},
     auth=bearer_auth,
@@ -471,7 +540,7 @@ def ebadep_ij_result(request, application_id: int) -> tuple[int, dict]:
     application = get_test_application_by_id(application_id)
     if not application:
         return 404, {"message": "Aplicação de teste não encontrada."}
-    if application.instrument.code != "ebaped_ij":
+    if application.instrument.code not in {"ebadep_ij", "ebaped_ij"}:
         return 404, {"message": "Aplicação não é do tipo EBADEP-IJ."}
 
     classified = application.classified_payload or {}
@@ -490,6 +559,87 @@ def ebadep_ij_result(request, application_id: int) -> tuple[int, dict]:
 
 
 # --- BPA-2 ---
+
+
+# --- FDT ---
+
+
+@router.post(
+    "/fdt/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def fdt_submit(request, payload: FDTSubmitIn) -> tuple[int, dict]:
+    from apps.tests.base.types import TestContext
+    from apps.tests.fdt import FDTModule
+    from apps.tests.models.applications import TestApplication
+    from apps.tests.models.instruments import Instrument
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    patient = evaluation.patient
+    if not patient.birth_date:
+        return 400, {"message": "Paciente não tem data de nascimento."}
+
+    age = calcAge(patient.birth_date)
+    raw_scores = {
+        "leitura": {"tempo": payload.leitura.tempo, "erros": payload.leitura.erros},
+        "contagem": {"tempo": payload.contagem.tempo, "erros": payload.contagem.erros},
+        "escolha": {"tempo": payload.escolha.tempo, "erros": payload.escolha.erros},
+        "alternancia": {
+            "tempo": payload.alternancia.tempo,
+            "erros": payload.alternancia.erros,
+        },
+    }
+
+    module = FDTModule()
+    ctx = TestContext(
+        patient_name=patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="fdt",
+        raw_scores=raw_scores,
+        reviewed_scores={"age": age},
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed)
+    interpretation = module.interpret(ctx, classified)
+
+    instrument = Instrument.objects.filter(code="fdt", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento FDT não encontrado."}
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": payload.applied_on or date_cls.today()},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = payload.applied_on or date_cls.today()
+    application.save()
+
+    return 200, {
+        "application_id": application.pk,
+        "faixa": classified.get("faixa", ""),
+        "idade": classified.get("idade", age),
+        "metric_results": classified.get("metric_results", []),
+        "derived_scores": classified.get("derived_scores", {}),
+        "interpretation": interpretation,
+    }
 
 
 @router.post(

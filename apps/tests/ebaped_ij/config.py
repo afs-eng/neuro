@@ -1,7 +1,7 @@
 from enum import Enum
 from dataclasses import dataclass
 
-EBADEPIJ_CODE = "ebaped_ij"
+EBADEPIJ_CODE = "ebadep_ij"
 EBADEPIJ_NAME = (
     "EBADEP-IJ - Escala de Avaliação de Padrões de Desenvolvimento Infantil/Juvenil"
 )

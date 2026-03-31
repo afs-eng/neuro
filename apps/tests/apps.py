@@ -7,6 +7,7 @@ class TestsConfig(AppConfig):
     verbose_name = "Testes"
 
     def ready(self):
+        from apps.tests.fdt import FDTModule  # noqa
         from apps.tests.bpa2 import BPA2Module  # noqa
         from apps.tests.wisc4 import WISC4Module  # noqa
         from apps.tests.ebaped_ij import EBADEPIJModule  # noqa

@@ -4,6 +4,7 @@ from django.db.models import QuerySet
 
 from apps.tests.models import Instrument, TestApplication, TestInterpretationTemplate
 
+
 def get_instruments() -> QuerySet[Instrument]:
     return Instrument.objects.filter(is_active=True).order_by("name")
 
@@ -17,22 +18,16 @@ def get_instrument_by_code(code: str) -> Optional[Instrument]:
 
 
 def get_test_applications() -> QuerySet[TestApplication]:
-    return (
-        TestApplication.objects.with_details()
-        .all()
-        .order_by("-created_at")
-    )
+    return TestApplication.objects.with_details().all().order_by("-created_at")
 
 
 def get_test_application_by_id(application_id: int) -> Optional[TestApplication]:
-    return (
-        TestApplication.objects.with_details()
-        .filter(id=application_id)
-        .first()
-    )
+    return TestApplication.objects.with_details().filter(id=application_id).first()
 
 
-def get_test_applications_by_evaluation(evaluation_id: int) -> QuerySet[TestApplication]:
+def get_test_applications_by_evaluation(
+    evaluation_id: int,
+) -> QuerySet[TestApplication]:
     return (
         TestApplication.objects.with_details()
         .filter(evaluation_id=evaluation_id)
@@ -40,7 +35,19 @@ def get_test_applications_by_evaluation(evaluation_id: int) -> QuerySet[TestAppl
     )
 
 
-def get_active_template_for_instrument(instrument_id: int) -> Optional[TestInterpretationTemplate]:
+def get_validated_test_applications_by_evaluation(
+    evaluation_id: int,
+) -> QuerySet[TestApplication]:
+    return (
+        TestApplication.objects.with_details()
+        .filter(evaluation_id=evaluation_id, is_validated=True)
+        .order_by("applied_on", "created_at")
+    )
+
+
+def get_active_template_for_instrument(
+    instrument_id: int,
+) -> Optional[TestInterpretationTemplate]:
     return (
         TestInterpretationTemplate.objects.filter(
             instrument_id=instrument_id,

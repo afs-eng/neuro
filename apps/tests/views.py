@@ -222,7 +222,7 @@ def ebadep_a_form_view(request, application_id=None):
 
 def ebaped_ij_form_view(request, application_id=None):
     return _item_form_view(
-        request, application_id, "ebaped_ij", 27, "tests/ebaped_ij_form.html"
+        request, application_id, "ebadep_ij", 27, "tests/ebaped_ij_form.html"
     )
 
 
@@ -537,7 +537,7 @@ def _get_age_group(patient, evaluation_date_str, norm_type):
 
     try:
         eval_date = date.fromisoformat(evaluation_date_str)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         eval_date = date.today()
 
     age = eval_date.year - patient.birth_date.year

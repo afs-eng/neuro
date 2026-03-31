@@ -1,5 +1,8 @@
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 from apps.api.router import api
 from apps.patients import views as patient_views
@@ -9,6 +12,7 @@ from apps.reports import views as report_views
 
 
 urlpatterns = [
+    path("healthz/", lambda request: JsonResponse({"status": "ok"}), name="healthz"),
     path("admin/", admin.site.urls),
     path("api/", api.urls),
     # Dashboard
@@ -22,3 +26,6 @@ urlpatterns = [
     # Relatórios
     path("relatorios/", include("apps.reports.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

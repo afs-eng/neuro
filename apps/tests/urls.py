@@ -18,9 +18,18 @@ urlpatterns = [
     path("bpa2/<int:application_id>/", views.bpa2_form_view, name="bpa2"),
     path("bpa2/", views.bpa2_form_view, name="bpa2_standalone"),
     path(
+        "ebadep-ij/<int:application_id>/", views.ebaped_ij_form_view, name="ebadep_ij"
+    ),
+    path("ebadep-ij/", views.ebaped_ij_form_view, name="ebadep_ij_standalone"),
+    path(
         "ebaped-ij/<int:application_id>/", views.ebaped_ij_form_view, name="ebaped_ij"
     ),
     path("ebaped-ij/", views.ebaped_ij_form_view, name="ebaped_ij_standalone"),
+    path(
+        "ebadep-ij/report/<int:application_id>/",
+        views.ebaped_ij_report_view,
+        name="ebadep_ij_report",
+    ),
     path(
         "ebaped-ij/report/<int:application_id>/",
         views.ebaped_ij_report_view,

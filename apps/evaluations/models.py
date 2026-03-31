@@ -22,6 +22,17 @@ class EvaluationPriority(models.TextChoices):
     URGENT = "urgent", "Urgente"
 
 
+class EvaluationEntryType(models.TextChoices):
+    ANAMNESIS = "anamnesis", "Anamnese"
+    TESTING_SESSION = "testing_session", "Sessao de testagem"
+    SCORING = "scoring", "Correcao"
+    FEEDBACK = "feedback", "Devolutiva"
+    FAMILY_CONTACT = "family_contact", "Contato com familia"
+    SCHOOL_CONTACT = "school_contact", "Contato com escola"
+    CLINICAL_MEETING = "clinical_meeting", "Reuniao clinica"
+    OTHER = "other", "Outro"
+
+
 class EvaluationQuerySet(models.QuerySet):
     def with_details(self):
         return self.select_related("patient", "examiner")
@@ -90,3 +101,56 @@ class Evaluation(models.Model):
     @property
     def code(self):
         return f"AV-{self.id:04d}"
+
+
+class EvaluationProgressEntryQuerySet(models.QuerySet):
+    def with_details(self):
+        return self.select_related("evaluation", "patient", "professional")
+
+
+class EvaluationProgressEntry(models.Model):
+    evaluation = models.ForeignKey(
+        Evaluation,
+        on_delete=models.CASCADE,
+        related_name="progress_entries",
+        verbose_name="avaliacao",
+    )
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.CASCADE,
+        related_name="evaluation_progress_entries",
+        verbose_name="paciente",
+    )
+    professional = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="evaluation_progress_entries",
+        verbose_name="profissional",
+    )
+    entry_type = models.CharField(
+        "tipo de evolucao",
+        max_length=40,
+        choices=EvaluationEntryType.choices,
+        default=EvaluationEntryType.OTHER,
+    )
+    entry_date = models.DateField("data da evolucao")
+    start_time = models.TimeField("hora inicial", null=True, blank=True)
+    end_time = models.TimeField("hora final", null=True, blank=True)
+    objective = models.TextField("objetivo", blank=True)
+    tests_applied = models.TextField("testes aplicados", blank=True)
+    observed_behavior = models.TextField("comportamento observado", blank=True)
+    clinical_notes = models.TextField("notas clinicas", blank=True)
+    next_steps = models.TextField("proximos passos", blank=True)
+    include_in_report = models.BooleanField("incluir no laudo", default=True)
+    created_at = models.DateTimeField("criado em", auto_now_add=True)
+    updated_at = models.DateTimeField("atualizado em", auto_now=True)
+
+    class Meta:
+        ordering = ["-entry_date", "-created_at"]
+        verbose_name = "Evolucao da avaliacao"
+        verbose_name_plural = "Evolucoes da avaliacao"
+
+    objects = EvaluationProgressEntryQuerySet.as_manager()
+
+    def __str__(self):
+        return f"{self.evaluation.code} - {self.get_entry_type_display()} - {self.entry_date}"

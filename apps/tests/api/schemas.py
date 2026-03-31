@@ -11,6 +11,9 @@ class InstrumentOut(Schema):
     category: str
     version: str
     is_active: bool
+    min_age: Optional[int] = None
+    max_age: Optional[int] = None
+    age_message: Optional[str] = ""
 
 
 class InstrumentCreateIn(Schema):
@@ -157,6 +160,23 @@ class EBADEPIJSubmitIn(Schema):
     item_25: int = 0
     item_26: int = 0
     item_27: int = 0
+
+
+# --- FDT ---
+
+
+class FDTStageIn(Schema):
+    tempo: float = 0
+    erros: int = 0
+
+
+class FDTSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    leitura: FDTStageIn
+    contagem: FDTStageIn
+    escolha: FDTStageIn
+    alternancia: FDTStageIn
 
 
 # --- BPA-2 ---

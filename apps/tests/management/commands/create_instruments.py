@@ -8,6 +8,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         instrumentos = [
             {
+                "code": "fdt",
+                "name": "FDT - Five Digits Test",
+                "category": "Funções executivas",
+                "version": "1.0",
+                "is_active": True,
+            },
+            {
                 "code": "wisc4",
                 "name": "WISC-IV - Escala de Inteligência de Wechsler para Crianças",
                 "category": "Inteligência",

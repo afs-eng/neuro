@@ -1,39 +1,16 @@
 from .base import *
 
+
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "3000", "8000"]
-
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 CORS_ALLOW_ALL_ORIGINS = True
-
-INSTALLED_APPS += [
-    # Ferramentas úteis em desenvolvimento
-    # "django_extensions",
-]
-
-MIDDLEWARE += [
-    # "debug_toolbar.middleware.DebugToolbarMiddleware",
-]
-
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:3000", "http://localhost:3000"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# Em dev, pode usar SQLite se quiser testar rápido
-if os.getenv("USE_SQLITE", "").lower() == "true":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-
-# Segurança relaxada para desenvolvimento
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
 
-# Logging mais verboso em dev
 LOGGING["root"]["level"] = "DEBUG"

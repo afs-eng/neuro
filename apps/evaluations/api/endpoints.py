@@ -5,19 +5,33 @@ from ninja.errors import HttpError
 from apps.api.auth import bearer_auth
 from apps.accounts.models import User, UserRole
 from apps.patients.models import Patient
-from apps.evaluations.models import EvaluationStatus, EvaluationPriority
+from apps.evaluations.models import Evaluation, EvaluationStatus, EvaluationPriority
 from apps.evaluations.selectors import (
     get_evaluation_by_id,
     get_evaluations,
     get_evaluations_by_patient,
+    get_progress_entry_by_id,
+    get_progress_entries_by_evaluation,
 )
-from apps.evaluations.services import create_evaluation, update_evaluation
+from apps.evaluations.services import (
+    create_evaluation,
+    update_evaluation,
+    create_progress_entry,
+    update_progress_entry,
+    delete_progress_entry,
+)
+from apps.anamnesis.services import get_current_response_summary
+from apps.documents.selectors import get_relevant_documents_by_evaluation
+from apps.tests.selectors import get_validated_test_applications_by_evaluation
 
 from .schemas import (
     EvaluationOut,
     EvaluationCreateIn,
     EvaluationUpdateIn,
     EvaluationDetailOut,
+    ProgressEntryOut,
+    ProgressEntryCreateIn,
+    ProgressEntryUpdateIn,
     TestApplicationOut,
     DocumentOut,
     MessageOut,
@@ -80,6 +94,7 @@ def serialize_evaluation(evaluation, include_details=False):
 
     if include_details:
         from apps.tests.models import TestApplication
+        from apps.documents.models import EvaluationDocument
 
         tests = TestApplication.objects.filter(evaluation=evaluation).select_related(
             "instrument"
@@ -95,9 +110,73 @@ def serialize_evaluation(evaluation, include_details=False):
             }
             for t in tests
         ]
-        data["documents"] = []
+        documents = EvaluationDocument.objects.filter(evaluation=evaluation)
+        data["documents"] = [
+            {
+                "id": d.id,
+                "name": d.title,
+                "file_type": d.document_type,
+                "uploaded_at": d.created_at.isoformat() if d.created_at else None,
+            }
+            for d in documents
+        ]
+        data["progress_entries"] = [
+            serialize_progress_entry(item)
+            for item in get_progress_entries_by_evaluation(evaluation.id)
+        ]
+        current_anamnesis = get_current_response_summary(evaluation.id)
+        data["current_anamnesis"] = current_anamnesis
+        has_relevant_documents = get_relevant_documents_by_evaluation(
+            evaluation.id
+        ).exists()
+        has_progress_entries_for_report = any(
+            item["include_in_report"] for item in data["progress_entries"]
+        )
+        has_validated_tests = get_validated_test_applications_by_evaluation(
+            evaluation.id
+        ).exists()
+        anamnesis_completed = bool(
+            current_anamnesis
+            and current_anamnesis["status"] in {"submitted", "reviewed"}
+        )
+        anamnesis_reviewed = bool(
+            current_anamnesis and current_anamnesis["status"] == "reviewed"
+        )
+        data["clinical_checklist"] = {
+            "anamnesis_completed": anamnesis_completed,
+            "anamnesis_reviewed": anamnesis_reviewed,
+            "has_relevant_documents": has_relevant_documents,
+            "has_progress_entries_for_report": has_progress_entries_for_report,
+            "has_validated_tests": has_validated_tests,
+            "ready_for_report": anamnesis_completed
+            and has_progress_entries_for_report
+            and has_validated_tests,
+        }
 
     return data
+
+
+def serialize_progress_entry(entry):
+    return {
+        "id": entry.id,
+        "evaluation_id": entry.evaluation_id,
+        "patient_id": entry.patient_id,
+        "professional_id": entry.professional_id,
+        "professional_name": entry.professional.display_name,
+        "entry_type": entry.entry_type,
+        "entry_type_display": entry.get_entry_type_display(),
+        "entry_date": entry.entry_date,
+        "start_time": entry.start_time,
+        "end_time": entry.end_time,
+        "objective": entry.objective or "",
+        "tests_applied": entry.tests_applied or "",
+        "observed_behavior": entry.observed_behavior or "",
+        "clinical_notes": entry.clinical_notes or "",
+        "next_steps": entry.next_steps or "",
+        "include_in_report": entry.include_in_report,
+        "created_at": entry.created_at.isoformat() if entry.created_at else None,
+        "updated_at": entry.updated_at.isoformat() if entry.updated_at else None,
+    }
 
 
 @router.get("/", response=list[EvaluationOut], auth=bearer_auth)
@@ -208,3 +287,112 @@ def update_evaluation_endpoint(
 
     evaluation = update_evaluation(evaluation, **data)
     return 200, serialize_evaluation(evaluation)
+
+
+@router.get(
+    "/{evaluation_id}/progress-entries",
+    response=list[ProgressEntryOut],
+    auth=bearer_auth,
+)
+def list_progress_entries_endpoint(request, evaluation_id: int) -> list[dict]:
+    if not can_view_evaluations(request.auth):
+        raise HttpError(403, "Você não tem permissão para visualizar evoluções.")
+    return [
+        serialize_progress_entry(item)
+        for item in get_progress_entries_by_evaluation(evaluation_id)
+    ]
+
+
+@router.post(
+    "/progress-entries",
+    response={201: ProgressEntryOut, 403: MessageOut, 404: MessageOut, 400: MessageOut},
+    auth=bearer_auth,
+)
+def create_progress_entry_endpoint(
+    request, payload: ProgressEntryCreateIn
+) -> tuple[int, dict]:
+    if not can_edit_evaluations(request.auth):
+        return 403, {"message": "Você não tem permissão para criar evoluções."}
+
+    evaluation = (
+        Evaluation.objects.filter(id=payload.evaluation_id)
+        .select_related("patient")
+        .first()
+    )
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+    if evaluation.patient_id != payload.patient_id:
+        return 400, {"message": "Paciente não corresponde à avaliação informada."}
+
+    professional = request.auth
+    if payload.professional_id:
+        professional = User.objects.filter(
+            id=payload.professional_id, is_active=True
+        ).first()
+        if not professional:
+            return 404, {"message": "Profissional não encontrado."}
+
+    entry = create_progress_entry(
+        evaluation=evaluation,
+        patient=evaluation.patient,
+        professional=professional,
+        entry_type=payload.entry_type,
+        entry_date=payload.entry_date,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+        objective=payload.objective or "",
+        tests_applied=payload.tests_applied or "",
+        observed_behavior=payload.observed_behavior or "",
+        clinical_notes=payload.clinical_notes or "",
+        next_steps=payload.next_steps or "",
+        include_in_report=payload.include_in_report,
+    )
+    return 201, serialize_progress_entry(entry)
+
+
+@router.patch(
+    "/progress-entries/{entry_id}",
+    response={200: ProgressEntryOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def update_progress_entry_endpoint(
+    request, entry_id: int, payload: ProgressEntryUpdateIn
+) -> tuple[int, dict]:
+    if not can_edit_evaluations(request.auth):
+        return 403, {"message": "Você não tem permissão para editar evoluções."}
+
+    entry = get_progress_entry_by_id(entry_id)
+    if not entry:
+        return 404, {"message": "Evolução não encontrada."}
+
+    data = payload.dict(exclude_unset=True)
+    if "professional_id" in data:
+        professional = (
+            request.auth
+            if not data["professional_id"]
+            else User.objects.filter(id=data["professional_id"], is_active=True).first()
+        )
+        if not professional:
+            return 404, {"message": "Profissional não encontrado."}
+        data["professional"] = professional
+        del data["professional_id"]
+
+    updated = update_progress_entry(entry, **data)
+    return 200, serialize_progress_entry(updated)
+
+
+@router.delete(
+    "/progress-entries/{entry_id}",
+    response={200: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def delete_progress_entry_endpoint(request, entry_id: int) -> tuple[int, dict]:
+    if not can_edit_evaluations(request.auth):
+        return 403, {"message": "Você não tem permissão para excluir evoluções."}
+
+    entry = get_progress_entry_by_id(entry_id)
+    if not entry:
+        return 404, {"message": "Evolução não encontrada."}
+
+    delete_progress_entry(entry)
+    return 200, {"message": "Evolução excluída com sucesso."}
