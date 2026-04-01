@@ -33,6 +33,12 @@ def _get_existing_application(patient, instrument_code):
     return None, None
 
 
+def _get_reference_date(evaluation, evaluation_date=None):
+    return (
+        evaluation_date or evaluation.start_date or evaluation.end_date or date.today()
+    )
+
+
 def _process_and_save_test(
     patient,
     evaluation,
@@ -45,8 +51,8 @@ def _process_and_save_test(
     reviewed_scores = {}
     if hasattr(patient, "birth_date") and patient.birth_date:
         reviewed_scores["birth_date"] = str(patient.birth_date)
-    if evaluation_date:
-        reviewed_scores["evaluation_date"] = str(evaluation_date)
+    reference_date = _get_reference_date(evaluation, evaluation_date)
+    reviewed_scores["evaluation_date"] = str(reference_date)
     ctx = TestContext(
         patient_name=patient.full_name,
         evaluation_id=evaluation.pk if evaluation else 0,
@@ -77,7 +83,7 @@ def _process_and_save_test(
     application, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": evaluation_date or date.today()},
+        defaults={"applied_on": reference_date},
     )
 
     application.raw_payload = raw_scores
@@ -85,7 +91,7 @@ def _process_and_save_test(
     application.classified_payload = classified
     application.interpretation_text = interpretation
     application.is_validated = True
-    application.applied_on = evaluation_date or date.today()
+    application.applied_on = reference_date
     application.save()
 
     return application, classified, interpretation
@@ -107,7 +113,7 @@ def add_test_to_evaluation(request, evaluation_id, instrument_code):
     app, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": date.today()},
+        defaults={"applied_on": _get_reference_date(evaluation)},
     )
     # For API mode return the created application id and a suggested next URL
     return JsonResponse(
@@ -545,7 +551,7 @@ def _get_age_group(patient, evaluation_date_str, norm_type):
 
     try:
         eval_date = date.fromisoformat(evaluation_date_str)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
         eval_date = date.today()
 
     age = eval_date.year - patient.birth_date.year

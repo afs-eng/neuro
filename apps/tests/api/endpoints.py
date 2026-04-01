@@ -23,9 +23,15 @@ from datetime import date as date_cls
 from dateutil.relativedelta import relativedelta
 
 
-def calcAge(birth_date):
-    today = date_cls.today()
-    return relativedelta(today, birth_date).years
+def get_reference_date(evaluation, applied_on=None):
+    return (
+        applied_on or evaluation.start_date or evaluation.end_date or date_cls.today()
+    )
+
+
+def calcAge(birth_date, reference_date=None):
+    base_date = reference_date or date_cls.today()
+    return relativedelta(base_date, birth_date).years
 
 
 def get_faixa_wisc(age):
@@ -53,7 +59,7 @@ def validate_instrument_age(evaluation, instrument):
     if not rules:
         return None
 
-    age = calcAge(patient.birth_date)
+    age = calcAge(patient.birth_date, get_reference_date(evaluation))
     min_age = rules.get("min_age")
     max_age = rules.get("max_age")
 
@@ -390,10 +396,14 @@ def ebadep_a_submit(request, payload: EBADEPASubmitIn) -> tuple[int, dict]:
     if not instrument:
         return 404, {"message": "Instrumento EBADEP-A não encontrado."}
 
+    reference_date = get_reference_date(
+        evaluation, getattr(payload, "applied_on", None)
+    )
+
     application, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": payload.applied_on or date_cls.today()},
+        defaults={"applied_on": reference_date},
     )
 
     application.raw_payload = raw_scores
@@ -401,7 +411,7 @@ def ebadep_a_submit(request, payload: EBADEPASubmitIn) -> tuple[int, dict]:
     application.classified_payload = classified
     application.interpretation_text = interpretation
     application.is_validated = True
-    application.applied_on = payload.applied_on or date_cls.today()
+    application.applied_on = reference_date
     application.save()
 
     items_criticos = classified.get("items_criticos", [])
@@ -502,10 +512,12 @@ def ebadep_ij_submit(request, payload: EBADEPIJSubmitIn) -> tuple[int, dict]:
     if not instrument:
         return 404, {"message": "Instrumento EBADEP-IJ não encontrado."}
 
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+
     application, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": payload.applied_on or date_cls.today()},
+        defaults={"applied_on": reference_date},
     )
 
     application.raw_payload = raw_scores
@@ -513,7 +525,7 @@ def ebadep_ij_submit(request, payload: EBADEPIJSubmitIn) -> tuple[int, dict]:
     application.classified_payload = classified
     application.interpretation_text = interpretation
     application.is_validated = True
-    application.applied_on = payload.applied_on or date_cls.today()
+    application.applied_on = reference_date
     application.save()
 
     return 200, {
@@ -586,7 +598,8 @@ def fdt_submit(request, payload: FDTSubmitIn) -> tuple[int, dict]:
     if not patient.birth_date:
         return 400, {"message": "Paciente não tem data de nascimento."}
 
-    age = calcAge(patient.birth_date)
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+    age = calcAge(patient.birth_date, reference_date)
     raw_scores = {
         "leitura": {"tempo": payload.leitura.tempo, "erros": payload.leitura.erros},
         "contagem": {"tempo": payload.contagem.tempo, "erros": payload.contagem.erros},
@@ -621,7 +634,7 @@ def fdt_submit(request, payload: FDTSubmitIn) -> tuple[int, dict]:
     application, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": payload.applied_on or date_cls.today()},
+        defaults={"applied_on": reference_date},
     )
 
     application.raw_payload = raw_scores
@@ -629,7 +642,7 @@ def fdt_submit(request, payload: FDTSubmitIn) -> tuple[int, dict]:
     application.classified_payload = classified
     application.interpretation_text = interpretation
     application.is_validated = True
-    application.applied_on = payload.applied_on or date_cls.today()
+    application.applied_on = reference_date
     application.save()
 
     return 200, {
@@ -701,7 +714,7 @@ def bpa2_submit(request, payload: BPA2SubmitIn) -> tuple[int, dict]:
         if not patient.birth_date:
             faixa = "15-17 anos"
         else:
-            eval_date = payload.applied_on or date_cls.today()
+            eval_date = get_reference_date(evaluation, payload.applied_on)
             age = eval_date.year - patient.birth_date.year
             if (eval_date.month, eval_date.day) < (
                 patient.birth_date.month,
@@ -720,10 +733,12 @@ def bpa2_submit(request, payload: BPA2SubmitIn) -> tuple[int, dict]:
     if not instrument:
         return 404, {"message": "Instrumento BPA-2 não encontrado."}
 
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+
     application, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": payload.applied_on or date_cls.today()},
+        defaults={"applied_on": reference_date},
     )
 
     application.raw_payload = raw_scores
@@ -731,7 +746,7 @@ def bpa2_submit(request, payload: BPA2SubmitIn) -> tuple[int, dict]:
     application.classified_payload = classified
     application.interpretation_text = interpretation
     application.is_validated = True
-    application.applied_on = payload.applied_on or date_cls.today()
+    application.applied_on = reference_date
     application.save()
 
     ag = next(
@@ -805,10 +820,11 @@ def wisc4_submit(request, payload: WISC4SubmitIn) -> tuple[int, dict]:
     if not patient.birth_date:
         return 400, {"message": "Paciente não tem data de nascimento."}
 
-    age = calcAge(patient.birth_date)
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+    age = calcAge(patient.birth_date, reference_date)
 
     # WISC-IV é indicado para pacientes de 6 anos até 16 anos e 11 meses
-    today = date_cls.today()
+    today = reference_date
     max_age_date = patient.birth_date + timedelta(
         days=16 * 365 + 364
     )  # 16 anos e 364 dias
@@ -844,7 +860,7 @@ def wisc4_submit(request, payload: WISC4SubmitIn) -> tuple[int, dict]:
 
     reviewed_scores = {
         "birth_date": str(patient.birth_date),
-        "evaluation_date": str(date_cls.today()),
+        "evaluation_date": str(reference_date),
         "confidence_level": "95",
     }
 
@@ -877,7 +893,7 @@ def wisc4_submit(request, payload: WISC4SubmitIn) -> tuple[int, dict]:
     application, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": date_cls.today()},
+        defaults={"applied_on": reference_date},
     )
 
     application.raw_payload = raw_scores
@@ -885,6 +901,7 @@ def wisc4_submit(request, payload: WISC4SubmitIn) -> tuple[int, dict]:
     application.classified_payload = classified
     application.interpretation_text = interpretation
     application.is_validated = True
+    application.applied_on = reference_date
     application.save()
 
     return 200, {
@@ -963,10 +980,12 @@ def epq_j_submit(request, payload: EPQJSubmitIn) -> tuple[int, dict]:
         escores["P"], escores["E"], escores["N"], escores["S"], payload.sexo
     )
 
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+
     application, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": payload.applied_on or date_cls.today()},
+        defaults={"applied_on": reference_date},
     )
 
     application.raw_payload = raw_scores
@@ -980,7 +999,7 @@ def epq_j_submit(request, payload: EPQJSubmitIn) -> tuple[int, dict]:
         "sexo": payload.sexo,
     }
     application.is_validated = True
-    application.applied_on = payload.applied_on or date_cls.today()
+    application.applied_on = reference_date
     application.save()
 
     return 200, {
@@ -1015,6 +1034,7 @@ def etdah_ad_submit(request, payload: ETDAHADSubmitIn) -> tuple[int, dict]:
 
     patient = evaluation.patient
     examiner = evaluation.examiner
+    reference_date = get_reference_date(evaluation, payload.applied_on)
 
     responses = {}
     for i in range(1, 70):
@@ -1024,7 +1044,7 @@ def etdah_ad_submit(request, payload: ETDAHADSubmitIn) -> tuple[int, dict]:
     raw_scores = {
         "patient_id": patient.pk,
         "examiner_id": examiner.pk if examiner else None,
-        "age": patient.age or 0,
+        "age": calcAge(patient.birth_date, reference_date) if patient.birth_date else 0,
         "schooling": patient.schooling or "elementary",
         "responses": responses,
     }
@@ -1052,7 +1072,7 @@ def etdah_ad_submit(request, payload: ETDAHADSubmitIn) -> tuple[int, dict]:
     application, _ = TestApplication.objects.get_or_create(
         evaluation=evaluation,
         instrument=instrument,
-        defaults={"applied_on": payload.applied_on or date_cls.today()},
+        defaults={"applied_on": reference_date},
     )
 
     application.raw_payload = raw_scores
@@ -1060,7 +1080,7 @@ def etdah_ad_submit(request, payload: ETDAHADSubmitIn) -> tuple[int, dict]:
     application.classified_payload = classified
     application.interpretation_text = interpretation
     application.is_validated = True
-    application.applied_on = payload.applied_on or date_cls.today()
+    application.applied_on = reference_date
     application.save()
 
     results = classified.get("results", {})

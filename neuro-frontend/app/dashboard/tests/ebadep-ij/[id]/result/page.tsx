@@ -100,7 +100,7 @@ export default function EBADEPIJResultPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={() => router.push(`/dashboard/evaluations/${result.evaluation_id}?tab=overview`)} className="rounded-full">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -116,6 +116,10 @@ export default function EBADEPIJResultPage() {
           <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push(`/dashboard/tests/ebadep-ij?evaluation_id=${result.evaluation_id}&application_id=${params.id}&edit=true`)}>
             <Edit className="h-4 w-4" />
             Editar
+          </Button>
+          <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push(`/dashboard/evaluations/${result.evaluation_id}?tab=overview`)}>
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
           </Button>
           <Button variant="outline" className="rounded-xl gap-2">
             <Printer className="h-4 w-4" />

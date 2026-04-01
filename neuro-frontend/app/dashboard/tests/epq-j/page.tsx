@@ -111,7 +111,8 @@ function EPQJTestPageContent() {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
           if (result && result.is_validated && !isEditMode) {
-            router.push(`/dashboard/tests/epq-j/${applicationId}/result`)
+            const resultEvaluationId = result.evaluation_id ? `?evaluation_id=${result.evaluation_id}` : ""
+            router.push(`/dashboard/tests/epq-j/${applicationId}/result${resultEvaluationId}`)
             return
           }
           if (result && result.raw_payload) {
@@ -182,6 +183,7 @@ function EPQJTestPageContent() {
       
       // Passa os dados via query params para a página de resultado
       const params = new URLSearchParams({
+        evaluation_id: String(evaluation?.id || evalId || ""),
         paciente: String(evaluation?.patient_id || ""),
         nome: evaluation?.patient_name || "",
         sexo: sexo,

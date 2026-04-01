@@ -75,7 +75,7 @@ export default function BPA2ResultPage() {
               <button className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm">
                 Exportar PDF
               </button>
-              <Link href="/dashboard?tab=tests" className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+              <Link href={`/dashboard/evaluations/${result.evaluation_id}?tab=overview`} className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
                 Voltar
               </Link>
             </div>

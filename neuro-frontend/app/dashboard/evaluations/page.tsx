@@ -45,6 +45,17 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: "bg-red-50 text-red-700",
 };
 
+function formatDisplayDate(value: string | null | undefined) {
+  if (!value) return "—";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("pt-BR");
+}
+
 export default function EvaluationsPage() {
   const router = useRouter();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -58,6 +69,8 @@ export default function EvaluationsPage() {
     referral_reason: "",
     evaluation_purpose: "",
     priority: "medium",
+    start_date: "",
+    end_date: "",
   });
   const [patients, setPatients] = useState<any[]>([]);
 
@@ -105,6 +118,8 @@ export default function EvaluationsPage() {
         referral_reason: formData.referral_reason,
         evaluation_purpose: formData.evaluation_purpose,
         priority: formData.priority,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null,
       });
       alert("Avaliação criada com sucesso!");
       setShowForm(false);
@@ -114,6 +129,8 @@ export default function EvaluationsPage() {
         referral_reason: "",
         evaluation_purpose: "",
         priority: "medium",
+        start_date: "",
+        end_date: "",
       });
       fetchEvaluations();
     } catch (err: any) {
@@ -213,7 +230,19 @@ export default function EvaluationsPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Data de início</label>
-                    <Input type="date" />
+                    <Input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data da conclusão</label>
+                    <Input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -293,7 +322,7 @@ export default function EvaluationsPage() {
                         {evaluation.start_date && (
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {new Date(evaluation.start_date).toLocaleDateString("pt-BR")}
+                            {formatDisplayDate(evaluation.start_date)}
                           </span>
                         )}
                       </div>

@@ -105,7 +105,8 @@ function ETDAHADTestPageContent() {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
           if (result && result.is_validated && !isEditMode) {
-            router.push(`/dashboard/tests/etdah-ad/${applicationId}/result`)
+            const resultEvaluationId = result.evaluation_id ? `?evaluation_id=${result.evaluation_id}` : ""
+            router.push(`/dashboard/tests/etdah-ad/${applicationId}/result${resultEvaluationId}`)
             return
           }
           if (result && result.raw_payload) {
@@ -167,7 +168,7 @@ function ETDAHADTestPageContent() {
 
     try {
       const result = await api.post<{ application_id: number }>('/api/tests/etdah-ad/submit', payload);
-      router.push(`/dashboard/tests/etdah-ad/${result.application_id}/result`);
+      router.push(`/dashboard/tests/etdah-ad/${result.application_id}/result?evaluation_id=${evaluationId}`);
     } catch (error: any) {
       console.error('Erro:', error);
       alert('Erro ao salvar: ' + (error?.message || 'Tente novamente'));

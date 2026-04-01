@@ -39,7 +39,8 @@ function BPA2TestPageContent() {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
           if (result && result.is_validated) {
-            router.push(`/dashboard/tests/bpa2/${applicationId}/result`)
+            const resultEvaluationId = result.evaluation_id ? `?evaluation_id=${result.evaluation_id}` : ""
+            router.push(`/dashboard/tests/bpa2/${applicationId}/result${resultEvaluationId}`)
             return
           }
           if (result && result.raw_payload) {
@@ -107,7 +108,7 @@ function BPA2TestPageContent() {
     try {
       const result = await api.post<{ application_id: number }>('/api/tests/bpa2/submit', payload);
       alert('BPA-2 salvo com sucesso!');
-      router.push(`/dashboard/tests/bpa2/${result.application_id}/result`);
+      router.push(`/dashboard/tests/bpa2/${result.application_id}/result?evaluation_id=${evaluationId}`);
     } catch (error: any) {
       console.error('Erro:', error);
       alert('Erro ao salvar: ' + (error?.message || 'Tente novamente'));

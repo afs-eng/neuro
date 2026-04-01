@@ -15,6 +15,35 @@ interface Patient {
   city: string | null
 }
 
+function formatAge(birthDate: string | null | undefined): string {
+  if (!birthDate) return "—"
+  const birth = new Date(birthDate)
+  const today = new Date()
+  if (isNaN(birth.getTime())) return "—"
+
+  let years = today.getFullYear() - birth.getFullYear()
+  let months = today.getMonth() - birth.getMonth()
+
+  if (today.getDate() < birth.getDate()) {
+    months--
+  }
+
+  if (months < 0) {
+    years--
+    months += 12
+  }
+
+  if (years <= 0) {
+    return `${months} ${months === 1 ? "mês" : "meses"}`
+  }
+
+  if (months === 0) {
+    return `${years} ${years === 1 ? "ano" : "anos"}`
+  }
+
+  return `${years} ${years === 1 ? "ano" : "anos"} e ${months} ${months === 1 ? "mês" : "meses"}`
+}
+
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
@@ -544,9 +573,9 @@ export default function PatientsPage() {
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-dashed border-black/10 pt-4">
-                    <span className="text-xs text-zinc-500">Nascimento</span>
+                    <span className="text-xs text-zinc-500">Idade</span>
                     <span className="text-sm font-medium text-zinc-700">
-                      {patient.birth_date || '—'}
+                      {formatAge(patient.birth_date)}
                     </span>
                   </div>
                 </Link>
@@ -560,7 +589,7 @@ export default function PatientsPage() {
                     <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase">Paciente</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase">Sexo</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase">Escolaridade</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase">Nascimento</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase">Idade</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase">Cidade</th>
                   </tr>
                 </thead>
@@ -577,7 +606,7 @@ export default function PatientsPage() {
                       </td>
                       <td className="px-5 py-4 text-sm text-zinc-600">{patient.sex || '—'}</td>
                       <td className="px-5 py-4 text-sm text-zinc-600">{patient.schooling || '—'}</td>
-                      <td className="px-5 py-4 text-sm text-zinc-600">{patient.birth_date || '—'}</td>
+                      <td className="px-5 py-4 text-sm text-zinc-600">{formatAge(patient.birth_date)}</td>
                       <td className="px-5 py-4 text-sm text-zinc-600">{patient.city || '—'}</td>
                     </tr>
                   ))}

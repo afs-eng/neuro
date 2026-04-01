@@ -31,15 +31,18 @@ INDEX_INTERPRETATIONS = {
 
 
 def get_classification_group(classificacao: str) -> str:
-    if "Extremamente" in classificacao or "Muito Superior" in classificacao:
+    if "Muito Superior" in classificacao:
         return "Superior"
+    elif "Média Superior" in classificacao:
+        return "Médio-Alto"
     elif "Superior" in classificacao or "Médio-Alto" in classificacao:
         return "Médio-Alto"
-    elif "Médio" in classificacao:
+    elif "Médio" in classificacao or "Média" in classificacao:
         return "Médio"
-    elif "Baixo" in classificacao:
+    elif "Limítrofe" in classificacao:
         return "Baixo"
     else:
+        # Extremamente Baixo, Dificuldade Grave, Dificuldade Moderada, Dificuldade Leve
         return "Muito Baixo"
 
 

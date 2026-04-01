@@ -42,12 +42,29 @@ WISC4_INDICES = {
 }
 
 INDEX_CONVERSION = {
-    69: (0, "Extremamente Baixo"),
-    79: (1, "Limítrofe"),
-    89: (2, "Média Inferior"),
-    109: (5, "Média"),
-    119: (16, "Média Superior"),
-    129: (25, "Superior"),
+    69: (2, "Extremamente Baixo"),
+    79: (5, "Limítrofe"),
+    89: (16, "Média Inferior"),
+    109: (50, "Média"),
+    119: (84, "Média Superior"),
+    129: (95, "Superior"),
+}
+
+# Conversão de Ponto Ponderado (1-19) → Percentil (WISC-IV, média=10, DP=3)
+PP_TO_PERCENTIL: dict[int, float] = {
+    1: 0.1, 2: 0.4, 3: 1.0, 4: 2.0, 5: 5.0,
+    6: 9.0, 7: 16.0, 8: 25.0, 9: 37.0, 10: 50.0,
+    11: 63.0, 12: 75.0, 13: 84.0, 14: 91.0, 15: 95.0,
+    16: 98.0, 17: 99.0, 18: 99.6, 19: 99.9,
+}
+
+# SEM médio por subteste (escala de ponto ponderado)
+# Baseado nas confiabilidades publicadas no manual técnico do WISC-IV
+SUBTEST_SEM: dict[str, float] = {
+    "SM": 1.22, "VC": 1.00, "CO": 1.36,
+    "CB": 1.36, "CN": 1.50, "RM": 1.22,
+    "DG": 1.00, "SNL": 1.22,
+    "CD": 1.22, "PS": 1.36,
 }
 
 
@@ -152,18 +169,27 @@ def calculate_index_score(standard_scores: list[int]) -> int:
     return sum(standard_scores)
 
 
-def calculate_qi_total(index_scores: list[int]) -> int:
-    if not index_scores:
-        return 100
-    soma = sum(index_scores)
-    media = soma / len(index_scores)
-    qi = int(round(media + (media - 100) * 0.25))
-    return max(40, min(160, qi))
+def calculate_qi_total(soma_total_pp: int) -> int:
+    """
+    Estimativa de fallback do QIT quando a soma está fora do range da tabela.
+    A soma dos PPs dos 10 subtestes mapeia aproximadamente 1:1 ao QIT no lookup
+    (soma ~100 → QIT ~100). Retorna valor clampado ao range válido [40, 160].
+    NOTA: Este valor NÃO é normativamente válido — use lookup_composite_score sempre que possível.
+    """
+    return max(40, min(160, soma_total_pp))
 
 
-def calculate_confidence_interval(escore: int, sem: float = 3.0) -> tuple[int, int]:
-    lower = int(round(escore - 1.96 * sem))
-    upper = int(round(escore + 1.96 * sem))
+def get_percentil_subteste(pp: int) -> float:
+    """Converte ponto ponderado (1-19) em percentil usando tabela normativa do WISC-IV."""
+    return PP_TO_PERCENTIL.get(max(1, min(19, pp)), 50.0)
+
+
+def calculate_confidence_interval(
+    escore: int, sem: float = 1.22, nivel: float = 1.96
+) -> tuple[int, int]:
+    """IC para escore ponderado de subteste (IC 95% por padrão)."""
+    lower = int(round(escore - nivel * sem))
+    upper = int(round(escore + nivel * sem))
     return (lower, upper)
 
 
@@ -237,7 +263,7 @@ def lookup_composite_score(index_code: str, soma_ponderados: int) -> dict:
                     "ic_90": ic_90,
                     "ic_95": ic_95,
                 }
-        except ValueError, KeyError:
+        except (ValueError, KeyError):
             continue
     raise ValueError(f"Soma {soma_ponderados} não encontrada para {index_code}")
 
@@ -266,7 +292,7 @@ def lookup_gai_score(soma_ponderados: int) -> dict:
                         "ic_95": ic_95,
                         "classificacao": classificacao,
                     }
-            except ValueError, KeyError:
+            except (ValueError, KeyError):
                 continue
     raise ValueError(f"Soma {soma_ponderados} não encontrada para GAI")
 
@@ -295,6 +321,6 @@ def lookup_cpi_score(soma_ponderados: int) -> dict:
                         "ic_95": ic_95,
                         "classificacao": classificacao,
                     }
-            except ValueError, KeyError:
+            except (ValueError, KeyError):
                 continue
     raise ValueError(f"Soma {soma_ponderados} não encontrada para CPI")

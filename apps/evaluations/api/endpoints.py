@@ -71,6 +71,7 @@ def serialize_evaluation(evaluation, include_details=False):
         "patient_name": patient.full_name,
         "patient_birth_date": patient.birth_date,
         "patient_sex": patient.sex,
+        "patient_responsible_name": patient.responsible_name,
         "examiner_id": examiner.id if examiner else None,
         "examiner_name": examiner.display_name if examiner else None,
         "referral_reason": evaluation.referral_reason or "",

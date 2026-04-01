@@ -12,6 +12,7 @@ class EvaluationOut(Schema):
     patient_name: str
     patient_birth_date: Optional[date] = None
     patient_sex: Optional[str] = None
+    patient_responsible_name: Optional[str] = None
     examiner_id: Optional[int] = None
     examiner_name: Optional[str] = None
     referral_reason: str

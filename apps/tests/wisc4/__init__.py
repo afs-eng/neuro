@@ -5,12 +5,14 @@ from .calculators import (
     WISC4_NAME,
     WISC4_SUBTESTS,
     WISC4_INDICES,
+    SUBTEST_SEM,
     _carregar_tabela_ncp,
     _calcular_idade,
     _idade_em_meses,
     buscar_ponderado,
     get_classification_padrao,
     get_classification_composto,
+    get_percentil_subteste,
     calculate_index_score,
     calculate_qi_total,
     calculate_confidence_interval,
@@ -93,14 +95,16 @@ class WISC4Module(BaseTestModule):
             except ValueError:
                 pp = 10
             classificacao = get_classification_padrao(pp)
-            ic = calculate_confidence_interval(pp, sem=2.0)
+            sem = SUBTEST_SEM.get(coluna, 1.22)
+            ic = calculate_confidence_interval(pp, sem=sem)
+            percentil = get_percentil_subteste(pp)
 
             subtest_results[code] = {
                 "subteste": config["name"],
                 "codigo": config["code"],
                 "escore_bruto": eb,
                 "escore_padrao": pp,
-                "percentil": 50,
+                "percentil": percentil,
                 "classificacao": classificacao,
                 "intervalo_confianca_95": ic,
             }
@@ -153,15 +157,15 @@ class WISC4Module(BaseTestModule):
                 )
             index_results.append(index_entry)
 
-        somas_ponderados = [r["soma_ponderados"] for r in index_results]
-        soma_total = sum(somas_ponderados)
+        soma_pp_por_indice = [r["soma_ponderados"] for r in index_results]
+        soma_total = sum(soma_pp_por_indice)
 
         qit_data = None
         try:
             qit_data = lookup_composite_score("qit", soma_total)
         except ValueError:
             qit_data = {
-                "escore": calculate_qi_total(somas_ponderados),
+                "escore": calculate_qi_total(soma_total),
                 "percentil": 0,
                 "ic_90": (0, 0),
                 "ic_95": (0, 0),

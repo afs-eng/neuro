@@ -202,6 +202,7 @@ class BPA2SubmitIn(Schema):
 
 class WISC4SubmitIn(Schema):
     evaluation_id: int
+    applied_on: Optional[date] = None
     cb: Optional[str] = ""
     sm: Optional[str] = ""
     dg: Optional[str] = ""

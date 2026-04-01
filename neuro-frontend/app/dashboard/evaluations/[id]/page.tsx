@@ -29,6 +29,7 @@ interface Evaluation {
   patient_name: string;
   patient_birth_date: string | null;
   patient_sex: string | null;
+  patient_responsible_name: string | null;
   examiner_name: string | null;
   referral_reason: string;
   evaluation_purpose: string;
@@ -685,32 +686,66 @@ export default function EvaluationDetailPage() {
     }
   }
 
-  function getPatientAge(birthDate: string | null) {
-    if (!birthDate) return "—";
-    const birth = new Date(birthDate);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age -= 1;
-    }
-    return `${age} anos`;
+  function resolveReferenceDate() {
+    return evaluation?.start_date || evaluation?.end_date || null;
   }
 
-  function getPatientAgeNumber(birthDate: string | null) {
+  function getPatientAge(birthDate: string | null, referenceDate?: string | null) {
+    if (!birthDate) return "—";
+    const birth = new Date(birthDate);
+    const baseDate = referenceDate ? new Date(referenceDate) : new Date();
+    if (isNaN(birth.getTime())) return "—";
+    if (isNaN(baseDate.getTime())) return "—";
+
+    let years = baseDate.getFullYear() - birth.getFullYear();
+    let months = baseDate.getMonth() - birth.getMonth();
+
+    if (baseDate.getDate() < birth.getDate()) {
+      months -= 1;
+    }
+
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+
+    if (years <= 0) {
+      return `${months} ${months === 1 ? "mês" : "meses"}`;
+    }
+
+    if (months === 0) {
+      return `${years} ${years === 1 ? "ano" : "anos"}`;
+    }
+
+    return `${years} ${years === 1 ? "ano" : "anos"} e ${months} ${months === 1 ? "mês" : "meses"}`;
+  }
+
+  function getPatientAgeNumber(birthDate: string | null, referenceDate?: string | null) {
     if (!birthDate) return null;
     const birth = new Date(birthDate);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    const baseDate = referenceDate ? new Date(referenceDate) : new Date();
+    if (isNaN(birth.getTime()) || isNaN(baseDate.getTime())) return null;
+    let age = baseDate.getFullYear() - birth.getFullYear();
+    const monthDiff = baseDate.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && baseDate.getDate() < birth.getDate())) {
       age -= 1;
     }
     return age;
   }
 
+  function formatDisplayDate(value: string | null | undefined) {
+    if (!value) return "—";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [year, month, day] = value.split("-");
+      return `${day}/${month}/${year}`;
+    }
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString("pt-BR");
+  }
+
   function getInstrumentAgeRestriction(instrumentCode: string) {
-    const age = getPatientAgeNumber(evaluation?.patient_birth_date || null);
+    const age = getPatientAgeNumber(evaluation?.patient_birth_date || null, resolveReferenceDate());
     if (age === null) return null;
     const rule = instruments.find((instrument) => instrument.code === instrumentCode);
     if (!rule) return null;
@@ -793,7 +828,7 @@ export default function EvaluationDetailPage() {
             
             <p className="text-zinc-600 mb-4">Selecione um teste para adicionar a esta avaliação:</p>
             <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Idade atual do paciente: <span className="font-semibold text-slate-900">{getPatientAge(evaluation.patient_birth_date)}</span>
+              Idade do paciente: <span className="font-semibold text-slate-900">{getPatientAge(evaluation.patient_birth_date, resolveReferenceDate())}</span>
             </div>
             {instrumentFilterError && (
               <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -801,9 +836,13 @@ export default function EvaluationDetailPage() {
               </div>
             )}
             
-            {loadingInstruments || instruments.length === 0 ? (
+            {loadingInstruments ? (
               <div className="text-center py-8">
                 <p className="text-zinc-500">Carregando instrumentos...</p>
+              </div>
+            ) : instruments.length === 0 ? (
+              <div className="text-center py-8 text-zinc-500">
+                <p>Nenhum instrumento foi cadastrado no sistema.</p>
               </div>
             ) : availableTests.length === 0 ? (
               <div className="text-center py-8 text-zinc-500">
@@ -866,7 +905,7 @@ export default function EvaluationDetailPage() {
                 <p className="mt-1 text-lg text-zinc-600">{evaluation.patient_name}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="rounded-full">Editar</Button>
+                <Button variant="outline" className="rounded-full" onClick={() => router.push(`/dashboard/evaluations/${evaluation.id}/edit`)}>Editar</Button>
                 <Button className="rounded-full" onClick={() => navigateToTab("report")}>Abrir Laudo</Button>
               </div>
             </div>
@@ -912,23 +951,19 @@ export default function EvaluationDetailPage() {
                     </div>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm text-zinc-500">Idade</p>
-                      <p className="mt-1 font-medium text-zinc-900">{getPatientAge(evaluation.patient_birth_date)}</p>
+                      <p className="mt-1 font-medium text-zinc-900">{getPatientAge(evaluation.patient_birth_date, resolveReferenceDate())}</p>
                     </div>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm text-zinc-500">Responsável</p>
-                      <p className="mt-1 font-medium text-zinc-900">{evaluation.examiner_name || "—"}</p>
+                      <p className="mt-1 font-medium text-zinc-900">{evaluation.patient_responsible_name || evaluation.examiner_name || "—"}</p>
                     </div>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm text-zinc-500">Data de início</p>
-                      <p className="mt-1 font-medium text-zinc-900">
-                        {evaluation.start_date ? new Date(evaluation.start_date).toLocaleDateString("pt-BR") : "—"}
-                      </p>
+                      <p className="mt-1 font-medium text-zinc-900">{formatDisplayDate(evaluation.start_date)}</p>
                     </div>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-zinc-500">Data de término</p>
-                      <p className="mt-1 font-medium text-zinc-900">
-                        {evaluation.end_date ? new Date(evaluation.end_date).toLocaleDateString("pt-BR") : "—"}
-                      </p>
+                      <p className="text-sm text-zinc-500">Data da conclusão</p>
+                      <p className="mt-1 font-medium text-zinc-900">{formatDisplayDate(evaluation.end_date)}</p>
                     </div>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm text-zinc-500">Status</p>

@@ -29,7 +29,10 @@ def find_significant_differences(indices: list[dict], qi_total: int) -> list[str
                     f"Diferença significativa entre {idx1['nome']} e {idx2['nome']}: {diff} pontos"
                 )
     for idx in indices:
-        diff = abs(idx["soma_ponderados"] - qi_total)
+        escore_composto = idx.get("escore_composto")
+        if escore_composto is None:
+            continue
+        diff = abs(escore_composto - qi_total)
         if diff >= SIGNIFICANT_DIFFERENCE_THRESHOLDS["index_vs_qi"]:
             differences.append(
                 f"{idx['nome']} difere significativamente do QI Total: {diff} pontos"

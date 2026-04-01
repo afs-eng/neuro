@@ -1,12 +1,13 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Printer, Edit, LayoutDashboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
 
 const FEMININO = {
   P: [[0,0,5,"MUITO BAIXO"], [1,1,20,"BAIXO"], [2,2,40,"MEDIO"], [3,3,60,"MEDIO"], [4,4,70,"MEDIO"], [5,6,80,"ALTO"], [7,7,90,"ALTO"], [8,14,99,"MUITO ALTO"]],
@@ -59,6 +60,7 @@ function EPQJResultPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams();
+  const [evaluationId, setEvaluationId] = useState(searchParams.get("evaluation_id") || "");
 
   const paciente = searchParams.get("paciente") || "";
   const nome = searchParams.get("nome") || "";
@@ -107,11 +109,34 @@ function EPQJResultPageContent() {
     return `${Math.min(100, Math.max(0, percentil))}%`;
   };
 
+  useEffect(() => {
+    if (evaluationId) return;
+
+    async function loadApplication() {
+      try {
+        const result = await api.get<{ evaluation_id?: number }>(`/api/tests/applications/${params.id}`);
+        if (result?.evaluation_id) {
+          setEvaluationId(String(result.evaluation_id));
+        }
+      } catch (error) {
+        console.error("Erro ao buscar aplicação para montar o retorno:", error);
+      }
+    }
+
+    if (params.id) {
+      loadApplication();
+    }
+  }, [evaluationId, params.id]);
+
+  const backHref = useMemo(() => {
+    return evaluationId ? `/dashboard/evaluations/${evaluationId}?tab=overview` : "/dashboard/evaluations?tab=overview";
+  }, [evaluationId]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={() => router.push(backHref)} className="rounded-full">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -127,6 +152,10 @@ function EPQJResultPageContent() {
           <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push(`/dashboard/tests/epq-j?application_id=${params.id}&edit=true`)}>
             <Edit className="h-4 w-4" />
             Editar
+          </Button>
+          <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push(backHref)}>
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
           </Button>
           <Button variant="outline" className="rounded-xl gap-2">
             <Printer className="h-4 w-4" />

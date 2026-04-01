@@ -28,12 +28,27 @@ function calculateAge(birthDate: string | undefined | null): string {
   const birth = new Date(birthDate)
   const today = new Date()
   if (isNaN(birth.getTime())) return "—"
-  let age = today.getFullYear() - birth.getFullYear()
-  const monthDiff = today.getMonth() - birth.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--
+  let years = today.getFullYear() - birth.getFullYear()
+  let months = today.getMonth() - birth.getMonth()
+
+  if (today.getDate() < birth.getDate()) {
+    months--
   }
-  return `${age} anos`
+
+  if (months < 0) {
+    years--
+    months += 12
+  }
+
+  if (years <= 0) {
+    return `${months} ${months === 1 ? "mês" : "meses"}`
+  }
+
+  if (months === 0) {
+    return `${years} ${years === 1 ? "ano" : "anos"}`
+  }
+
+  return `${years} ${years === 1 ? "ano" : "anos"} e ${months} ${months === 1 ? "mês" : "meses"}`
 }
 
 function getSchoolingLabel(value: string | number | undefined): string {
