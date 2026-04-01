@@ -593,33 +593,39 @@ export default function DashboardPage() {
     setCurrentPage("patients");
   };
 
-  const renderContent = () => {
-    if (currentPage === "patient-detail" && selectedPatientId) {
-      return <PatientDetailContent patientId={selectedPatientId} onBack={handleBackToPatients} />;
-    }
+  let content;
 
+  if (currentPage === "patient-detail" && selectedPatientId) {
+    content = <PatientDetailContent patientId={selectedPatientId} onBack={handleBackToPatients} />;
+  } else {
     switch (currentPage) {
       case "dashboard":
-        return <DashboardContent />;
+        content = <DashboardContent />;
+        break;
       case "patients":
-        return <PatientsContent onPatientClick={handlePatientClick} />;
+        content = <PatientsContent onPatientClick={handlePatientClick} />;
+        break;
       case "tests":
-        return <TestsContent />;
+        content = <TestsContent />;
+        break;
       case "reports":
-        return <ReportsContent />;
+        content = <ReportsContent />;
+        break;
       case "evaluations":
       case "documents":
       case "ai":
       case "accounts":
-        return <DefaultContent />;
+        content = <DefaultContent />;
+        break;
       default:
-        return <DashboardContent />;
+        content = <DashboardContent />;
+        break;
     }
-  };
+  }
 
   return (
     <SystemLayout currentPage={currentPage} onNavigate={setCurrentPage}>
-      {renderContent()}
+      {content}
     </SystemLayout>
   );
 }

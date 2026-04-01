@@ -1,0 +1,84 @@
+# Guia de Deploy e Uso do Docker - NeuroAvalia 🐳
+
+Este documento foi criado para detalhar o funcionamento e uso da recém-criada arquitetura em containers. Mantemos o seu frontend local em `Next.js 14` integrado ao `Django API` limpo, sem perda das capacidades de rodar via terminais normais se desejar.
+
+Nesta integração, temos:
+1. Um **Frontend (3000)** em Next.js com *output standalone*.
+2. Um **Backend (8000)** em Django com script de inicialização inteligente (*Entrypoint*) que verifica conexão, banco e roda as `migrations`.
+3. Um **PostgreSQL (5432)** isolado mantendo volumes locais seguros.
+4. Um **Nginx Proxy (80 / 443)** focado para tráfego real limpo e eficiente no VPS, com rotas independentes `/api`, `/media` e `/`.
+
+---
+
+## 💻 1. Rodando Localmente com Docker Compose
+
+Para uso diário do desenvolvedor com o _Hot Reload_ operando no VSCode. O `docker-compose.yml` base mapeia todo o código-fonte como volume para o container, ou seja, se você salvar, a página em *Next.js* ou *Django* irá atualizar em sua tela imediatamente.
+
+### Subindo de forma limpa (Primeiro Deploy)
+
+1. Crie seu `.env` raiz:
+   ```bash
+   cp .env.example .env
+   ```
+2. Crie seu `.env` do Frontend (Apenas para garantir fallback se rodar local fora do docker futuramente):
+   ```bash
+   cp neuro-frontend/.env.example neuro-frontend/.env.local
+   ```
+3. Suba os containers com a opção de build ativo:
+   ```bash
+   docker compose up --build
+   ```
+
+> [!NOTE]
+> Você verá a inicialização inteligente do script: `Waiting for database to be ready...` > `Rodando Migrations..` > `Starting Development Server`.
+
+### Acessos na rede local
+- **Frontend**: http://localhost:3000
+- **Admin do Django**: http://localhost:8000/admin
+- **Banco de Dados (DBeaver)**: `localhost:5432` com os dados padrões `neuro_user` (senha `neuro_pass`).
+
+---
+
+## 🚀 2. Subindo em VPS (Modo Produção/Deploy Técnico)
+
+Para deploy definitivo em nuvens e servidores remotos. Não instalaremos códigos via Volumes. Usaremos NGINX reverso rodando Gunicorn otimizado com cache.
+
+1. Preencha os campos vitais do seu `.env` nativo do servidor VPS (Não comite o seu `.env`).
+2. Adicione sua _SECRET_KEY_ segura, modifique credenciais POSTGRES_{X} em `docker-compose.prod.yml` e preencha os `ALLOWED_HOSTS`.
+3. Rode em modo detached:
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+4. Veja os logs com:
+   ```bash
+   docker compose -f docker-compose.prod.yml logs -f --tail 100
+   ```
+
+Nesse modelo de produção, toda a visitação acontece via **Nginx (Porta 80)**. Os containers do Frontend e Backend não exportam as portas 3000 nem 8000 diretamente para fora - isso é isolamento seguro.
+
+---
+
+## 📦 3. Volumes & Arquivos Estáticos
+
+Configuramos no `docker-compose.prod.yml`:
+- `neuro_media_data`: Guardará todos os laudos, relatórios pdf, sons e imagens enviadas via portal. **Ele não apaga caso dê docker compose down**.
+- `neuro_postgres_data`: Protege irrevogavelmente a estrutura de banco de dados e os relatórios de pacientes.
+- `neuro_static_data`: Arquivos Tailwind compilados do Django para a página Admin ou relatórios exportados que não dependem do frontend.
+
+> [!TIP]
+> Caso seja necessário migrar o banco ou backup, o comando base na vida real do VPS é:
+> `docker exec -t neuro-db-prod pg_dump -U neuro_user neuroavalia > db_backup.sql`
+
+## 🧰 4. Lidando Comandos Comuns no Docker Server
+
+*   **Aplicar migrações manuais**: O script que criamos já faz as migrações automáticas assim que o container reciclar ou fazer _boot_. Porém, explicitamente:
+    `docker exec -it neuro-backend python manage.py migrate`
+
+*   **Criar Super User (Admin Original)**:
+    `docker exec -it neuro-backend python manage.py createsuperuser`
+
+*   **Reaproveitando e Destruindo Tudo (Reset de Máquina)**:
+    Aviso: Destruirá os volumes caso passe `-v`.
+    `docker compose down -v`
+
+Tudo configurado! O seu projeto NeuroAvalia agora tem qualidade Infra-as-Code para provisionamento em qualquer Datacenter universal via Docker! 🎉

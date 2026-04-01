@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: neuro-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"  # Exportado para DBeaver local
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-neuro_db}
+      POSTGRES_USER: ${POSTGRES_USER:-neuro_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-neuro_pass}
+    volumes:
+      - neuro_postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    container_name: neuro-backend
+    command: python manage.py runserver 0.0.0.0:8000
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Montar diretório inteiro para hot-reload
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-neuro_user}:${POSTGRES_PASSWORD:-neuro_pass}@db:5432/${POSTGRES_DB:-neuro_db}
+      - DEBUG=True
+      - DJANGO_ENV=local
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./neuro-frontend
+      dockerfile: Dockerfile
+      target: deps
+    container_name: neuro-frontend
+    command: npm run dev # Pula o build estático, injeta hot-reload
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Montar diretório base do next + ignorar module local
+      - ./neuro-frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+      - INTERNAL_API_BASE_URL=http://backend:8000
+      - WATCHPACK_POLLING=true # útil para fswatch em Windows/Mac Docker local
+    depends_on:
+      - backend
+
+volumes:
+  neuro_postgres_data:

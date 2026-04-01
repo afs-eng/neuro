@@ -50,7 +50,7 @@ SECURE_HSTS_PRELOAD = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 DATABASES["default"] = dj_database_url.parse(
-    os.environ["DATABASE_URL"],
+    os.getenv("DATABASE_URL", default_database_url),
     conn_max_age=600,
     ssl_require=env_bool("DATABASE_SSL_REQUIRE", True),
 )
