@@ -25,6 +25,7 @@ ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 
 # Next.js exige o .env durante a build time para inserir as vars NEXT_PUBLIC nas páginas exportadas estáticas (se houver)
+ENV BUILD_STANDALONE=true
 RUN \
   if [ -f yarn.lock ]; then yarn build; \
   elif [ -f package-lock.json ]; then npm run build; \
