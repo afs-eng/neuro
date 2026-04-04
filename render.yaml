@@ -31,6 +31,8 @@ services:
         value: https://your-vercel-app.vercel.app
       - key: BACKEND_PUBLIC_URL
         value: https://sistema-neuro.onrender.com
+      - key: ALLOW_VERCEL_PREVIEWS
+        value: "True"
       - key: EMAIL_BACKEND
         value: django.core.mail.backends.smtp.EmailBackend
       - key: DEFAULT_FROM_EMAIL

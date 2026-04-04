@@ -1,258 +1,243 @@
 # NeuroAvalia - Arquitetura Full-Stack
 
+## Visão Geral
+
+Projeto de gestão de avaliações neuropsicológicas com backend Django e frontend Next.js, estruturado como monólito modular orientado a domínio.
+
+## Arquitetura de Alto Nível
+
 ```
 neuro/                              # Projeto Django (Backend)
-├── apps/
+├── apps/                           # Aplicações por domínio
 │   ├── accounts/                   # Usuários e autenticação
+│   ├── ai/                        # Camada de IA (LangChain)
 │   │   ├── api/
-│   │   │   ├── endpoints.py
-│   │   │   └── router.py
-│   │   ├── models.py
-│   │   └── views.py
-│   │
-│   ├── patients/                   # Gestão de pacientes
-│   │   ├── api/
-│   │   │   ├── endpoints.py
-│   │   │   ├── router.py
-│   │   │   └── schemas.py
-│   │   ├── models.py
-│   │   └── views.py
-│   │
-│   ├── evaluations/               # Avaliações neuropsicológicas
-│   │   ├── api/
-│   │   │   ├── endpoints.py
-│   │   │   ├── router.py
-│   │   │   └── schemas.py
-│   │   ├── models.py
-│   │   └── views.py
-│   │
-│   ├── tests/                     # Testes psicológicos (WISC-IV, BPA2, etc)
-│   │   ├── api/
-│   │   │   ├── endpoints.py       # API REST dos testes
-│   │   │   ├── router.py
-│   │   │   └── schemas.py
-│   │   ├── models.py              # Application, TestResult
-│   │   ├── views.py
 │   │   ├── services/
-│   │   │   └── scoring_service.py  # Lógica de cálculo
-│   │   ├── wisc4/
-│   │   │   ├── calculators.py     # Cálculos WISC-IV
-│   │   │   ├── classifiers.py     # Classificações
-│   │   │   ├── interpreters.py    # Interpretações
-│   │   │   ├── paths.py
-│   │   │   └── __init__.py        # Módulo WISC-IV
-│   │   │   └── tabelas/           # Tabelas normativas
-│   │   │       ├── Equivalentes das somas dos pontos ponderados/
-│   │   │       │   ├── Tabela-GAI.csv
-│   │   │       │   ├── Tabela-CPI.csv
-│   │   │       │   ├── Tabela A2.csv ... A6.csv
-│   │   │       ├── tabelas-cd/
-│   │   │       ├── tabelas-a8/
-│   │   │       └── tabelas-ncp/
-│   │   ├── bpa2/                  # Teste BPA-2
-│   │   ├── ebadep_a/              # Teste EBADEP-A
-│   │   └── ebaped_ij/             # Teste EBAPED-IJ
-│   │
+│   │   ├── providers/
+│   │   ├── chains/
+│   │   ├── prompts/
+│   │   ├── guards/
+│   │   ├── logging/
+│   │   └── schemas/
+│   ├── anamnesis/                  # Questionários de anamnese
+│   ├── api/                        # API principal (Ninja)
+│   ├── audit/                     # Auditoria de ações
+│   │   ├── models.py              # AuditLog
+│   │   └── services.py            # AuditService
+│   ├── common/                    # Componentes compartilhados
+│   ├── documents/                 # Gestão de documentos
+│   ├── evaluations/               # Avaliações neuropsicológicas
+│   ├── messaging/                 # Sistema de mensagens
+│   ├── patients/                  # Gestão de pacientes
 │   ├── reports/                   # Laudos e relatórios
-│   │   └── models.py
-│   │
-│   ├── api/                       # API principal (Ninja)
-│   │   ├── auth.py                # Autenticação JWT
-│   │   ├── router.py              # Router principal
-│   │   └── views.py
-│   │
-│   └── common/                    # Componentes compartilhados
+│   └── tests/                     # Testes psicológicos (NÚCLEO CLÍNICO)
+│       ├── base/
+│       │   ├── types.py           # Tipos (TestContext, ComputedScore, etc)
+│       │   ├── interfaces.py      # Protocolos (ICalculator, IClassifier)
+│       │   └── exceptions.py      # Exceções customizadas
+│       ├── models/
+│       │   ├── instruments.py     # Instrument
+│       │   ├── applications.py    # TestApplication
+│       │   └── templates.py       # InterpretationTemplate
+│       ├── services/
+│       │   ├── application_service.py
+│       │   ├── scoring_service.py
+│       │   └── interpretation_service.py
+│       ├── selectors.py           # Queries do domínio
+│       ├── registry.py            # Registro de instrumentos
+│       ├── api/
+│       │   ├── router.py
+│       │   ├── endpoints.py
+│       │   └── schemas.py
+│       ├── norms/                 # Tabelas normativas
+│       └── instrumentos/
+│           ├── wisc4/             # WISC-IV
+│           ├── bpa2/              # BPA-2
+│           ├── ebadep_a/          # EBADEP-A
+│           ├── ebaped_ij/         # EBAPED-IJ
+│           ├── epq_j/            # EPQ-J
+│           ├── etdah_ad/          # ETAH-AD
+│           ├── fdt/               # FDT
+│           └── ravlt/             # RAVLT
 │
 ├── config/                        # Configurações Django
 │   ├── settings/
-│   │   ├── base.py
-│   │   ├── local.py
-│   │   └── production.py
+│   │   ├── base.py               # Configurações base
+│   │   ├── local.py              # Desenvolvimento
+│   │   └── production.py          # Produção
 │   ├── urls.py
 │   ├── asgi.py
 │   └── wsgi.py
 │
-├── config/                        # Templates HTML (atual)
-│   ├── templates/
-│   │   ├── base/
-│   │   │   └── base.html          # Layout base com sidebar
-│   │   ├── dashboard/
-│   │   ├── patients/
-│   │   ├── evaluations/
-│   │   ├── tests/
-│   │   └── reports/
-│   │
-│   └── static/                    # CSS compilado
-│       └── css/dist/styles.css
-│
 ├── theme/                         # Tema Tailwind
 │   └── static_src/
-│       ├── src/input.css
-│       ├── tailwind.config.js
-│       └── package.json
+│
+├── infra/                         # Infraestrutura Docker
 │
 └── manage.py
 
 
 neuro-frontend/                   # Projeto Next.js (Frontend)
 ├── app/
-│   ├── (auth)/
-│   │   ├── login/
-│   │   │   └── page.tsx
-│   │   └── layout.tsx
-│   │
-│   ├── (dashboard)/
-│   │   ├── patients/
-│   │   │   ├── page.tsx           # Lista pacientes
-│   │   │   ├── [id]/
-│   │   │   │   └── page.tsx       # Detalhes paciente
-│   │   │   └── new/
-│   │   │       └── page.tsx
-│   │   │
+│   ├── dashboard/
+│   │   ├── accounts/
+│   │   ├── ai/
+│   │   ├── documents/
 │   │   ├── evaluations/
-│   │   │   ├── page.tsx
-│   │   │   └── [id]/
-│   │   │       └── page.tsx
-│   │   │
-│   │   ├── tests/
-│   │   │   ├── page.tsx           # Lista testes
-│   │   │   ├── wisc4/
-│   │   │   │   ├── page.tsx      # Form WISC-IV
-│   │   │   │   └── [id]/result/page.tsx  # Resultado
-│   │   │   ├── bpa2/
-│   │   │   └── ...
-│   │   │
+│   │   ├── patients/
 │   │   ├── reports/
-│   │   │   └── page.tsx
-│   │   │
-│   │   └── layout.tsx            # Layout com sidebar
-│   │
-│   ├── api/
-│   │   └── auth/
-│   │       └── [...nextauth]/route.ts
-│   │
+│   │   ├── tests/
+│   │   └── page.tsx
+│   ├── login/
 │   ├── layout.tsx
 │   └── page.tsx
 │
 ├── components/
-│   ├── ui/                        # Componentes base
-│   │   ├── Button.tsx
-│   │   ├── Input.tsx
-│   │   ├── Card.tsx
-│   │   ├── Table.tsx
-│   │   ├── Badge.tsx
-│   │   └── Modal.tsx
-│   │
+│   ├── ui/
 │   ├── layout/
-│   │   ├── Sidebar.tsx
-│   │   ├── Header.tsx
-│   │   └── PageHeader.tsx
-│   │
 │   ├── patients/
-│   │   ├── PatientList.tsx
-│   │   ├── PatientForm.tsx
-│   │   └── PatientCard.tsx
-│   │
-│   ├── evaluations/
-│   │   ├── EvaluationCard.tsx
-│   │   └── EvaluationForm.tsx
-│   │
 │   ├── tests/
-│   │   ├── wisc4/
-│   │   │   ├── SubtestInput.tsx
-│   │   │   ├── IndexTable.tsx
-│   │   │   ├── ResultSummary.tsx
-│   │   │   └── GAI_CPI_Card.tsx
-│   │   └── common/
-│   │       ├── TestSelector.tsx
-│   │       └── ScoreInput.tsx
-│   │
-│   └── reports/
-│       └── ReportViewer.tsx
+│   └── anamnesis/
 │
 ├── lib/
-│   ├── api.ts                     # Fetch wrapper
-│   ├── auth.ts                    # NextAuth config
-│   └── utils.ts                   # Helpers
+│   ├── api.ts
+│   └── utils.ts
 │
 ├── services/
-│   ├── patientService.ts
-│   ├── evaluationService.ts
-│   ├── wisc4Service.ts
-│   └── reportService.ts
-│
 ├── types/
-│   ├── patient.ts
-│   ├── evaluation.ts
-│   ├── wisc4.ts
-│   └── index.ts
 │
-├── hooks/
-│   ├── usePatients.ts
-│   ├── useWISC4.ts
-│   └── useAuth.ts
-│
-├── public/
-│   └── images/
-│
-├── .env.local
-├── next.config.js
-├── tailwind.config.ts
-├── tsconfig.json
 └── package.json
 ```
+
+## Padrão Interno dos Apps
+
+Cada app segue uma estrutura modular:
+
+```
+apps/<app_name>/
+├── models/           # Modelos Django
+├── api/              # Endpoints Ninja
+├── services/         # Lógica de negócio
+├── selectors.py      # Consultas DB
+├── validators.py     # Validações
+├── permissions.py    # Permissões
+├── workflows.py      # Fluxos complexos
+├── storage/          # Integração com storage
+└── apps.py
+```
+
+## Camada de IA (`apps/ai/`)
+
+Regras obrigatórias:
+- LangChain existe apenas aqui
+- IA é apenas **assistiva**
+- IA **não calcula** escore, percentil, classificação ou norma
+- IA **não substitui** revisão humana
+- IA recebe dados **já estruturados** pelo backend
+- IA não acessa banco diretamente
+
+```
+apps/ai/
+├── api/              # Endpoints para IA
+├── services/         # AIService
+├── providers/        # OpenAI, Anthropic, etc
+├── chains/          # LangChain chains
+├── prompts/          # Templates de prompt
+├── guards/          # Validations (AIGuard)
+├── logging/         # AILogger
+└── schemas/         # Schemas Pydantic
+```
+
+## Módulo `tests` (Núcleo Clínico)
+
+Estrutura padrão de cada instrumento:
+
+```
+apps/tests/<instrumento>/
+├── __init__.py      # Registra instrumento
+├── config.py        # Configuração do instrumento
+├── schemas.py       # Schemas de input/output
+├── validators.py    # Validações específicas
+├── loaders.py       # Carregamento de tabelas
+├── calculators.py  # Cálculo de escores
+├── classifiers.py  # Classificações clínicas
+├── interpreters.py  # Interpretações
+└── constants.py    # Constantes
+```
+
+### Separação de Dados
+
+Toda aplicação de teste segue esta estrutura:
+
+| Campo | Descrição |
+|-------|-----------|
+| `raw_payload` | Dado bruto digitado |
+| `computed_payload` | Resultado calculado (escore, percentil) |
+| `classified_payload` | Classificação clínica |
+| `interpretation_text` | Interpretação |
+
+## Camada de Auditoria (`apps/audit/`)
+
+Modelo AuditLog para rastrear ações críticas:
+- CRUD de pacientes, avaliações, laudos
+- Exportação e impressão
+- Login/logout
+- Acesso a dados sensíveis
 
 ## Fluxo de Dados
 
 ```
-Usuário
-   │
-   ▼
-┌─────────────────────────────────────────────┐
-│              Next.js (Frontend)             │
-│  ┌─────────┐  ┌──────────┐  ┌───────────┐  │
-│  │  Pages  │  │Components│  │  Services │  │
-│  └────┬────┘  └────┬─────┘  └─────┬─────┘  │
-│       │            │              │         │
-│       └────────────┴──────────────┘         │
-│                    │                         │
-│                    ▼                         │
-│             lib/api.ts (fetch)               │
-└────────────────────┬─────────────────────────┘
-                     │ HTTP JSON
-                     ▼
-┌─────────────────────────────────────────────┐
-│           Django (Backend)                  │
-│  ┌─────────────────────────────────────┐    │
-│  │         Django Ninja API            │    │
-│  │   apps/patients/api/endpoints.py   │    │
-│  │   apps/tests/api/endpoints.py      │    │
-│  └──────────────┬──────────────────────┘    │
-│                 │                            │
-│  ┌──────────────┴──────────────────────┐     │
-│  │           Django ORM                │     │
-│  │    models.py + scoring_service.py  │     │
-│  └─────────────────────────────────────┘     │
-└─────────────────────────────────────────────┘
+Usuário (Frontend Next.js)
+    │
+    ▼ HTTP JSON
+┌─────────────────────────────┐
+│    Django Ninja API         │
+│  (apps/api, apps/tests)     │
+└──────────────┬──────────────┘
+               │
+    ┌──────────┴──────────┐
+    │                     │
+┌───▼────────┐    ┌───────▼─────┐
+│  Services  │    │     AI      │
+│ (negocio)  │    │ (assistivo) │
+└─────┬──────┘    └─────────────┘
+      │
+┌─────▼──────┐
+│ Django ORM │
+│ + PostgreSQL│
+└────────────┘
 ```
 
-## Endpoints API (Atual + Futuros)
+## Endpoints API
 
 | Método | Endpoint | Descrição |
 |--------|----------|-----------|
 | GET | `/api/patients/` | Lista pacientes |
 | POST | `/api/patients/` | Cria paciente |
-| GET | `/api/patients/{id}/` | Detalhes paciente |
-| PUT | `/api/patients/{id}/` | Atualiza paciente |
-| DELETE | `/api/patients/{id}/` | Remove paciente |
+| GET | `/api/patients/{id}/` | Detalhes |
+| PUT | `/api/patients/{id}/` | Atualiza |
+| DELETE | `/api/patients/{id}/` | Remove |
 | GET | `/api/evaluations/` | Lista avaliações |
 | POST | `/api/evaluations/` | Cria avaliação |
 | GET | `/api/tests/wisc4/` | Info WISC-IV |
 | POST | `/api/tests/wisc4/calculate/` | Calcula WISC-IV |
-| GET | `/api/tests/wisc4/result/{id}/` | Resultado WISC-IV |
-| GET | `/api/reports/` | Lista laudos |
+| GET | `/api/tests/{code}/result/{id}/` | Resultado |
+| GET | `/api/ai/generate/` | Geração IA |
+| GET | `/api/audit/logs/` | Logs de auditoria |
 | POST | `/api/auth/login/` | Login JWT |
-| POST | `/api/auth/refresh/` | Refresh token |
+
+## Testes Psicológicos
+
+| Código | Nome | Faixa Etária |
+|--------|------|--------------|
+| wisc4 | WISC-IV | 6-16 anos |
+| bpa2 | BPA-2 | Adulto |
+| ebadep_a | EBADEP-A | Adulto |
+| ebaped_ij | EBAPED-IJ | Infantojuvenil |
+| epq_j | EPQ-J | 7-15 anos |
+| etdah_ad | ETAH-AD | Adulto |
+| fdt | FDT | 5+ anos |
+| ravlt | RAVLT | 16+ anos |
 
 ## Tecnologias
 
@@ -262,6 +247,34 @@ Usuário
 | API | Django Ninja |
 | Frontend | Next.js 14 (App Router) |
 | UI | Tailwind CSS |
-| Auth | NextAuth.js + JWT |
-| State | React Query (opcional) |
-| Deploy | Vercel (frontend) + Railway/Render (backend) |
+| Auth | JWT |
+| Database | SQLite (dev) / PostgreSQL (prod) |
+| IA | LangChain (backend) |
+| Message Queue | Pronto para Celery + Redis |
+| Deploy | Docker, Vercel + Railway/Render |
+
+## Estrutura de Diretórios
+
+```
+/home/andre/neuro/
+├── apps/              # 12 apps Django
+├── config/           # Settings separados
+├── theme/            # Tailwind
+├── neuro-frontend/   # Next.js
+├── staticfiles/
+├── infra/            # Docker
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── pyproject.toml
+├── requirements.txt
+└── uv.lock
+```
+
+## Pronto para Crescer
+
+A arquitetura está preparada para:
+- Celery + Redis (tarefas assíncronas)
+- Nginx (reverse proxy)
+- Workers separados (processamento intenso)
+- Cache distribuído
+- Escalabilidade horizontal

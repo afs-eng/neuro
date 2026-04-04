@@ -18,6 +18,7 @@ def _append_unique(values: list[str], candidate: str) -> None:
 render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
 backend_public_url = os.getenv("BACKEND_PUBLIC_URL", "").strip()
 frontend_base_url = os.getenv("FRONTEND_BASE_URL", "").strip()
+allow_vercel_previews = env_bool("ALLOW_VERCEL_PREVIEWS", True)
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") or [
     "sistema-neuro.onrender.com",
@@ -37,6 +38,11 @@ if backend_public_url:
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
 if not CORS_ALLOWED_ORIGINS and frontend_base_url:
     CORS_ALLOWED_ORIGINS = [frontend_base_url]
+
+CORS_ALLOWED_ORIGIN_REGEXES = []
+if allow_vercel_previews:
+    CORS_ALLOWED_ORIGIN_REGEXES.append(r"^https://[a-zA-Z0-9-]+\.vercel\.app$")
+    _append_unique(CSRF_TRUSTED_ORIGINS, "https://*.vercel.app")
 
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
 SESSION_COOKIE_SECURE = True

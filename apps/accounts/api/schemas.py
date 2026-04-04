@@ -61,7 +61,7 @@ class MessageOut(Schema):
 
 
 class LoginIn(Schema):
-    username: str
+    email: str
     password: str
 
 

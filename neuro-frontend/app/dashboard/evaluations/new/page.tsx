@@ -19,6 +19,8 @@ function NewEvaluationPageContent() {
   
   const [patient, setPatient] = useState<Patient | null>(null)
   const [title, setTitle] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [clinicalHypothesis, setClinicalHypothesis] = useState("")
   const [priority, setPriority] = useState("medium")
   const [loading, setLoading] = useState(true)
@@ -47,6 +49,11 @@ function NewEvaluationPageContent() {
     e.preventDefault()
     if (!patient) return
     
+    if (!startDate || !endDate) {
+      alert("Data de início e data de conclusão são obrigatórias")
+      return
+    }
+    
     setSaving(true)
     try {
       const evaluation = await api.post<{ id: number }>("/api/evaluations/", {
@@ -54,6 +61,8 @@ function NewEvaluationPageContent() {
         title: title || `Avaliação Neuropsicológica - ${patient.full_name}`,
         clinical_hypothesis: clinicalHypothesis,
         priority: priority,
+        start_date: startDate,
+        end_date: endDate,
       })
       router.push(`/dashboard/evaluations/${evaluation.id}`)
     } catch (err) {
@@ -145,11 +154,31 @@ function NewEvaluationPageContent() {
                   <option value="urgent">Urgente</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Data de Início *</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Data de Conclusão *</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm"
+                />
+              </div>
             </div>
             <div className="mt-6 flex gap-2">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || !startDate || !endDate}
                 className="rounded-full bg-zinc-900 px-6 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {saving ? "Criando..." : "Criar Avaliação"}

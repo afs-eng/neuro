@@ -29,7 +29,20 @@ router = Router(tags=["accounts"])
 
 @router.post("/login", response=LoginOut)
 def login(request, payload: LoginIn):
-    user = authenticate(username=payload.username, password=payload.password)
+    email = payload.email
+    if not email:
+        raise HttpError(400, "Informe o email")
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+
+    try:
+        user = User.objects.get(email=email)
+        user = authenticate(username=user.username, password=payload.password)
+    except User.DoesNotExist:
+        user = None
+
     if not user:
         raise HttpError(401, "Credenciais inválidas")
     if not user.is_active:

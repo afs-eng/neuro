@@ -1,4 +1,17 @@
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+function normalizeApiBaseUrl(value?: string) {
+  const fallbackUrl = 'http://127.0.0.1:8000'
+
+  if (!value) {
+    return fallbackUrl
+  }
+
+  const normalized = value.replace(/\/$/, '')
+  return normalized.endsWith('/api') ? normalized.slice(0, -4) : normalized
+}
+
+const API_URL = normalizeApiBaseUrl(
+  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL
+)
 
 export interface ApiError {
   message: string

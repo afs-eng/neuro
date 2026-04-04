@@ -1,139 +1,155 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Mail, Lock, ArrowRight } from 'lucide-react'
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Brain, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const identifier = email.trim();
 
     try {
-      const { api } = await import('@/lib/api')
-      const response = await api.post<{ access: string; user: any }>('/api/accounts/login', {
-        username: email,
+      const { api } = await import("@/lib/api");
+      const response = await api.post<{ access: string; user: any }>("/api/accounts/login", {
+        email: identifier,
         password: password,
-      })
-      
+      });
+
       if (response.access) {
-        localStorage.setItem('token', response.access)
-        localStorage.setItem('user', JSON.stringify(response.user))
-        router.push('/dashboard')
+        localStorage.setItem("token", response.access);
+        localStorage.setItem("user", JSON.stringify(response.user));
+        router.push("/dashboard");
       }
     } catch (err: any) {
-      console.error('Login error:', err)
-      setError(err?.message || 'Credenciais inválidas. Tente novamente.')
+      console.error("Login error:", err);
+      setError(err?.message || "Credenciais inválidas. Tente novamente.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-300 p-4 md:p-10">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 overflow-hidden rounded-[38px] bg-[#f3f0e4] shadow-2xl ring-1 ring-black/5 lg:grid-cols-[1.1fr_.95fr]">
-        <div className="bg-gradient-to-br from-[#f6f4ed] via-[#f3efe4] to-[#efe7bf] p-8 md:p-12">
-          <div className="inline-flex rounded-full border border-black/15 bg-white/80 px-5 py-2 text-2xl tracking-tight text-zinc-900 shadow-sm">
-            Florescer
-          </div>
-          <div className="mt-12 max-w-xl">
-            <div className="text-5xl font-medium tracking-tight text-zinc-900">
-              Sistema clínico para psicologia e neuropsicologia
+    <div className="min-h-screen flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800 p-12 flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur">
+              <Brain className="h-7 w-7 text-white" />
             </div>
-            <p className="mt-4 text-lg text-zinc-600">
-              Interface moderna para cadastro de pacientes, agenda, aplicação de testes e construção de laudos.
-            </p>
-          </div>
-
-          <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-[24px] bg-white/60 p-4 shadow ring-1 ring-black/5">
-              <div className="text-lg font-medium text-zinc-900">Pacientes</div>
-              <div className="text-sm text-zinc-600">Cadastro e histórico</div>
-            </div>
-            <div className="rounded-[24px] bg-white/60 p-4 shadow ring-1 ring-black/5">
-              <div className="text-lg font-medium text-zinc-900">Testes</div>
-              <div className="text-sm text-zinc-600">Aplicação e correção</div>
-            </div>
-            <div className="rounded-[24px] bg-white/60 p-4 shadow ring-1 ring-black/5">
-              <div className="text-lg font-medium text-zinc-900">Laudos</div>
-              <div className="text-sm text-zinc-600">Modelos clínicos</div>
-            </div>
-          </div>
-
-          <div className="mt-10 rounded-[30px] bg-zinc-900 p-5 text-white shadow-lg">
-            <div className="text-xl font-medium">Módulos incluídos</div>
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              {[
-                'Tela de login',
-                'Dashboard principal',
-                'Cadastro de pacientes',
-                'Módulo de testes',
-                'Agenda clínica',
-                'Laudos e documentação',
-              ].map((item) => (
-                <div key={item} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
-                  {item}
-                </div>
-              ))}
-            </div>
+            <span className="text-2xl font-semibold text-white">NeuroAvalia</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-center p-8 md:p-12">
-          <div className="w-full max-w-md rounded-[34px] bg-white/80 p-6 shadow-xl ring-1 ring-black/5 backdrop-blur">
-            <div className="text-3xl font-medium tracking-tight text-zinc-900">Entrar no sistema</div>
-            <div className="mt-1 text-zinc-500">Acesso da clínica psicológica</div>
+        <div className="max-w-lg">
+          <h1 className="text-4xl font-semibold leading-tight text-white">
+            Sistema clínico para avaliações neuropsicológicas
+          </h1>
+          <p className="mt-4 text-lg text-indigo-100">
+            Organize suas avaliações, aplique testes padronizados e gere laudos profissionais com o apoio de IA assistiva.
+          </p>
+        </div>
 
-            <form onSubmit={handleLogin} className="mt-8 space-y-4">
-              <div className="flex items-center gap-3 rounded-2xl border border-black/10 bg-[#f7f3e8] px-4 py-4">
-                <Mail className="h-4 w-4 text-zinc-500" />
-                <input
-                  type="text"
-                  placeholder="Usuário"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-transparent text-sm outline-none"
-                  required
-                />
-              </div>
-
-              <div className="flex items-center gap-3 rounded-2xl border border-black/10 bg-[#f7f3e8] px-4 py-4">
-                <Lock className="h-4 w-4 text-zinc-500" />
-                <input
-                  type="password"
-                  placeholder="Senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-transparent text-sm outline-none"
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-zinc-900 px-5 py-4 text-sm text-white shadow hover:bg-zinc-800 disabled:opacity-50"
-              >
-                {loading ? 'Entrando...' : 'Entrar'}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
+        <div className="flex items-center gap-6 text-sm text-indigo-200">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-400"></div>
+            <span>Segurança de dados clínicos</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-400"></div>
+            <span>Interface profesional</span>
           </div>
         </div>
       </div>
+
+      {/* Right Side - Login Form */}
+      <div className="flex w-full items-center justify-center lg:w-1/2 bg-white p-8">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
+              <Brain className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl font-semibold text-slate-900">NeuroAvalia</span>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-slate-900">Bem-vindo de volta</h2>
+            <p className="mt-2 text-sm text-slate-500">Entre com suas credenciais para acessar o sistema</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">Senha</label>
+                <Link href="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-700">
+                  Esqueceu a senha?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-11 pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="h-11 w-full gap-2" disabled={loading}>
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  Entrar
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Sistema para uso exclusivo de profissionais autorizados
+          </p>
+        </div>
+      </div>
     </div>
-  )
+  );
 }

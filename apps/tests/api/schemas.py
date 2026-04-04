@@ -363,3 +363,20 @@ class ETDAHADSubmitIn(Schema):
     item_67: int = 0
     item_68: int = 0
     item_69: int = 0
+
+
+# --- RAVLT ---
+
+
+class RAVLTSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    a1: Optional[int] = 0
+    a2: Optional[int] = 0
+    a3: Optional[int] = 0
+    a4: Optional[int] = 0
+    a5: Optional[int] = 0
+    b: Optional[int] = 0
+    a6: Optional[int] = 0
+    a7: Optional[int] = 0
+    reconhecimento: Optional[int] = 0

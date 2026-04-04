@@ -85,6 +85,8 @@ INSTALLED_APPS += [
     "apps.tests",
     "apps.reports",
     "apps.api",
+    "apps.ai",
+    "apps.audit",
 ]
 
 MIDDLEWARE = [

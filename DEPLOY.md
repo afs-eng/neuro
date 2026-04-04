@@ -50,6 +50,7 @@ gunicorn config.wsgi:application --log-file -
 - `CORS_ALLOWED_ORIGINS=https://<dominio-vercel>`
 - `FRONTEND_BASE_URL=https://<dominio-vercel>`
 - `BACKEND_PUBLIC_URL=https://<dominio-render>`
+- `ALLOW_VERCEL_PREVIEWS=True`
 - `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, `DEFAULT_FROM_EMAIL`
 - `DJANGO_LOG_LEVEL=INFO`
 
@@ -70,11 +71,13 @@ gunicorn config.wsgi:application --log-file -
 ### Variaveis de ambiente do frontend
 
 - `NEXT_PUBLIC_API_BASE_URL=https://<dominio-render>`
+- `INTERNAL_API_BASE_URL=https://<dominio-render>`
 - `NEXT_PUBLIC_APP_URL=https://<dominio-vercel>`
 
 ### Observacoes
 
 - O frontend consome a API publica do Render
+- As variaveis do frontend devem apontar para a raiz do backend, sem adicionar `/api` no final
 - As rotas publicas de anamnese por token usam a URL do frontend em `FRONTEND_BASE_URL`
 
 ---

@@ -26,19 +26,17 @@ Na tela "Configure Project":
 ## 3. Configurando Variáveis de Ambiente
 
 > [!WARNING]
-> Sem estas variáveis, a aplicação não saberá se comunicar com o seu Backend e o Login (NextAuth) falhará silenciosamente!
+> Sem estas variáveis, a aplicação não saberá se comunicar com o seu backend no Render.
 
 Na mesma tela, expanda a aba **"Environment Variables"** e insira as seguintes chaves (uma por vez):
 
 | Variable Name | Value a ser inserido | Descrição |
 |:--------------|:---------------------|:----------|
-| `NEXT_PUBLIC_API_URL` | `https://seu-backend.onrender.com` | A URL raiz pública da sua API (Render) |
-| `INTERNAL_API_BASE_URL` | `https://seu-backend.onrender.com` | Usada pela Vercel em Server-Side para bater na API Django sem bater no Cors |
-| `NEXTAUTH_URL` | `https://seu-frontend.vercel.app` | A URL temporária ou final que a Vercel vai te dar |
-| `NEXTAUTH_SECRET` | `uma-chave-longa-e-secreta-qualquer` | Chave de Criptografia do Banco de Cookies |
-| `NEXT_PUBLIC_APP_URL` | `https://seu-frontend.vercel.app` | Mesma URL do NextAuth (usada em links absolutos do app) |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://seu-backend.onrender.com` | URL raiz pública do backend no Render, sem `/api` no final |
+| `INTERNAL_API_BASE_URL` | `https://seu-backend.onrender.com` | URL usada por rewrites/SSR da Vercel para alcançar o backend |
+| `NEXT_PUBLIC_APP_URL` | `https://seu-frontend.vercel.app` | URL pública do frontend usada em links absolutos |
 
-*Nota sobre a URL Vercel*: Como você só vai saber o domínio oficial após o primeiro deploy, é normal gerar um domínio automático. Após o deploy finalizar, **copie o domínio final** (ex: `neuro-g1k3d.vercel.app`), vá em *Settings > Environment Variables* na Vercel e atualize `NEXTAUTH_URL` e `NEXT_PUBLIC_APP_URL`. Depois, faça um Redeploy.
+*Nota sobre a URL Vercel*: Como você só vai saber o domínio oficial após o primeiro deploy, é normal gerar um domínio automático. Após o deploy finalizar, **copie o domínio final** (ex: `neuro-g1k3d.vercel.app`), vá em *Settings > Environment Variables* na Vercel e atualize `NEXT_PUBLIC_APP_URL`. Depois, faça um redeploy.
 
 ## 4. O Lado do Django (Backend / Render)
 
@@ -49,8 +47,9 @@ No **Painel do Render** (onde o backend Django está hospedado):
 1. Vá ao serviço do Backend.
 2. Acesse **"Environment"**.
 3. Encontre a variável `FRONTEND_BASE_URL` ou crie-a.
-4. Coloque como valor exatamente o domínio da Vercel: `https://meu-neuro-front.vercel.app` (Sem barra final e com HTTPS).
-5. Salve. O Render vai reiniciar a API.
+4. Coloque como valor exatamente o domínio da Vercel: `https://meu-neuro-front.vercel.app` (sem barra final e com HTTPS).
+5. Se quiser aceitar previews de branch da Vercel, deixe `ALLOW_VERCEL_PREVIEWS=True` no backend.
+6. Salve. O Render vai reiniciar a API.
 
 ## 5. Teste Prático
 

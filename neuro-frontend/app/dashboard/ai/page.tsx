@@ -1,24 +1,24 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageContainer, PageHeader, EmptyState } from "@/components/ui/page";
 import { Brain } from "lucide-react";
 
 export default function AIPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">IA Clínica</h1>
-          <p className="text-sm text-slate-500 mt-1">Assistente de inteligência artificial para análise e sugestões.</p>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="IA Clínica"
+        subtitle="Assistente de inteligência artificial para análise e sugestões."
+      />
 
-      <Card className="rounded-2xl border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <CardContent className="p-6">
-          <div className="flex flex-col items-center justify-center py-12">
-            <Brain className="h-12 w-12 text-slate-300 mb-4" />
-            <p className="text-slate-500">Módulo de IA em desenvolvimento.</p>
-          </div>
+          <EmptyState
+            icon={<Brain className="h-12 w-12" />}
+            title="Módulo de IA em desenvolvimento"
+            description="Novas funcionalidades de IA serão disponibilizadas em breve."
+          />
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

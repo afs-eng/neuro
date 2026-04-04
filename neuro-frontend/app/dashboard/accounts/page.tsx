@@ -1,24 +1,24 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageContainer, PageHeader, EmptyState } from "@/components/ui/page";
 import { ShieldCheck } from "lucide-react";
 
 export default function AccountsPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Usuários</h1>
-          <p className="text-sm text-slate-500 mt-1">Gestão de usuários e permissões do sistema.</p>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Usuários"
+        subtitle="Gestão de usuários e permissões do sistema."
+      />
 
-      <Card className="rounded-2xl border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <CardContent className="p-6">
-          <div className="flex flex-col items-center justify-center py-12">
-            <ShieldCheck className="h-12 w-12 text-slate-300 mb-4" />
-            <p className="text-slate-500">Módulo de gestão de usuários em desenvolvimento.</p>
-          </div>
+          <EmptyState
+            icon={<ShieldCheck className="h-12 w-12" />}
+            title="Gestão de usuários"
+            description="Módulo de gestão de usuários e permissões em desenvolvimento."
+          />
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

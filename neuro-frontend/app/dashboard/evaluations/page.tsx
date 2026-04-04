@@ -1,5 +1,7 @@
 "use client";
 
+"use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Search, FileText, ClipboardList, Calendar, User } from "lucide-react";
+import { PageContainer, PageHeader, EmptyState } from "@/components/ui/page";
+import { Plus, Search, User, Calendar } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface Evaluation {
@@ -141,59 +144,40 @@ export default function EvaluationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-300 p-6 md:p-10 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-zinc-600">Carregando...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-300 p-6 md:p-10">
-      <div className="mx-auto max-w-7xl rounded-[36px] bg-[#f3f0e4] p-5 shadow-2xl ring-1 ring-black/5 md:p-7">
-        <div className="rounded-[28px] bg-gradient-to-r from-[#f6f4ed] via-[#f2efe4] to-[#efe7bf] p-5 md:p-6">
-          <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="rounded-full border border-black/20 bg-white/70 px-5 py-2 text-lg font-medium tracking-tight text-zinc-800 shadow-sm">
-                NeuroAvalia
-              </div>
-            </div>
-            <nav className="flex flex-wrap items-center gap-2 rounded-full bg-white/70 px-3 py-2 text-sm text-zinc-700 shadow-sm">
-              <Link href="/dashboard" className="rounded-full px-4 py-2 hover:bg-black/5">Dashboard</Link>
-              <Link href="/dashboard/patients" className="rounded-full px-4 py-2 hover:bg-black/5">Pacientes</Link>
-              <Link href="/dashboard/evaluations" className="rounded-full bg-zinc-900 px-4 py-2 text-white">Avaliações</Link>
-              <Link href="/dashboard/tests" className="rounded-full px-4 py-2 hover:bg-black/5">Testes</Link>
-            </nav>
-          </header>
-
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-medium tracking-tight text-zinc-900">Avaliações</h1>
-              <p className="mt-1 text-sm text-zinc-600">Gerencie as avaliações neuropsicológicas</p>
-            </div>
-            <Button onClick={() => setShowForm(!showForm)} className="rounded-full gap-2">
-              <Plus className="h-4 w-4" />
-              Nova Avaliação
-            </Button>
-          </div>
+    <PageContainer>
+      <PageHeader
+        title="Avaliações"
+        subtitle="Gerencie as avaliações neuropsicológicas"
+        actions={
+          <Button onClick={() => setShowForm(!showForm)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nova Avaliação
+          </Button>
+        }
+      />
 
           {showForm && (
-            <Card className="mb-6 rounded-2xl border-slate-200 shadow-sm">
+            <Card className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm">
               <CardHeader>
                 <CardTitle>Nova Avaliação</CardTitle>
                 <CardDescription>Crie uma nova avaliação neuropsicológica. Campos com * são obrigatórios.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                   Obrigatório para salvar: selecionar um paciente.
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Paciente *</label>
                     <select
-                      className={`w-full rounded-xl border bg-white px-3 py-2 ${formTouched.patient_id && !formData.patient_id ? "border-red-500" : "border-slate-200"}`}
+                      className={`w-full rounded-lg border bg-white px-3 py-2 ${formTouched.patient_id && !formData.patient_id ? "border-red-500" : "border-slate-200"}`}
                       value={formData.patient_id}
                       onChange={(e) => setFormData({ ...formData, patient_id: e.target.value })}
                       onBlur={() => setFormTouched((prev) => ({ ...prev, patient_id: true }))}
@@ -284,19 +268,20 @@ export default function EvaluationsPage() {
           </div>
 
           {filteredEvaluations.length === 0 ? (
-            <div className="rounded-[28px] bg-white/70 p-12 text-center shadow-lg ring-1 ring-black/5">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 text-3xl">📋</div>
-              <h3 className="text-xl font-medium text-zinc-900">Nenhuma avaliação encontrada</h3>
-              <p className="mt-2 text-sm text-zinc-500">Comece criando sua primeira avaliação.</p>
-              <Button onClick={() => setShowForm(true)} className="mt-6 rounded-full">
-                + Nova Avaliação
-              </Button>
-            </div>
+            <EmptyState
+              title="Nenhuma avaliação encontrada"
+              description="Comece criando sua primeira avaliação."
+              action={
+                <Button onClick={() => setShowForm(true)}>
+                  + Nova Avaliação
+                </Button>
+              }
+            />
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredEvaluations.map((evaluation) => (
                 <Link key={evaluation.id} href={`/dashboard/evaluations/${evaluation.id}`}>
-                  <Card className="rounded-2xl border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer h-full">
+                  <Card className="rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition cursor-pointer h-full">
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
                         <div>
@@ -340,8 +325,6 @@ export default function EvaluationsPage() {
               ))}
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </PageContainer>
   );
 }

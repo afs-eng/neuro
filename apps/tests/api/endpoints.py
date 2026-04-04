@@ -6,7 +6,7 @@ from apps.accounts.models import UserRole
 from apps.evaluations.models import Evaluation
 from apps.tests.models import Instrument
 from apps.tests.age_rules import get_instrument_age_rule
-from apps.tests.api.schemas import EPQJSubmitIn
+from apps.tests.api.schemas import EPQJSubmitIn, RAVLTSubmitIn
 from apps.tests.selectors import (
     get_instrument_by_id,
     get_instruments,
@@ -1115,6 +1115,130 @@ def etdah_ad_result(request, application_id: int) -> tuple[int, dict]:
         "applied_on": application.applied_on,
         "raw_scores": classified.get("raw_scores", {}),
         "results": classified.get("results", {}),
+        "interpretation": application.interpretation_text or "",
+        "raw_payload": application.raw_payload or {},
+        "computed_payload": application.computed_payload or {},
+        "classified_payload": application.classified_payload or {},
+    }
+
+
+# --- RAVLT ---
+
+
+@router.post(
+    "/ravlt/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def ravlt_submit(request, payload: RAVLTSubmitIn) -> tuple[int, dict]:
+    from datetime import date as date_cls
+    from apps.tests.ravlt import RAVLTModule
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from apps.evaluations.models import Evaluation
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    patient = evaluation.patient
+    examiner = evaluation.examiner
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+
+    raw_scores = {
+        "a1": payload.a1 or 0,
+        "a2": payload.a2 or 0,
+        "a3": payload.a3 or 0,
+        "a4": payload.a4 or 0,
+        "a5": payload.a5 or 0,
+        "b": payload.b or 0,
+        "a6": payload.a6 or 0,
+        "a7": payload.a7 or 0,
+        "reconhecimento": payload.reconhecimento or 0,
+    }
+
+    idade = 25
+    if patient.birth_date and reference_date:
+        anos = reference_date.year - patient.birth_date.year
+        if (reference_date.month, reference_date.day) < (
+            patient.birth_date.month,
+            patient.birth_date.day,
+        ):
+            anos -= 1
+        if anos > 0:
+            idade = anos
+
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="ravlt",
+        raw_scores=raw_scores,
+    )
+
+    module = RAVLTModule()
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed, idade=idade)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    instrument = Instrument.objects.filter(code="ravlt", is_active=True).first()
+    if not instrument:
+        instrument = Instrument.objects.create(
+            name="RAVLT",
+            code="ravlt",
+            is_active=True,
+        )
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    return 200, {
+        "application_id": application.id,
+        "computed": computed,
+        "classified": classified,
+        "interpretation": interpretation,
+    }
+
+
+@router.get(
+    "/ravlt/result/{application_id}",
+    response={200: dict, 404: MessageOut},
+    auth=bearer_auth,
+)
+def ravlt_result(request, application_id: int) -> tuple[int, dict]:
+    application = get_test_application_by_id(application_id)
+    if not application:
+        return 404, {"message": "Aplicação de teste não encontrada."}
+
+    if application.instrument.code != "ravlt":
+        return 404, {"message": "Aplicação não é do tipo RAVLT."}
+
+    classified = application.classified_payload or {}
+
+    return 200, {
+        "application_id": application.pk,
+        "evaluation_id": application.evaluation_id,
+        "patient_name": application.evaluation.patient.full_name,
+        "applied_on": application.applied_on,
+        "results": classified,
         "interpretation": application.interpretation_text or "",
         "raw_payload": application.raw_payload or {},
         "computed_payload": application.computed_payload or {},
