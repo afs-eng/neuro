@@ -1,17 +1,15 @@
 function normalizeApiBaseUrl(value?: string) {
-  const fallbackUrl = 'http://127.0.0.1:8000'
-
   if (!value) {
-    return fallbackUrl
+    const isLocalHost = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    return isLocalHost ? 'http://127.0.0.1:8000' : 'http://backend:8000';
   }
 
   const normalized = value.replace(/\/$/, '')
   return normalized.endsWith('/api') ? normalized.slice(0, -4) : normalized
 }
 
-const API_URL = normalizeApiBaseUrl(
-  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL
-)
+const API_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL)
 
 export interface ApiError {
   message: string
@@ -27,7 +25,8 @@ async function fetchAPI<T>(
   const isGetRequest = !options.method || options.method === 'GET'
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+  const res = await fetch(`${API_URL}${normalizedEndpoint}`, {
     ...options,
     cache: isGetRequest ? 'no-store' : undefined,
     headers: {
@@ -41,7 +40,25 @@ async function fetchAPI<T>(
     let errorMessage = `Erro: ${res.status}`
     try {
       const errorData = await res.json()
-      errorMessage = errorData.message || errorData.detail || errorMessage
+      if (typeof errorData === 'string') {
+        errorMessage = errorData
+      } else if (errorData.message) {
+        errorMessage = errorData.message
+      } else if (errorData.detail) {
+        errorMessage = errorData.detail
+      } else if (Array.isArray(errorData)) {
+        errorMessage = errorData.map((e: any) => e.msg || JSON.stringify(e)).join(', ')
+      } else if (typeof errorData === 'object') {
+        const firstKey = Object.keys(errorData)[0]
+        const firstError = errorData[firstKey]
+        if (Array.isArray(firstError)) {
+          errorMessage = `${firstKey}: ${firstError[0]}`
+        } else if (typeof firstError === 'object' && firstError.msg) {
+          errorMessage = firstError.msg
+        } else {
+          errorMessage = String(firstError)
+        }
+      }
     } catch {}
     const error: ApiError = {
       message: errorMessage,

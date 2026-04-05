@@ -6,7 +6,7 @@ from apps.accounts.models import UserRole
 from apps.evaluations.models import Evaluation
 from apps.tests.models import Instrument
 from apps.tests.age_rules import get_instrument_age_rule
-from apps.tests.api.schemas import EPQJSubmitIn, RAVLTSubmitIn
+from apps.tests.api.schemas import EPQJSubmitIn, RAVLTSubmitIn, SRS2SubmitIn
 from apps.tests.selectors import (
     get_instrument_by_id,
     get_instruments,
@@ -1150,33 +1150,37 @@ def ravlt_submit(request, payload: RAVLTSubmitIn) -> tuple[int, dict]:
     reference_date = get_reference_date(evaluation, payload.applied_on)
 
     raw_scores = {
-        "a1": payload.a1 or 0,
-        "a2": payload.a2 or 0,
-        "a3": payload.a3 or 0,
-        "a4": payload.a4 or 0,
-        "a5": payload.a5 or 0,
-        "b": payload.b or 0,
-        "a6": payload.a6 or 0,
-        "a7": payload.a7 or 0,
-        "reconhecimento": payload.reconhecimento or 0,
+        "a1": int(payload.a1 or 0),
+        "a2": int(payload.a2 or 0),
+        "a3": int(payload.a3 or 0),
+        "a4": int(payload.a4 or 0),
+        "a5": int(payload.a5 or 0),
+        "b": int(payload.b or 0),
+        "a6": int(payload.a6 or 0),
+        "a7": int(payload.a7 or 0),
+        "reconhecimento": int(payload.reconhecimento or 0),
     }
 
     idade = 25
-    if patient.birth_date and reference_date:
-        anos = reference_date.year - patient.birth_date.year
-        if (reference_date.month, reference_date.day) < (
-            patient.birth_date.month,
-            patient.birth_date.day,
-        ):
-            anos -= 1
-        if anos > 0:
-            idade = anos
+    try:
+        if patient.birth_date and reference_date:
+            anos = reference_date.year - patient.birth_date.year
+            if (reference_date.month, reference_date.day) < (
+                patient.birth_date.month,
+                patient.birth_date.day,
+            ):
+                anos -= 1
+            if anos > 0:
+                idade = anos
+    except Exception:
+        idade = 25
 
     ctx = TestContext(
         patient_name=evaluation.patient.full_name,
         evaluation_id=evaluation.pk,
         instrument_code="ravlt",
         raw_scores=raw_scores,
+        patient_age=idade,
     )
 
     module = RAVLTModule()
@@ -1230,6 +1234,145 @@ def ravlt_result(request, application_id: int) -> tuple[int, dict]:
 
     if application.instrument.code != "ravlt":
         return 404, {"message": "Aplicação não é do tipo RAVLT."}
+
+    classified = application.classified_payload or {}
+
+    return 200, {
+        "application_id": application.pk,
+        "evaluation_id": application.evaluation_id,
+        "patient_name": application.evaluation.patient.full_name,
+        "applied_on": application.applied_on,
+        "results": classified,
+        "interpretation": application.interpretation_text or "",
+        "raw_payload": application.raw_payload or {},
+        "computed_payload": application.computed_payload or {},
+        "classified_payload": application.classified_payload or {},
+    }
+
+
+@router.get(
+    "/srs2/items",
+    response={200: dict},
+    # auth=bearer_auth,  # Temporarily disabled for testing
+)
+def srs2_get_items(request) -> tuple[int, dict]:
+    import json
+    import os
+
+    items_file = os.path.join(os.path.dirname(__file__), "..", "srs2", "items.json")
+    with open(items_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    forms = [
+        "pre_escola",
+        "idade_escolar",
+        "adulto_autorrelato",
+        "adulto_heterorrelato",
+    ]
+    result = {}
+    for form in forms:
+        items = data.get(form, [])
+        result[form] = [
+            {"item": i["item"], "fator": i["fator"], "pergunta": i.get("pergunta", "")}
+            for i in items
+        ]
+
+    return 200, result
+
+
+@router.post(
+    "/srs2/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def srs2_submit(request, payload: SRS2SubmitIn) -> tuple[int, dict]:
+    from apps.tests.srs2 import SRS2Module
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.applications import TestApplication
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    raw_scores = {
+        "form": payload.form,
+        "gender": payload.gender,
+        "age": payload.age,
+        "respondent_name": payload.respondent_name,
+        "responses": payload.responses or {},
+    }
+
+    patient = evaluation.patient
+    age = payload.age
+    if not age and patient.birth_date:
+        eval_date = get_reference_date(evaluation, payload.applied_on)
+        age = eval_date.year - patient.birth_date.year
+        if (eval_date.month, eval_date.day) < (
+            patient.birth_date.month,
+            patient.birth_date.day,
+        ):
+            age -= 1
+
+    module = SRS2Module()
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="srs2",
+        patient_age=age or 10,
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed, age=age or 10, gender=payload.gender or "M")
+    interpretation = module.interpret(ctx, classified)
+
+    instrument = Instrument.objects.filter(code="srs2", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento SRS-2 não encontrado."}
+
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    return 200, {
+        "application_id": application.pk,
+        "computed": computed,
+        "classified": classified,
+        "interpretation": interpretation,
+    }
+
+
+@router.get(
+    "/srs2/result/{application_id}",
+    response={200: dict, 404: MessageOut},
+    auth=bearer_auth,
+)
+def srs2_result(request, application_id: int) -> tuple[int, dict]:
+    application = get_test_application_by_id(application_id)
+    if not application:
+        return 404, {"message": "Aplicação de teste não encontrada."}
+
+    if application.instrument.code != "srs2":
+        return 404, {"message": "Aplicação não é do tipo SRS-2."}
 
     classified = application.classified_payload or {}
 

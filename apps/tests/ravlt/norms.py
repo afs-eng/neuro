@@ -290,18 +290,18 @@ def classify_by_percentile(percentile: Optional[float]) -> str:
     if percentile is None:
         return "-"
 
-    p = round(percentile)
+    p = percentile  # Não arredondar - usar valor exato
 
     if p >= 98:
         return "Muito Superior"
-    if 91 <= p <= 97:
+    if p >= 91:
         return "Superior"
-    if 75 <= p <= 90:
+    if p >= 75:
         return "Média Superior"
-    if 25 <= p <= 74:
+    if p >= 25:
         return "Média"
-    if 9 <= p <= 24:
+    if p >= 9:
         return "Média Inferior"
-    if 2 <= p <= 8:
+    if p >= 2:
         return "Inferior"
     return "Muito Inferior"

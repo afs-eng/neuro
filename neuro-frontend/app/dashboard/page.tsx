@@ -2,123 +2,76 @@
 
 import React from "react";
 import Link from "next/link";
-import { PageContainer, PageHeader, SectionCard, SummaryCard } from "@/components/ui/page";
+import { PageContainer, PageHeader, SectionCard, StatCard, InfoCard } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Users,
-  ClipboardList,
-  FlaskConical,
-  FileText,
+import { 
+  Users, 
+  ClipboardList, 
+  FlaskConical, 
+  FileText, 
+  Plus, 
+  ChevronRight, 
   Brain,
-  Plus,
-  ChevronRight,
-  Search,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  Activity,
   Stethoscope,
-  ClipboardCheck,
+  Activity,
+  Calendar,
+  Search,
+  MessageSquare,
+  Sparkles
 } from "lucide-react";
 
 const STATS = [
   { 
     title: "Total de Pacientes", 
     value: "248", 
-    trend: "+23%",
-    trendUp: true,
-    icon: <Users className="h-6 w-6" />,
-    color: "bg-indigo-500"
+    trend: { value: 23, label: "este mês" },
+    icon: Users
   },
   { 
-    title: "Avaliações em Andamento", 
+    title: "Avaliações Ativas", 
     value: "23", 
-    trend: "+8%",
-    trendUp: true,
-    icon: <ClipboardList className="h-6 w-6" />,
-    color: "bg-cyan-500"
+    trend: { value: 8, label: "esta semana" },
+    icon: ClipboardList
   },
   { 
     title: "Laudos Pendentes", 
     value: "8", 
-    trend: "-5%",
-    trendUp: false,
-    icon: <FileText className="h-6 w-6" />,
-    color: "bg-amber-500"
+    trend: { value: -5, label: "vs mês ant." },
+    icon: FileText
   },
   { 
     title: "Testes Aplicados", 
     value: "156", 
-    trend: "+15%",
-    trendUp: true,
-    icon: <FlaskConical className="h-6 w-6" />,
-    color: "bg-emerald-500"
+    trend: { value: 15, label: "total hoje" },
+    icon: FlaskConical
   },
 ];
 
 const RECENT_EVALUATIONS = [
-  { id: "AV-2201", patient: "Marina Carvalho", examiner: "Dr. André", stage: "Coleta de dados", start: "19/03/2026", tests: 4 },
-  { id: "AV-2202", patient: "João Pedro Silva", examiner: "Dr. André", stage: "Redação do laudo", start: "18/03/2026", tests: 3 },
-  { id: "AV-2203", patient: "Renato Vitulli", examiner: "Dr. André", stage: "Aprovado", start: "11/03/2026", tests: 5 },
-  { id: "AV-2204", patient: "Ana Clara Santos", examiner: "Dr. André", stage: "Aguardando documentos", start: "10/03/2026", tests: 2 },
+  { id: "AV-2201", patient: "Marina Carvalho", stage: "Coleta de dados", start: "Hoje, 10:30", tests: 4 },
+  { id: "AV-2202", patient: "João Pedro Silva", stage: "Redação do laudo", start: "Ontem, 16:45", tests: 3 },
+  { id: "AV-2203", patient: "Renato Vitulli", stage: "Finalizado", start: "11/03/2026", tests: 5 },
+  { id: "AV-2204", patient: "Ana Clara Santos", stage: "Documentação", start: "10/03/2026", tests: 2 },
 ];
 
-const RECENT_PATIENTS = [
-  { id: 1, name: "Marina Carvalho", age: 8, evaluation: "AV-2201", status: "Em avaliação" },
-  { id: 2, name: "João Pedro Silva", age: 12, evaluation: "AV-2202", status: "Laudo" },
-  { id: 3, name: "Renato Vitulli", age: 45, evaluation: "AV-2203", status: "Finalizado" },
+const QUICK_ACTIONS = [
+  { title: "Novo Paciente", icon: Users, href: "/dashboard/patients/new", color: "text-blue-600", bg: "bg-blue-50" },
+  { title: "Aplicar Teste", icon: Stethoscope, href: "/dashboard/tests", color: "text-primary", bg: "bg-primary/10" },
+  { title: "Gerar Laudo", icon: FileText, href: "/dashboard/reports", color: "text-amber-600", bg: "bg-amber-50" },
+  { title: "IA Clínica", icon: Sparkles, href: "/dashboard/ai", color: "text-purple-600", bg: "bg-purple-50" },
 ];
 
 function StatusBadge({ children }: { children: string }) {
   const map: Record<string, string> = {
-    "Coleta de dados": "bg-amber-100 text-amber-700",
-    "Redação do laudo": "bg-blue-100 text-blue-700",
-    "Aprovado": "bg-emerald-100 text-emerald-700",
-    "Aguardando documentos": "bg-slate-100 text-slate-600",
-    "Em avaliação": "bg-amber-100 text-amber-700",
-    "Laudo": "bg-blue-100 text-blue-700",
-    "Finalizado": "bg-emerald-100 text-emerald-700",
+    "Coleta de dados": "text-amber-600 bg-amber-50 border-amber-100",
+    "Redação do laudo": "text-primary bg-primary/10 border-primary/20",
+    "Finalizado": "text-emerald-600 bg-emerald-50 border-emerald-100",
+    "Documentação": "text-slate-500 bg-slate-50 border-slate-100",
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${map[children] || "bg-slate-100 text-slate-600"}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${map[children] || "bg-slate-50 text-slate-500 border-slate-100"}`}>
       {children}
     </span>
-  );
-}
-
-function StatCard({ title, value, trend, trendUp, icon, color }: { 
-  title: string; 
-  value: string; 
-  trend: string;
-  trendUp: boolean;
-  icon: React.ReactNode;
-  color: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{value}</p>
-          <div className="mt-3 flex items-center gap-1.5">
-            {trendUp ? (
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            )}
-            <span className={`text-sm font-medium ${trendUp ? "text-emerald-500" : "text-red-500"}`}>
-              {trend}
-            </span>
-            <span className="text-sm text-slate-400">desde o mês passado</span>
-          </div>
-        </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color} text-white`}>
-          {icon}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -127,129 +80,158 @@ export default function DashboardPage() {
     <PageContainer>
       <PageHeader
         title="Dashboard"
-        subtitle="Visão geral das suas avaliações neuropsicológicas"
+        subtitle="Bem-vindo de volta, Dr. André. Aqui está o resumo da sua clínica hoje."
         actions={
-          <Link href="/dashboard/evaluations/new">
-            <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="h-4 w-4" />
-              Nova Avaliação
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/evaluations/new">
+              <Button className="gap-2 shadow-spike font-bold">
+                <Plus className="h-4 w-4" />
+                Nova Avaliação
+              </Button>
+            </Link>
+          </div>
         }
       />
 
       {/* Stats Grid */}
-      <div className="mb-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {STATS.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-8 lg:grid-cols-3">
         {/* Recent Evaluations */}
-        <SectionCard 
-          title="Avaliações Recentes" 
-          className="lg:col-span-2"
-          actions={
-            <Link href="/dashboard/evaluations">
-              <Button variant="ghost" size="sm" className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
-                Ver todas
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </Link>
-          }
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="pb-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Código</th>
-                  <th className="pb-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Paciente</th>
-                  <th className="pb-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="pb-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Testes</th>
-                  <th className="pb-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Início</th>
-                  <th className="pb-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {RECENT_EVALUATIONS.map((eval_) => (
-                  <tr key={eval_.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 text-sm font-medium text-slate-900">{eval_.id}</td>
-                    <td className="py-3 text-sm text-slate-700">{eval_.patient}</td>
-                    <td className="py-3">
-                      <StatusBadge>{eval_.stage}</StatusBadge>
-                    </td>
-                    <td className="py-3 text-sm text-slate-600">{eval_.tests}</td>
-                    <td className="py-3 text-sm text-slate-500">{eval_.start}</td>
-                    <td className="py-3 text-right">
-                      <Link href={`/dashboard/evaluations/${eval_.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <ChevronRight className="h-4 w-4 text-slate-400" />
-                        </Button>
-                      </Link>
-                    </td>
+        <div className="lg:col-span-2 space-y-8">
+          <SectionCard 
+            title="Avaliações Recentes" 
+            description="Acompanhamento em tempo real dos processos ativos."
+            actions={
+              <Link href="/dashboard/evaluations">
+                <Button variant="ghost" size="sm" className="font-bold text-primary hover:bg-primary/5">
+                  Ver todas
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
+            }
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">CÓDIGO</th>
+                    <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">PACIENTE</th>
+                    <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">STATUS</th>
+                    <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">TESTES</th>
+                    <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">ÚLTIMA ATUALIZAÇÃO</th>
+                    <th className="pb-4"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SectionCard>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {RECENT_EVALUATIONS.map((eval_) => (
+                    <tr key={eval_.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 text-sm font-bold text-slate-900">{eval_.id}</td>
+                      <td className="py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 text-primary text-[10px] font-black">
+                            {eval_.patient.charAt(0)}
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">{eval_.patient}</span>
+                        </div>
+                      </td>
+                      <td className="py-4">
+                        <StatusBadge>{eval_.stage}</StatusBadge>
+                      </td>
+                      <td className="py-4 text-sm font-bold text-slate-600">{eval_.tests}</td>
+                      <td className="py-4 text-xs font-medium text-slate-400">{eval_.start}</td>
+                      <td className="py-4 text-right">
+                        <Link href={`/dashboard/evaluations/${eval_.id}`}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ChevronRight className="h-4 w-4 text-primary" />
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SectionCard>
 
-        {/* Quick Actions & Activity */}
-        <div className="space-y-6">
-          {/* Recent Patients */}
-          <SectionCard title="Pacientes Recentes">
-            <div className="space-y-4">
-              {RECENT_PATIENTS.map((patient) => (
-                <div key={patient.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 -mx-2 cursor-pointer">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold text-sm">
-                    {patient.name.charAt(0)}
+          <div className="grid gap-6 md:grid-cols-2">
+            <SectionCard title="Atividade da IA" description="Insights gerados recentemente.">
+              <div className="space-y-4">
+                <div className="flex gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
+                  <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-slate-900">Análise de WISC-IV Concluída</p>
+                    <p className="text-[11px] text-slate-500 font-medium">Padrão de discrepância identificado para Marina Carvalho.</p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">{patient.name}</p>
-                    <p className="text-xs text-slate-500">#{patient.evaluation} • {patient.age} anos</p>
-                  </div>
-                  <StatusBadge>{patient.status}</StatusBadge>
                 </div>
+                <div className="flex gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <Brain className="h-5 w-5 text-slate-400 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-slate-900">Sugestão de Teste Adicional</p>
+                    <p className="text-[11px] text-slate-500 font-medium">Considere Raven para avaliar inteligência fluida em João Silva.</p>
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+            
+            <SectionCard title="Próximas Sessões" description="Agenda de hoje.">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="text-sm font-bold text-slate-700">14:00 - Marina C.</span>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-400">EM 15 MIN</span>
+                </div>
+                <div className="flex items-center justify-between p-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-slate-200" />
+                    <span className="text-sm font-bold text-slate-500">16:30 - Pedro L.</span>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-400 underline cursor-pointer hover:text-primary">ABRIR</span>
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+
+        {/* Sidebar Actions & Info */}
+        <div className="space-y-8">
+          <SectionCard title="Ações Rápidas">
+            <div className="grid grid-cols-2 gap-4">
+              {QUICK_ACTIONS.map((action) => (
+                <Link key={action.title} href={action.href}>
+                  <button className="flex h-24 w-full flex-col items-center justify-center gap-2 rounded-xl border border-slate-100 bg-white shadow-sm transition-all hover:border-primary/20 hover:shadow-spike group">
+                    <div className={`p-2 rounded-lg ${action.bg} ${action.color} group-hover:scale-110 transition-transform`}>
+                      <action.icon className="h-5 w-5" />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{action.title}</span>
+                  </button>
+                </Link>
               ))}
             </div>
-            <Link href="/dashboard/patients">
-              <Button variant="ghost" className="w-full mt-4 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
-                Ver todos os pacientes
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </Link>
           </SectionCard>
 
-          {/* Quick Actions */}
-          <SectionCard title="Ações Rápidas">
-            <div className="grid grid-cols-2 gap-3">
-              <Link href="/dashboard/patients/new">
-                <Button variant="outline" className="w-full h-20 flex-col gap-2 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50">
-                  <Users className="h-5 w-5 text-indigo-500" />
-                  <span className="text-xs">Novo Paciente</span>
-                </Button>
-              </Link>
-              <Link href="/dashboard/tests">
-                <Button variant="outline" className="w-full h-20 flex-col gap-2 border-slate-200 hover:border-cyan-300 hover:bg-cyan-50">
-                  <Stethoscope className="h-5 w-5 text-cyan-500" />
-                  <span className="text-xs">Aplicar Teste</span>
-                </Button>
-              </Link>
-              <Link href="/dashboard/reports">
-                <Button variant="outline" className="w-full h-20 flex-col gap-2 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50">
-                  <FileText className="h-5 w-5 text-emerald-500" />
-                  <span className="text-xs">Gerar Laudo</span>
-                </Button>
-              </Link>
-              <Link href="/dashboard/ai">
-                <Button variant="outline" className="w-full h-20 flex-col gap-2 border-slate-200 hover:border-violet-300 hover:bg-violet-50">
-                  <Brain className="h-5 w-5 text-violet-500" />
-                  <span className="text-xs">IA Assistiva</span>
-                </Button>
-              </Link>
+          <SectionCard title="Recursos do Sistema">
+            <div className="space-y-4">
+              <InfoCard label="Pacientes Novos" value="12 esta semana" icon={Users} />
+              <InfoCard label="Laudos Finalizados" value="45 no mês" icon={FileText} />
+              <InfoCard label="Uso de IA" value="85% das avaliações" icon={Sparkles} />
             </div>
           </SectionCard>
+
+          <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xl relative overflow-hidden group">
+            <Brain className="absolute -right-4 -bottom-4 h-32 w-32 text-white/5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-2">Suporte Premium</p>
+            <h5 className="text-lg font-black leading-tight mb-4">Gerencie sua clínica com precisão cirúrgica.</h5>
+            <Button variant="secondary" className="w-full font-black text-xs uppercase tracking-widest bg-white text-slate-900 hover:bg-slate-100">
+              Falar com Suporte
+            </Button>
+          </div>
         </div>
       </div>
     </PageContainer>

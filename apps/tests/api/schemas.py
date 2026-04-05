@@ -380,3 +380,16 @@ class RAVLTSubmitIn(Schema):
     a6: Optional[int] = 0
     a7: Optional[int] = 0
     reconhecimento: Optional[int] = 0
+
+
+# --- SRS-2 ---
+
+
+class SRS2SubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    form: str = "idade_escolar"
+    gender: Optional[str] = "M"
+    age: Optional[int] = 10
+    respondent_name: Optional[str] = ""
+    responses: Optional[dict[str, int]] = {}

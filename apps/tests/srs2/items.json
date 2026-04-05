@@ -1,0 +1,1310 @@
+{
+  "pre_escola": [
+    {
+      "item": 1,
+      "fator": "Motivação Social",
+      "pergunta": "Parece muito mais inquieta em situações sociais do que quando está sozinha."
+    },
+    {
+      "item": 2,
+      "fator": "Percepção Social",
+      "pergunta": "As expressões em seu rosto não combinam com o que está dizendo."
+    },
+    {
+      "item": 3,
+      "fator": "Motivação Social",
+      "pergunta": "Parece confiante (ou segura) quando está interagindo com outras pessoas."
+    },
+    {
+      "item": 4,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Quando há sobrecarga de estímulos, a criança parece se desligar do ambiente, apresentando padrões rígidos e inflexíveis."
+    },
+    {
+      "item": 5,
+      "fator": "Cognição Social",
+      "pergunta": "Não percebe quando os outros estão tentando tirar vantagem dela."
+    },
+    {
+      "item": 6,
+      "fator": "Motivação Social",
+      "pergunta": "Prefere estar sozinha do que com os outros."
+    },
+    {
+      "item": 7,
+      "fator": "Percepção Social",
+      "pergunta": "Demonstra perceber o que os outros estão pensando ou sentindo."
+    },
+    {
+      "item": 8,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Se comporta de maneira estranha ou bizarra."
+    },
+    {
+      "item": 9,
+      "fator": "Motivação Social",
+      "pergunta": "Fica próxima a adultos, parece ser muito dependente deles."
+    },
+    {
+      "item": 10,
+      "fator": "Cognição Social",
+      "pergunta": "É incapaz de compreender o sentido da conversa de crianças mais velhas ou adultos."
+    },
+    {
+      "item": 11,
+      "fator": "Motivação Social",
+      "pergunta": "É autoconfiante."
+    },
+    {
+      "item": 12,
+      "fator": "Comunicação Social",
+      "pergunta": "É capaz de comunicar seus sentimentos a outras pessoas com gestos e palavras."
+    },
+    {
+      "item": 13,
+      "fator": "Comunicação Social",
+      "pergunta": "É devagar ou não consegue interagir com os colegas."
+    },
+    {
+      "item": 14,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Não tem boa coordenação nas atividades motoras."
+    },
+    {
+      "item": 15,
+      "fator": "Cognição Social",
+      "pergunta": "É capaz de entender o tom de voz e as expressões faciais das outras pessoas."
+    },
+    {
+      "item": 16,
+      "fator": "Comunicação Social",
+      "pergunta": "Evita o contato visual ou tem contato visual diferente."
+    },
+    {
+      "item": 17,
+      "fator": "Cognição Social",
+      "pergunta": "Reconhece quando algo é injusto."
+    },
+    {
+      "item": 18,
+      "fator": "Comunicação Social",
+      "pergunta": "Quando está no parquinho ou em um grupo com outras crianças pequenas, não tenta interagir com elas."
+    },
+    {
+      "item": 19,
+      "fator": "Comunicação Social",
+      "pergunta": "Fica frustrada quando não consegue expressar suas ideias em uma conversa."
+    },
+    {
+      "item": 20,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Tem um jeito estranho de brincar com brinquedos."
+    },
+    {
+      "item": 21,
+      "fator": "Comunicação Social",
+      "pergunta": "É capaz de imitar as ações de outras pessoas."
+    },
+    {
+      "item": 22,
+      "fator": "Comunicação Social",
+      "pergunta": "Brinca adequadamente com crianças da sua idade."
+    },
+    {
+      "item": 23,
+      "fator": "Motivação Social",
+      "pergunta": "Não participa de atividades em grupo a menos que seja convidada a fazê-lo."
+    },
+    {
+      "item": 24,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Tem mais dificuldade do que outras crianças com mudanças na sua rotina."
+    },
+    {
+      "item": 25,
+      "fator": "Percepção Social",
+      "pergunta": "Não parece se importar em estar fora de sintonia ou em um 'mundo' diferente dos outros."
+    },
+    {
+      "item": 26,
+      "fator": "Comunicação Social",
+      "pergunta": "Oferece conforto para os outros quando estão tristes."
+    },
+    {
+      "item": 27,
+      "fator": "Motivação Social",
+      "pergunta": "Evita iniciar interações sociais com seus colegas ou adultos."
+    },
+    {
+      "item": 28,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Pensa ou fala sobre a mesma coisa repetidamente."
+    },
+    {
+      "item": 29,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "É considerada como estranha ou esquisita por outras crianças."
+    },
+    {
+      "item": 30,
+      "fator": "Cognição Social",
+      "pergunta": "Fica perturbada em uma situação com muitas coisas acontecendo."
+    },
+    {
+      "item": 31,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Não consegue tirar algo da sua mente uma vez que começa a pensar sobre isso."
+    },
+    {
+      "item": 32,
+      "fator": "Percepção Social",
+      "pergunta": "Quer ser trocada quando a fralda ou cueca/calcinha está suja ou molhada."
+    },
+    {
+      "item": 33,
+      "fator": "Comunicação Social",
+      "pergunta": "É socialmente inadequada, mesmo quando tenta ser educada."
+    },
+    {
+      "item": 34,
+      "fator": "Motivação Social",
+      "pergunta": "Evita pessoas que querem se aproximar dela por meio de contato afetivo."
+    },
+    {
+      "item": 35,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem dificuldade em manter uma interação normal com outras crianças."
+    },
+    {
+      "item": 36,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem dificuldade em se relacionar com adultos."
+    },
+    {
+      "item": 37,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem dificuldade em se relacionar com seus colegas."
+    },
+    {
+      "item": 38,
+      "fator": "Comunicação Social",
+      "pergunta": "Responde adequadamente às mudanças de humor dos outros."
+    },
+    {
+      "item": 39,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Tem uma variedade de interesses extraordinariamente incomuns."
+    },
+    {
+      "item": 40,
+      "fator": "Cognição Social",
+      "pergunta": "É imaginativa, hábil em fantasiar (contudo sem perder contato com a realidade)."
+    },
+    {
+      "item": 41,
+      "fator": "Comunicação Social",
+      "pergunta": "Muda de uma atividade para outra sem objetivo aparente."
+    },
+    {
+      "item": 42,
+      "fator": "Cognição Social",
+      "pergunta": "Parece excessivamente sensível aos sons, texturas ou cheiros."
+    },
+    {
+      "item": 43,
+      "fator": "Motivação Social",
+      "pergunta": "Separa-se facilmente (ou frequentemente) dos cuidadores."
+    },
+    {
+      "item": 44,
+      "fator": "Cognição Social",
+      "pergunta": "Não entende como os eventos se encadeiam, se sucedem, da mesma forma que outras crianças da sua idade o fazem."
+    },
+    {
+      "item": 45,
+      "fator": "Percepção Social",
+      "pergunta": "Focaliza (ou dirige) sua atenção para onde os outros estão olhando ou ouvindo."
+    },
+    {
+      "item": 46,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem expressão facial excessivamente séria."
+    },
+    {
+      "item": 47,
+      "fator": "Comunicação Social",
+      "pergunta": "Comporta-se como tola ou ri de forma inadequada."
+    },
+    {
+      "item": 48,
+      "fator": "Cognição Social",
+      "pergunta": "Tem senso de humor e entende as piadas."
+    },
+    {
+      "item": 49,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "É extremamente hábil em algumas tarefas específicas, mas não é tão boa em outras tarefas."
+    },
+    {
+      "item": 50,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Tem comportamentos repetitivos, estranhos, tais como agitar as mãos ou balançar o corpo fora de contexto."
+    },
+    {
+      "item": 51,
+      "fator": "Comunicação Social",
+      "pergunta": "Responde a questões claras e diretas de maneira que não parecem fazer nenhum sentido."
+    },
+    {
+      "item": 52,
+      "fator": "Percepção Social",
+      "pergunta": "Sabe quando está falando muito alto ou fazendo muito barulho."
+    },
+    {
+      "item": 53,
+      "fator": "Comunicação Social",
+      "pergunta": "Fala com as pessoas com um tom de voz incomum."
+    },
+    {
+      "item": 54,
+      "fator": "Percepção Social",
+      "pergunta": "Parece agir com as pessoas como se elas fossem objetos."
+    },
+    {
+      "item": 55,
+      "fator": "Comunicação Social",
+      "pergunta": "Sabe quando está muito próxima ou invadindo o espaço de alguém."
+    },
+    {
+      "item": 56,
+      "fator": "Percepção Social",
+      "pergunta": "Caminha entre duas pessoas que estão conversando."
+    },
+    {
+      "item": 57,
+      "fator": "Comunicação Social",
+      "pergunta": "Outras crianças não gosta de brincar com ela."
+    },
+    {
+      "item": 58,
+      "fator": "Cognição Social",
+      "pergunta": "Concentra-se muito nos detalhes das coisas ao invés de ver o todo."
+    },
+    {
+      "item": 59,
+      "fator": "Cognição Social",
+      "pergunta": "É excessivamente desconfiada."
+    },
+    {
+      "item": 60,
+      "fator": "Comunicação Social",
+      "pergunta": "É emocionalmente distante, não demonstrando seus sentimentos."
+    },
+    {
+      "item": 61,
+      "fator": "Comunicação Social",
+      "pergunta": "É inflexível, leva muito tempo para mudar suas ideias."
+    },
+    {
+      "item": 62,
+      "fator": "Cognição Social",
+      "pergunta": "Dá explicações incomuns ou ilógicas do porquê de fazer as coisas."
+    },
+    {
+      "item": 63,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Toca os outros de maneira incomum."
+    },
+    {
+      "item": 64,
+      "fator": "Motivação Social",
+      "pergunta": "Fica muito agitada em situações sociais."
+    },
+    {
+      "item": 65,
+      "fator": "Motivação Social",
+      "pergunta": "Fica com olhar perdido ou olha fixamente para o nada."
+    }
+  ],
+  "idade_escolar": [
+    {
+      "item": 1,
+      "fator": "Motivação Social",
+      "pergunta": "Parece muito mais inquieta em situações sociais do que quando está sozinha."
+    },
+    {
+      "item": 2,
+      "fator": "Percepção Social",
+      "pergunta": "As expressões em seu rosto não combinam com o que está dizendo."
+    },
+    {
+      "item": 3,
+      "fator": "Motivação Social",
+      "pergunta": "Parece confiante (ou segura) quando está interagindo com outras pessoas."
+    },
+    {
+      "item": 4,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Quando há sobrecarga de estímulos, apresenta padrões rígidos e inflexíveis."
+    },
+    {
+      "item": 5,
+      "fator": "Cognição Social",
+      "pergunta": "Não percebe quando os outros estão tentando tirar vantagem dela."
+    },
+    {
+      "item": 6,
+      "fator": "Motivação Social",
+      "pergunta": "Prefere estar sozinha do que com os outros."
+    },
+    {
+      "item": 7,
+      "fator": "Percepção Social",
+      "pergunta": "Demonstra perceber o que os outros estão pensando ou sentindo."
+    },
+    {
+      "item": 8,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Se comporta de maneira estranha ou bizarra."
+    },
+    {
+      "item": 9,
+      "fator": "Motivação Social",
+      "pergunta": "Fica próxima a adultos, parece ser muito dependente deles."
+    },
+    {
+      "item": 10,
+      "fator": "Cognição Social",
+      "pergunta": "Leva as coisas muito 'ao pé da letra' e não compreende o real significado de uma conversa."
+    },
+    {
+      "item": 11,
+      "fator": "Motivação Social",
+      "pergunta": "É autoconfiante."
+    },
+    {
+      "item": 12,
+      "fator": "Comunicação Social",
+      "pergunta": "É capaz de comunicar seus sentimentos para as outras pessoas."
+    },
+    {
+      "item": 13,
+      "fator": "Comunicação Social",
+      "pergunta": "É estranha na 'tomada de vez' das interações com seus colegas."
+    },
+    {
+      "item": 14,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Não tem boa coordenação."
+    },
+    {
+      "item": 15,
+      "fator": "Cognição Social",
+      "pergunta": "É capaz de entender o tom de voz e as expressões faciais das outras pessoas."
+    },
+    {
+      "item": 16,
+      "fator": "Comunicação Social",
+      "pergunta": "Evita o contato visual ou tem contato visual diferente."
+    },
+    {
+      "item": 17,
+      "fator": "Cognição Social",
+      "pergunta": "Reconhece quando algo é injusto."
+    },
+    {
+      "item": 18,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem dificuldade em fazer amigos, mesmo tentando dar o melhor de si."
+    },
+    {
+      "item": 19,
+      "fator": "Comunicação Social",
+      "pergunta": "Fica frustrada quando não consegue expressar suas ideias em uma conversa."
+    },
+    {
+      "item": 20,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Mostra interesses sensoriais incomuns."
+    },
+    {
+      "item": 21,
+      "fator": "Comunicação Social",
+      "pergunta": "É capaz de imitar as ações de outras pessoas."
+    },
+    {
+      "item": 22,
+      "fator": "Comunicação Social",
+      "pergunta": "Brinca adequadamente com crianças da sua idade."
+    },
+    {
+      "item": 23,
+      "fator": "Motivação Social",
+      "pergunta": "Não participa de atividades em grupo a menos que seja convidada a fazê-lo."
+    },
+    {
+      "item": 24,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Tem mais dificuldade do que outras crianças com mudanças na sua rotina."
+    },
+    {
+      "item": 25,
+      "fator": "Percepção Social",
+      "pergunta": "Não parece se importar em estar fora de sintonia ou em um 'mundo' diferente dos outros."
+    },
+    {
+      "item": 26,
+      "fator": "Comunicação Social",
+      "pergunta": "Oferece conforto para os outros quando estão tristes."
+    },
+    {
+      "item": 27,
+      "fator": "Motivação Social",
+      "pergunta": "Evita iniciar interações sociais com seus colegas ou adultos."
+    },
+    {
+      "item": 28,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Pensa ou fala sobre a mesma coisa repetidamente."
+    },
+    {
+      "item": 29,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "É considerada como estranha ou esquisita por outras crianças."
+    },
+    {
+      "item": 30,
+      "fator": "Cognição Social",
+      "pergunta": "Fica perturbada em uma situação com muitas coisas acontecendo."
+    },
+    {
+      "item": 31,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Não consegue tirar algo da sua mente uma vez que começa a pensar sobre isso."
+    },
+    {
+      "item": 32,
+      "fator": "Percepção Social",
+      "pergunta": "Tem boa higiene pessoal."
+    },
+    {
+      "item": 33,
+      "fator": "Comunicação Social",
+      "pergunta": "É socialmente desajeitada, mesmo quando tenta ser educada."
+    },
+    {
+      "item": 34,
+      "fator": "Motivação Social",
+      "pergunta": "Evita pessoas que querem se aproximar dela por meio de contato afetivo."
+    },
+    {
+      "item": 35,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem dificuldade em acompanhar o fluxo de uma conversa normal."
+    },
+    {
+      "item": 36,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem dificuldade em se relacionar com adultos."
+    },
+    {
+      "item": 37,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem dificuldade em se relacionar com seus colegas."
+    },
+    {
+      "item": 38,
+      "fator": "Comunicação Social",
+      "pergunta": "Responde adequadamente às mudanças de humor dos outros."
+    },
+    {
+      "item": 39,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Tem uma variedade de interesses extraordinariamente incomuns."
+    },
+    {
+      "item": 40,
+      "fator": "Cognição Social",
+      "pergunta": "É imaginativa, hábil em fantasiar (contudo sem perder contato com a realidade)."
+    },
+    {
+      "item": 41,
+      "fator": "Comunicação Social",
+      "pergunta": "Muda de uma atividade para outra sem objetivo aparente."
+    },
+    {
+      "item": 42,
+      "fator": "Cognição Social",
+      "pergunta": "Parece excessivamente sensível aos sons, texturas ou cheiros."
+    },
+    {
+      "item": 43,
+      "fator": "Motivação Social",
+      "pergunta": "Separa-se facilmente (ou frequentemente) dos cuidadores."
+    },
+    {
+      "item": 44,
+      "fator": "Cognição Social",
+      "pergunta": "Não entende como os acontecimentos se encadeiam entre si (causa e efeito), da mesma forma que outros da sua idade o fazem."
+    },
+    {
+      "item": 45,
+      "fator": "Percepção Social",
+      "pergunta": "Focaliza (ou dirige) sua atenção para onde os outros estão olhando ou ouvindo."
+    },
+    {
+      "item": 46,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem expressão facial excessivamente séria."
+    },
+    {
+      "item": 47,
+      "fator": "Comunicação Social",
+      "pergunta": "Comporta-se como tola ou ri de forma inadequada."
+    },
+    {
+      "item": 48,
+      "fator": "Cognição Social",
+      "pergunta": "Tem senso de humor e entende as piadas."
+    },
+    {
+      "item": 49,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "É extremamente hábil em algumas tarefas específicas, mas não consegue fazer tão bem a maioria das outras tarefas."
+    },
+    {
+      "item": 50,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Tem comportamentos repetitivos, estranhos, tais como agitar as mãos ou balançar o corpo fora de contexto."
+    },
+    {
+      "item": 51,
+      "fator": "Comunicação Social",
+      "pergunta": "Tem dificuldade em responder perguntas diretamente e acaba falando em torno do assunto."
+    },
+    {
+      "item": 52,
+      "fator": "Percepção Social",
+      "pergunta": "Sabe quando está falando muito alto ou fazendo muito barulho."
+    },
+    {
+      "item": 53,
+      "fator": "Comunicação Social",
+      "pergunta": "Fala com as pessoas com um tom de voz incomum."
+    },
+    {
+      "item": 54,
+      "fator": "Percepção Social",
+      "pergunta": "Parece agir com as pessoas como se elas fossem objetos."
+    },
+    {
+      "item": 55,
+      "fator": "Comunicação Social",
+      "pergunta": "Sabe quando está muito próxima ou invadindo o espaço de alguém."
+    },
+    {
+      "item": 56,
+      "fator": "Percepção Social",
+      "pergunta": "Caminha entre duas pessoas que estão conversando."
+    },
+    {
+      "item": 57,
+      "fator": "Comunicação Social",
+      "pergunta": "Sofre provocações de colegas."
+    },
+    {
+      "item": 58,
+      "fator": "Cognição Social",
+      "pergunta": "Concentra-se muito nos detalhes das coisas ao invés de ver o todo."
+    },
+    {
+      "item": 59,
+      "fator": "Cognição Social",
+      "pergunta": "É excessivamente desconfiada."
+    },
+    {
+      "item": 60,
+      "fator": "Comunicação Social",
+      "pergunta": "É emocionalmente distante, não demonstrando seus sentimentos."
+    },
+    {
+      "item": 61,
+      "fator": "Comunicação Social",
+      "pergunta": "É inflexível e tem dificuldade para mudar de ideia."
+    },
+    {
+      "item": 62,
+      "fator": "Cognição Social",
+      "pergunta": "Dá explicações incomuns ou ilógicas do porquê de fazer as coisas."
+    },
+    {
+      "item": 63,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Toca os outros de maneira incomum."
+    },
+    {
+      "item": 64,
+      "fator": "Motivação Social",
+      "pergunta": "Fica muito agitada em situações sociais."
+    },
+    {
+      "item": 65,
+      "fator": "Motivação Social",
+      "pergunta": "Fica com olhar perdido ou olha fixamente para o nada."
+    }
+  ],
+  "adulto_autorrelato": [
+    {
+      "item": 1,
+      "fator": "Motivação Social",
+      "pergunta": "Eu fico muito mais desconfortável em situações sociais do que quando estou sozinho."
+    },
+    {
+      "item": 2,
+      "fator": "Percepção Social",
+      "pergunta": "Minhas expressões passam uma mensagem errada aos outros sobre como eu realmente me sinto."
+    },
+    {
+      "item": 3,
+      "fator": "Motivação Social",
+      "pergunta": "Eu me sinto confiante (ou seguro) quando estou interagindo com os outros."
+    },
+    {
+      "item": 4,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Quando estou sob estresse, tenho um comportamento rígido e inflexível."
+    },
+    {
+      "item": 5,
+      "fator": "Cognição Social",
+      "pergunta": "Eu não reconheço quando os outros estão tentando tirar vantagem sobre mim."
+    },
+    {
+      "item": 6,
+      "fator": "Motivação Social",
+      "pergunta": "Prefiro estar sozinho do que com os outros."
+    },
+    {
+      "item": 7,
+      "fator": "Percepção Social",
+      "pergunta": "Normalmente eu consigo perceber como os outros estão se sentindo."
+    },
+    {
+      "item": 8,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu me movo de maneiras que parecem estranhas ou esquisitas aos outros."
+    },
+    {
+      "item": 9,
+      "fator": "Motivação Social",
+      "pergunta": "Eu sou excessivamente dependente dos outros para me ajudar a entender as minhas necessidades diárias."
+    },
+    {
+      "item": 10,
+      "fator": "Cognição Social",
+      "pergunta": "Eu levo as coisas muito 'ao pé da letra', e por causa disso, interpreto mal o significado pretendido."
+    },
+    {
+      "item": 11,
+      "fator": "Motivação Social",
+      "pergunta": "Eu sou autoconfiante."
+    },
+    {
+      "item": 12,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu sou capaz de comunicar meus sentimentos aos outros."
+    },
+    {
+      "item": 13,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu fico estranho nas interações com os colegas."
+    },
+    {
+      "item": 14,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu não sou bem coordenado."
+    },
+    {
+      "item": 15,
+      "fator": "Cognição Social",
+      "pergunta": "Quando as pessoas mudam seu tom ou expressão facial, eu normalmente entendo o que isso significa."
+    },
+    {
+      "item": 16,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu evito contato visual ou me dizem que tenho contato visual diferente."
+    },
+    {
+      "item": 17,
+      "fator": "Cognição Social",
+      "pergunta": "Eu reconheço quando algo é injusto."
+    },
+    {
+      "item": 18,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldades em fazer amigos, mesmo quando tento dar o melhor de mim."
+    },
+    {
+      "item": 19,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu fico frustrado tentando expressar minhas ideias em uma conversa."
+    },
+    {
+      "item": 20,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu tenho interesses sensoriais que os outros acham diferentes."
+    },
+    {
+      "item": 21,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu sou capaz de imitar as ações e expressões dos outros."
+    },
+    {
+      "item": 22,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu interajo apropriadamente com os outros adultos."
+    },
+    {
+      "item": 23,
+      "fator": "Motivação Social",
+      "pergunta": "Eu não participo de atividades em grupo ou eventos sociais a menos que seja obligado a fazê-lo."
+    },
+    {
+      "item": 24,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu tenho mais dificuldade que os outros com mudanças na minha rotina."
+    },
+    {
+      "item": 25,
+      "fator": "Percepção Social",
+      "pergunta": "Eu não me importo em estar 'na mesma onda' ou fora de sintonia com os outros."
+    },
+    {
+      "item": 26,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu ofereço conforto aos outros quando estão tristes."
+    },
+    {
+      "item": 27,
+      "fator": "Motivação Social",
+      "pergunta": "Eu evito iniciar interações sociais com outros adultos."
+    },
+    {
+      "item": 28,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu penso ou falo sobre a mesma coisa repetidamente."
+    },
+    {
+      "item": 29,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu sou considerado pelos outros como estranho ou esquisito."
+    },
+    {
+      "item": 30,
+      "fator": "Cognição Social",
+      "pergunta": "Eu fico perturbado em uma situação com muitas coisas acontecendo."
+    },
+    {
+      "item": 31,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu não consigo tirar algo de minha mente uma vez que começo a pensar sobre isso."
+    },
+    {
+      "item": 32,
+      "fator": "Percepção Social",
+      "pergunta": "Eu tenho boa higiene pessoal."
+    },
+    {
+      "item": 33,
+      "fator": "Comunicação Social",
+      "pergunta": "Meu comportamento é socialmente desajeitado, mesmo quando tento ser educado."
+    },
+    {
+      "item": 34,
+      "fator": "Motivação Social",
+      "pergunta": "Eu evito pessoas que querem ser emocionalmente próximas de mim."
+    },
+    {
+      "item": 35,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldade em acompanhar o fluxo de uma conversa normal."
+    },
+    {
+      "item": 36,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldade em me relacionar com os membros de minha família."
+    },
+    {
+      "item": 37,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldade em me relacionar com pessoas que não são da minha família."
+    },
+    {
+      "item": 38,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu respondo adequadamente às mudanças de humor das outras pessoas."
+    },
+    {
+      "item": 39,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu tenho uma variedade de interesses extraordinariamente incomuns."
+    },
+    {
+      "item": 40,
+      "fator": "Cognição Social",
+      "pergunta": "Eu sou imaginativo."
+    },
+    {
+      "item": 41,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu às vezes mudo de uma atividade para outra sem nenhuma razão."
+    },
+    {
+      "item": 42,
+      "fator": "Cognição Social",
+      "pergunta": "Eu sou excessivamente sensível a certos sons, texturas ou cheiros."
+    },
+    {
+      "item": 43,
+      "fator": "Motivação Social",
+      "pergunta": "Eu gosto de conversas (conversas casuais com os outros)."
+    },
+    {
+      "item": 44,
+      "fator": "Cognição Social",
+      "pergunta": "Eu tenho mais problemas do que a maioria das pessoas com o entendimento da causalidade."
+    },
+    {
+      "item": 45,
+      "fator": "Percepção Social",
+      "pergunta": "Quando os outros ao redor de mim estão prestando atenção em algo, eu fico interessado no que eles estão atentos."
+    },
+    {
+      "item": 46,
+      "fator": "Comunicação Social",
+      "pergunta": "Os outros sentem que eu tenho expressões faciais excessivamente sérias."
+    },
+    {
+      "item": 47,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu dou risadas em momentos inapropriados."
+    },
+    {
+      "item": 48,
+      "fator": "Cognição Social",
+      "pergunta": "Eu tenho um bom senso de humor e consigo entender as piadas."
+    },
+    {
+      "item": 49,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Sou extremamente bom em certos tipos de tarefas intelectuais, mas não sou tão bom na maioria das outras tarefas."
+    },
+    {
+      "item": 50,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu tenho comportamentos repetitivos que as outras pessoas consideram estranhos."
+    },
+    {
+      "item": 51,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldades de responder perguntas diretamente e acabo discursando sobre o assunto."
+    },
+    {
+      "item": 52,
+      "fator": "Percepção Social",
+      "pergunta": "Eu falo muito alto sem perceber."
+    },
+    {
+      "item": 53,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho tendência a falar com uma voz monótona."
+    },
+    {
+      "item": 54,
+      "fator": "Percepção Social",
+      "pergunta": "Eu tenho uma tendência a pensar sobre as pessoas do mesmo jeito que eu faço com os objetos."
+    },
+    {
+      "item": 55,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu fico muito perto dos outros ou invado o espaço pessoal deles sem perceber."
+    },
+    {
+      "item": 56,
+      "fator": "Percepção Social",
+      "pergunta": "Às vezes eu cometo o erro de andar entre duas pessoas que estão tentando conversar uma com a outra."
+    },
+    {
+      "item": 57,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho uma tendência a me isolar."
+    },
+    {
+      "item": 58,
+      "fator": "Cognição Social",
+      "pergunta": "Eu me concentro demais nas partes das coisas ao invés de ver a figura como um todo."
+    },
+    {
+      "item": 59,
+      "fator": "Cognição Social",
+      "pergunta": "Eu sou mais desconfiado que a maioria das pessoas."
+    },
+    {
+      "item": 60,
+      "fator": "Comunicação Social",
+      "pergunta": "As outras pessoas me acham emocionalmente distante e que não demonstro meus sentimentos."
+    },
+    {
+      "item": 61,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho uma tendência a ser inflexível."
+    },
+    {
+      "item": 62,
+      "fator": "Cognição Social",
+      "pergunta": "Quando eu conto a alguém a minha razão para fazer alguma coisa, a pessoa acha que é incomum, sem lógica."
+    },
+    {
+      "item": 63,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Meu jeito de cumprimentar uma outra pessoa é incomum."
+    },
+    {
+      "item": 64,
+      "fator": "Motivação Social",
+      "pergunta": "Eu sou muito mais tenso em situações sociais do que quando estou sozinho."
+    },
+    {
+      "item": 65,
+      "fator": "Motivação Social",
+      "pergunta": "Eu me pego olhando fixo para o espaço."
+    }
+  ],
+  "adulto_heterorrelato": [
+    {
+      "item": 1,
+      "fator": "Motivação Social",
+      "pergunta": "Eu fico muito mais desconfortável em situações sociais do que quando estou sozinho."
+    },
+    {
+      "item": 2,
+      "fator": "Percepção Social",
+      "pergunta": "Minhas expressões passam uma mensagem errada aos outros sobre como eu realmente me sinto."
+    },
+    {
+      "item": 3,
+      "fator": "Motivação Social",
+      "pergunta": "Eu me sinto confiante (ou seguro) quando estou interagindo com os outros."
+    },
+    {
+      "item": 4,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Quando estou sob estresse, tenho um comportamento rígido e inflexível."
+    },
+    {
+      "item": 5,
+      "fator": "Cognição Social",
+      "pergunta": "Eu não reconheço quando os outros estão tentando tirar vantagem sobre mim."
+    },
+    {
+      "item": 6,
+      "fator": "Motivação Social",
+      "pergunta": "Prefiro estar sozinho do que com os outros."
+    },
+    {
+      "item": 7,
+      "fator": "Percepção Social",
+      "pergunta": "Normalmente eu consigo perceber como os outros estão se sentindo."
+    },
+    {
+      "item": 8,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu me movo de maneiras que parecem estranhas ou esquisitas aos outros."
+    },
+    {
+      "item": 9,
+      "fator": "Motivação Social",
+      "pergunta": "Eu sou excessivamente dependente dos outros para me ajudar a entender as minhas necessidades diárias."
+    },
+    {
+      "item": 10,
+      "fator": "Cognição Social",
+      "pergunta": "Eu levo as coisas muito 'ao pé da letra', e por causa disso, interpreto mal o significado pretendido."
+    },
+    {
+      "item": 11,
+      "fator": "Motivação Social",
+      "pergunta": "Eu sou autoconfiante."
+    },
+    {
+      "item": 12,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu sou capaz de comunicar meus sentimentos aos outros."
+    },
+    {
+      "item": 13,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu fico estranho nas interações com os colegas."
+    },
+    {
+      "item": 14,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu não sou bem coordenado."
+    },
+    {
+      "item": 15,
+      "fator": "Cognição Social",
+      "pergunta": "Quando as pessoas mudam seu tom ou expressão facial, eu normalmente entendo o que isso significa."
+    },
+    {
+      "item": 16,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu evito contato visual ou me dizem que tenho contato visual diferente."
+    },
+    {
+      "item": 17,
+      "fator": "Cognição Social",
+      "pergunta": "Eu reconheço quando algo é injusto."
+    },
+    {
+      "item": 18,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldades em fazer amigos, mesmo quando tento dar o melhor de mim."
+    },
+    {
+      "item": 19,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu fico frustrado tentando expressar minhas ideias em uma conversa."
+    },
+    {
+      "item": 20,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu tenho interesses sensoriais que os outros acham diferentes."
+    },
+    {
+      "item": 21,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu sou capaz de imitar as ações e expressões dos outros."
+    },
+    {
+      "item": 22,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu interajo apropriadamente com os outros adultos."
+    },
+    {
+      "item": 23,
+      "fator": "Motivação Social",
+      "pergunta": "Eu não participo de atividades em grupo ou eventos sociais a menos que seja obligado a fazê-lo."
+    },
+    {
+      "item": 24,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu tenho mais dificuldade que os outros com mudanças na minha rotina."
+    },
+    {
+      "item": 25,
+      "fator": "Percepção Social",
+      "pergunta": "Eu não me importo em estar 'na mesma onda' ou fora de sintonia com os outros."
+    },
+    {
+      "item": 26,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu ofereço conforto aos outros quando estão tristes."
+    },
+    {
+      "item": 27,
+      "fator": "Motivação Social",
+      "pergunta": "Eu evito iniciar interações sociais com outros adultos."
+    },
+    {
+      "item": 28,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu penso ou falo sobre a mesma coisa repetidamente."
+    },
+    {
+      "item": 29,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu sou considerado pelos outros como estranho ou esquisito."
+    },
+    {
+      "item": 30,
+      "fator": "Cognição Social",
+      "pergunta": "Eu fico perturbado em uma situação com muitas coisas acontecendo."
+    },
+    {
+      "item": 31,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu não consigo tirar algo de minha mente uma vez que começo a pensar sobre isso."
+    },
+    {
+      "item": 32,
+      "fator": "Percepção Social",
+      "pergunta": "Eu tenho boa higiene pessoal."
+    },
+    {
+      "item": 33,
+      "fator": "Comunicação Social",
+      "pergunta": "Meu comportamento é socialmente desajeitado, mesmo quando tento ser educado."
+    },
+    {
+      "item": 34,
+      "fator": "Motivação Social",
+      "pergunta": "Eu evito pessoas que querem ser emocionalmente próximas de mim."
+    },
+    {
+      "item": 35,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldade em acompanhar o fluxo de uma conversa normal."
+    },
+    {
+      "item": 36,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldade em me relacionar com os membros de minha família."
+    },
+    {
+      "item": 37,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldade em me relacionar com pessoas que não são da minha família."
+    },
+    {
+      "item": 38,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu respondo adequadamente às mudanças de humor das outras pessoas."
+    },
+    {
+      "item": 39,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu tenho uma variedade de interesses extraordinariamente incomuns."
+    },
+    {
+      "item": 40,
+      "fator": "Cognição Social",
+      "pergunta": "Eu sou imaginativo."
+    },
+    {
+      "item": 41,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu às vezes mudo de uma atividade para outra sem nenhuma razão."
+    },
+    {
+      "item": 42,
+      "fator": "Cognição Social",
+      "pergunta": "Eu sou excessivamente sensível a certos sons, texturas ou cheiros."
+    },
+    {
+      "item": 43,
+      "fator": "Motivação Social",
+      "pergunta": "Eu gosto de conversas (conversas casuais com os outros)."
+    },
+    {
+      "item": 44,
+      "fator": "Cognição Social",
+      "pergunta": "Eu tenho mais problemas do que a maioria das pessoas com o entendimento da causalidade."
+    },
+    {
+      "item": 45,
+      "fator": "Percepção Social",
+      "pergunta": "Quando os outros ao redor de mim estão prestando atenção em algo, eu fico interessado no que eles estão atentos."
+    },
+    {
+      "item": 46,
+      "fator": "Comunicação Social",
+      "pergunta": "Os outros sentem que eu tenho expressões faciais excessivamente sérias."
+    },
+    {
+      "item": 47,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu dou risadas em momentos inapropriados."
+    },
+    {
+      "item": 48,
+      "fator": "Cognição Social",
+      "pergunta": "Eu tenho um bom senso de humor e consigo entender as piadas."
+    },
+    {
+      "item": 49,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Sou extremamente bom em certos tipos de tarefas intelectuais, mas não sou tão bom na maioria das outras tarefas."
+    },
+    {
+      "item": 50,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Eu tenho comportamentos repetitivos que as outras pessoas consideram estranhos."
+    },
+    {
+      "item": 51,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho dificuldades de responder perguntas diretamente e acabo discursando sobre o assunto."
+    },
+    {
+      "item": 52,
+      "fator": "Percepção Social",
+      "pergunta": "Eu falo muito alto sem perceber."
+    },
+    {
+      "item": 53,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho tendência a falar com uma voz monótona."
+    },
+    {
+      "item": 54,
+      "fator": "Percepção Social",
+      "pergunta": "Eu tenho uma tendência a pensar sobre as pessoas do mesmo jeito que eu faço com os objetos."
+    },
+    {
+      "item": 55,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu fico muito perto dos outros ou invado o espaço pessoal deles sem perceber."
+    },
+    {
+      "item": 56,
+      "fator": "Percepção Social",
+      "pergunta": "Às vezes eu cometo o erro de andar entre duas pessoas que estão tentando conversar uma com a outra."
+    },
+    {
+      "item": 57,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho uma tendência a me isolar."
+    },
+    {
+      "item": 58,
+      "fator": "Cognição Social",
+      "pergunta": "Eu me concentro demais nas partes das coisas ao invés de ver a figura como um todo."
+    },
+    {
+      "item": 59,
+      "fator": "Cognição Social",
+      "pergunta": "Eu sou mais desconfiado que a maioria das pessoas."
+    },
+    {
+      "item": 60,
+      "fator": "Comunicação Social",
+      "pergunta": "As outras pessoas me acham emocionalmente distante e que não demonstro meus sentimentos."
+    },
+    {
+      "item": 61,
+      "fator": "Comunicação Social",
+      "pergunta": "Eu tenho uma tendência a ser inflexível."
+    },
+    {
+      "item": 62,
+      "fator": "Cognição Social",
+      "pergunta": "Quando eu conto a alguém a minha razão para fazer alguma coisa, a pessoa acha que é incomum, sem lógica."
+    },
+    {
+      "item": 63,
+      "fator": "Padrões Restritos e Repetitivos",
+      "pergunta": "Meu jeito de cumprimentar uma outra pessoa é incomum."
+    },
+    {
+      "item": 64,
+      "fator": "Motivação Social",
+      "pergunta": "Eu sou muito mais tenso em situações sociais do que quando estou sozinho."
+    },
+    {
+      "item": 65,
+      "fator": "Motivação Social",
+      "pergunta": "Eu me pego olhando fixo para o espaço."
+    }
+  ]
+}

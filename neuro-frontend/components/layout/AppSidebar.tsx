@@ -54,42 +54,36 @@ export function AppSidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-200 bg-white transition-all duration-300 ${
+      className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-200 bg-white sidebar-transition ${
         collapsed ? "w-[72px]" : "w-[260px]"
       }`}
     >
       {/* Logo Area */}
-      <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
+      <div className="flex h-16 items-center justify-between px-4">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
-            <Brain className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Brain className="h-6 w-6" />
           </div>
           {!collapsed && (
-            <span className="text-lg font-semibold text-slate-900">NeuroAvalia</span>
+            <span className="text-xl font-bold tracking-tight text-slate-900">Neuro<span className="text-primary font-extrabold">Avalia</span></span>
           )}
         </Link>
-        <button
-          onClick={onToggle}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-        >
-          <ChevronRight className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
-        </button>
       </div>
 
       {/* New Evaluation Button */}
-      <div className="border-b border-slate-200 p-3">
+      <div className="p-4">
         <Link
           href="/dashboard/evaluations/new"
-          className={`flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 ${collapsed ? "px-2" : ""}`}
+          className={`flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-spike transition-all hover:opacity-90 active:scale-95 ${collapsed ? "px-0 h-10 w-10 mx-auto" : ""}`}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5 shrink-0" />
           {!collapsed && <span>Nova avaliação</span>}
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3">
-        <ul className="space-y-1 px-2">
+      <nav className="flex-1 overflow-y-auto px-3 custom-scrollbar">
+        <ul className="space-y-1.5">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || 
@@ -99,23 +93,32 @@ export function AppSidebar({
               <li key={item.key}>
                 <Link
                   href={item.href}
-                  className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  } ${collapsed ? "justify-center px-2" : ""}`}
-                  title={collapsed ? item.label : undefined}
+                      ? "bg-primary/5 text-primary"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  } ${collapsed ? "justify-center px-0 h-11 w-11 mx-auto" : ""}`}
                 >
-                  <Icon className={`h-5 w-5 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} />
+                  <div className={`flex shrink-0 items-center justify-center rounded-lg transition-colors ${
+                    isActive 
+                      ? "h-8 w-8 bg-primary text-primary-foreground shadow-sm" 
+                      : "h-8 w-8 text-slate-400 group-hover:text-slate-600"
+                  }`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  
                   {!collapsed && (
-                    <>
-                      <span className="flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-100 px-1.5 text-xs font-medium text-indigo-700">
-                          {item.badge}
-                        </span>
-                      )}
-                    </>
+                    <span className="flex-1 truncate">{item.label}</span>
+                  )}
+                  
+                  {!collapsed && item.badge && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
+                      {item.badge}
+                    </span>
+                  )}
+
+                  {collapsed && isActive && (
+                    <div className="absolute left-0 h-6 w-1 rounded-r-full bg-primary" />
                   )}
                 </Link>
               </li>
@@ -124,20 +127,20 @@ export function AppSidebar({
         </ul>
       </nav>
 
-      {/* User Section */}
-      <div className="border-t border-slate-200 p-3">
-        <div className={`flex items-center gap-3 rounded-lg p-2 ${collapsed ? "justify-center" : ""}`}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
+      {/* User Area */}
+      <div className="mt-auto border-t border-slate-100 p-4">
+        <div className={`flex items-center gap-3 rounded-xl bg-slate-50 p-2 border border-slate-100 ${collapsed ? "justify-center p-1" : ""}`}>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-primary text-xs font-bold shadow-sm">
             DR
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-slate-900">Dr. André</p>
-              <p className="truncate text-xs text-slate-500">Neuropsicólogo</p>
+              <p className="truncate text-sm font-bold text-slate-900">Dr. André</p>
+              <p className="truncate text-[11px] font-medium text-slate-500 uppercase tracking-wider">Neuropsicólogo</p>
             </div>
           )}
           {!collapsed && (
-            <button className="text-slate-400 hover:text-slate-600">
+            <button className="text-slate-400 hover:text-primary transition-colors">
               <LogOut className="h-4 w-4" />
             </button>
           )}

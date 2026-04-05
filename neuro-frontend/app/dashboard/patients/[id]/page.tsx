@@ -4,9 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
-import { PageContainer, SectionCard, SummaryCard, InfoCard } from "@/components/ui/page";
+import { PageContainer, PageHeader, SectionCard, InfoCard, EmptyState } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar,
@@ -22,6 +21,9 @@ import {
   FlaskConical,
   ClipboardList,
   Stethoscope,
+  Sparkles,
+  ArrowLeft,
+  School
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -95,8 +97,9 @@ export default function PatientDetailPage() {
   if (loading) {
     return (
       <PageContainer>
-        <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-primary"></div>
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest animate-pulse">Carregando Prontuário...</p>
         </div>
       </PageContainer>
     );
@@ -105,140 +108,174 @@ export default function PatientDetailPage() {
   if (!patient) {
     return (
       <PageContainer>
-        <div className="text-center py-20">
-          <p className="text-slate-500">Paciente não encontrado</p>
-          <Link href="/dashboard/patients">
-            <Button className="mt-4">Voltar para lista</Button>
-          </Link>
-        </div>
+        <EmptyState 
+          title="Paciente não encontrado" 
+          description="O prontuário solicitado não existe ou foi removido."
+          icon={<User className="h-12 w-12 text-slate-200" />}
+          action={
+            <Link href="/dashboard/patients">
+              <Button variant="outline" className="gap-2 font-bold">
+                <ArrowLeft className="h-4 w-4" />
+                Voltar para Lista
+              </Button>
+            </Link>
+          }
+        />
       </PageContainer>
     );
   }
 
   return (
     <PageContainer>
-      {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-600 text-xl font-semibold text-white">
-            {patient.full_name?.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">{patient.full_name}</h1>
-            <p className="text-sm text-slate-500">Paciente #{patient.id} • {age}</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2 border-slate-200">
-            <Edit className="h-4 w-4" />
-            Editar
-          </Button>
-          <Link href={`/dashboard/evaluations/new?patient=${patient.id}`}>
-            <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="h-4 w-4" />
-              Nova Avaliação
-            </Button>
+      <PageHeader
+        title={patient.full_name}
+        breadcrumbs={
+          <Link href="/dashboard/patients" className="inline-flex items-center text-xs font-bold text-primary uppercase tracking-widest hover:underline gap-1">
+            <ArrowLeft className="h-3 w-3" />
+            Base de Pacientes
           </Link>
-        </div>
-      </div>
+        }
+        subtitle={`ID #${String(patient.id).padStart(4, '0')} • ${age} • Prontuário Ativo`}
+        actions={
+          <div className="flex gap-3">
+            <Button variant="outline" className="gap-2 border-slate-100 font-bold hover:bg-slate-50 transition-all">
+              <Edit className="h-4 w-4 text-slate-400" />
+              Editar Prontuário
+            </Button>
+            <Link href={`/dashboard/evaluations/new?patient=${patient.id}`}>
+              <Button className="gap-2 shadow-spike font-bold">
+                <Plus className="h-4 w-4" />
+                Nova Avaliação
+              </Button>
+            </Link>
+          </div>
+        }
+      />
 
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column - Tabs */}
-        <div className="lg:col-span-2">
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Left Column - Detailed Tabs */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="flex h-[350px] w-full items-center justify-center rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-white border border-primary/10 overflow-hidden relative group">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(0,128,128,0.05),transparent)] pointer-events-none" />
+            <div className="flex flex-col items-center gap-4 text-center z-10">
+              <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white border border-primary/20 text-primary text-4xl font-black shadow-xl group-hover:scale-105 transition-transform duration-500">
+                {patient.full_name?.charAt(0).toUpperCase()}
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-2xl font-black text-slate-900">{patient.full_name}</h2>
+                <div className="flex items-center justify-center gap-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black tracking-[0.1em] uppercase border ${
+                    patient.sex === "M" ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-pink-50 text-pink-600 border-pink-100"
+                  }`}>
+                    {patient.sex === "M" ? "Masculino" : "Feminino"}
+                  </span>
+                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{formatDate(patient.birth_date)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <Tabs defaultValue="dados" className="w-full">
-            <TabsList className="mb-4 grid w-full grid-cols-4 bg-slate-100 p-1">
-              <TabsTrigger value="dados" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Dados</TabsTrigger>
-              <TabsTrigger value="avaliacoes" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Avaliações</TabsTrigger>
-              <TabsTrigger value="testes" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Testes</TabsTrigger>
-              <TabsTrigger value="laudos" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">Laudos</TabsTrigger>
+            <TabsList className="mb-0 grid w-full grid-cols-4 bg-slate-100/50 p-1 rounded-t-xl border-x border-t border-slate-100">
+              <TabsTrigger value="dados" className="rounded-lg font-bold text-xs uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-3">Dados Cadastrais</TabsTrigger>
+              <TabsTrigger value="avaliacoes" className="rounded-lg font-bold text-xs uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-3">Avaliações</TabsTrigger>
+              <TabsTrigger value="testes" className="rounded-lg font-bold text-xs uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-3">Testes</TabsTrigger>
+              <TabsTrigger value="laudos" className="rounded-lg font-bold text-xs uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-3">Laudos</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="dados">
-              <SectionCard title="Informações Pessoais" className="mb-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <InfoCard label="Sexo" value={patient.sex === "M" ? "Masculino" : patient.sex === "F" ? "Feminino" : "—"} icon={<User className="h-4 w-4" />} />
-                  <InfoCard label="Data de Nascimento" value={formatDate(patient.birth_date)} icon={<Calendar className="h-4 w-4" />} />
-                  <InfoCard label="Cidade" value={patient.city || "—"} icon={<MapPin className="h-4 w-4" />} />
-                  <InfoCard label="Estado" value={patient.state || "—"} icon={<MapPin className="h-4 w-4" />} />
+            <div className="bg-white border border-slate-100 rounded-b-xl p-8">
+              <TabsContent value="dados" className="mt-0 space-y-8 animate-in fade-in duration-500">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Informações de Contato</h4>
+                    <InfoCard label="Celular/WhatsApp" value={patient.phone || "Não informado"} icon={Phone} />
+                    <InfoCard label="E-mail" value={patient.email || "Não informado"} icon={Mail} />
+                    <InfoCard label="Cidade Atual" value={patient.city || "Não informado"} icon={MapPin} />
+                  </div>
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Núcleo Familiar</h4>
+                    <InfoCard label="Mãe" value={patient.mother_name || "Não informado"} icon={User} />
+                    <InfoCard label="Pai" value={patient.father_name || "Não informado"} icon={User} />
+                    <InfoCard label="Responsável Legal" value={patient.responsible_name || "Mesmo acima"} icon={User} />
+                  </div>
                 </div>
-              </SectionCard>
+              </TabsContent>
 
-              <SectionCard title="Contato" className="mb-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <InfoCard label="Telefone" value={patient.phone || "—"} icon={<Phone className="h-4 w-4" />} />
-                  <InfoCard label="Email" value={patient.email || "—"} icon={<Mail className="h-4 w-4" />} />
-                </div>
-              </SectionCard>
+              <TabsContent value="avaliacoes" className="mt-0 animate-in fade-in duration-500">
+                <EmptyState
+                  title="Nenhuma avaliação registrada"
+                  description="Ainda não foram iniciados processos clínicos para este paciente."
+                  icon={<ClipboardList className="h-10 w-10 text-slate-200" />}
+                  action={
+                    <Link href={`/dashboard/evaluations/new?patient=${patient.id}`}>
+                      <Button className="font-bold shadow-sm">Iniciar Primeira Avaliação</Button>
+                    </Link>
+                  }
+                />
+              </TabsContent>
 
-              <SectionCard title="Responsáveis">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <InfoCard label="Nome da Mãe" value={patient.mother_name || "—"} icon={<User className="h-4 w-4" />} />
-                  <InfoCard label="Nome do Pai" value={patient.father_name || "—"} icon={<User className="h-4 w-4" />} />
-                  <InfoCard label="Responsável" value={patient.responsible_name || "—"} icon={<User className="h-4 w-4" />} />
-                  <InfoCard label="Telefone do Responsável" value={patient.responsible_phone || "—"} icon={<Phone className="h-4 w-4" />} />
-                </div>
-              </SectionCard>
-            </TabsContent>
+              <TabsContent value="testes" className="mt-0 animate-in fade-in duration-500">
+                <EmptyState
+                  title="Histórico de testes vazio"
+                  description="Os testes aparecerão aqui após a aplicação em uma avaliação."
+                  icon={<FlaskConical className="h-10 w-10 text-slate-200" />}
+                />
+              </TabsContent>
 
-            <TabsContent value="avaliacoes">
-              <SectionCard title="Histórico de Avaliações">
-                <div className="text-center py-12 text-slate-500">
-                  <ClipboardList className="mx-auto h-10 w-10 mb-3 text-slate-300" />
-                  <p className="mb-4">Nenhuma avaliação encontrada</p>
-                  <Link href={`/dashboard/evaluations/new?patient=${patient.id}`}>
-                    <Button className="bg-indigo-600 hover:bg-indigo-700">Criar primeira avaliação</Button>
-                  </Link>
-                </div>
-              </SectionCard>
-            </TabsContent>
-
-            <TabsContent value="testes">
-              <SectionCard title="Testes Aplicados">
-                <div className="text-center py-12 text-slate-500">
-                  <FlaskConical className="mx-auto h-10 w-10 mb-3 text-slate-300" />
-                  <p>Nenhum teste aplicado</p>
-                </div>
-              </SectionCard>
-            </TabsContent>
-
-            <TabsContent value="laudos">
-              <SectionCard title="Laudos">
-                <div className="text-center py-12 text-slate-500">
-                  <FileText className="mx-auto h-10 w-10 mb-3 text-slate-300" />
-                  <p>Nenhum laudo encontrado</p>
-                </div>
-              </SectionCard>
-            </TabsContent>
+              <TabsContent value="laudos" className="mt-0 animate-in fade-in duration-500">
+                <EmptyState
+                  title="Nenhum laudo emitido"
+                  description="Os laudos finalizados serão listados aqui para download."
+                  icon={<FileText className="h-10 w-10 text-slate-200" />}
+                />
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
 
-        {/* Right Column - Summary */}
-        <div className="space-y-4">
-          <SectionCard title="Informações Clínicas">
-            <div className="space-y-3">
-              <InfoCard label="Escolaridade" value={patient.schooling || "—"} icon={<GraduationCap className="h-4 w-4" />} />
-              <InfoCard label="Escola" value={patient.school_name || "—"} icon={<GraduationCap className="h-4 w-4" />} />
-              <InfoCard label="Série/Ano" value={patient.grade_year || "—"} icon={<GraduationCap className="h-4 w-4" />} />
+        {/* Right Column - Clinical Summary */}
+        <div className="space-y-8">
+          <SectionCard title="Contexto Clínico" description="Informações acadêmicas e triagem.">
+            <div className="space-y-4">
+              <InfoCard label="Nível Escolar" value={patient.schooling || "Não informado"} icon={GraduationCap} />
+              <InfoCard label="Instituição" value={patient.school_name || "Não informado"} icon={School} />
+              <InfoCard label="Série/Ano" value={patient.grade_year || "Não informado"} icon={Calendar} />
             </div>
           </SectionCard>
 
           <SectionCard title="Ações Rápidas">
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start gap-2 border-slate-200">
-                <Calendar className="h-4 w-4 text-indigo-500" />
-                Agendar
+            <div className="space-y-3">
+              <Button variant="outline" className="w-full justify-between gap-3 border-slate-100 font-bold hover:bg-slate-50 group">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <span>Agendar Consulta</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-2 border-slate-200">
-                <FileText className="h-4 w-4 text-emerald-500" />
-                Gerar Laudo
+              <Button variant="outline" className="w-full justify-between gap-3 border-slate-100 font-bold hover:bg-slate-50 group">
+                <div className="flex items-center gap-3">
+                  <Stethoscope className="h-4 w-4 text-emerald-500" />
+                  <span>Aplicar Novo Teste</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-2 border-slate-200">
-                <Stethoscope className="h-4 w-4 text-cyan-500" />
-                Aplicar Teste
+              <Button variant="outline" className="w-full justify-between gap-3 border-slate-100 font-bold hover:bg-slate-50 group">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-4 w-4 text-amber-500" />
+                  <span>Solicitar Documentos</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
               </Button>
             </div>
           </SectionCard>
+
+          <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 relative overflow-hidden group">
+            <Sparkles className="absolute -right-4 -bottom-4 h-24 w-24 text-primary/5 transition-transform group-hover:scale-110" />
+            <h5 className="text-xs font-black uppercase tracking-widest text-primary mb-2">IA Assistiva</h5>
+            <p className="text-sm font-bold text-slate-900 leading-tight">Gere um rascunho de anamnese baseado nos dados cadastrais.</p>
+            <Button size="sm" className="mt-4 w-full font-black text-[10px] uppercase tracking-widest">Gerar Resumo IA</Button>
+          </div>
         </div>
       </div>
     </PageContainer>

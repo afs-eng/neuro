@@ -25,7 +25,7 @@ class TestContext:
     patient_name: str
     evaluation_id: int
     instrument_code: str
-    patient_age: int
+    patient_age: int = 0
     patient_education: Optional[int] = None
     raw_scores: dict[str, Any] = field(default_factory=dict)
     reviewed_scores: dict[str, Any] = field(default_factory=dict)

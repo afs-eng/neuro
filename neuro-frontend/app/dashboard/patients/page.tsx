@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { PageContainer, PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui/page";
+import { PageContainer, PageHeader, SectionCard, StatCard, EmptyState, InfoCard } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -23,10 +22,9 @@ import {
   ChevronRight,
   Calendar,
   MapPin,
-  GraduationCap,
-  Phone,
-  User,
-  Mail,
+  Sparkles,
+  ClipboardList,
+  FileText
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -87,10 +85,10 @@ export default function PatientsPage() {
     <PageContainer>
       <PageHeader
         title="Pacientes"
-        subtitle={`${patients.length} pacientes cadastrados`}
+        subtitle="Gerenciamento de prontuários e histórico clínico."
         actions={
           <Link href="/dashboard/patients/new">
-            <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+            <Button className="gap-2 shadow-spike font-bold">
               <Plus className="h-4 w-4" />
               Novo Paciente
             </Button>
@@ -99,126 +97,126 @@ export default function PatientsPage() {
       />
 
       {/* Stats */}
-      <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <div className="bg-indigo-500 rounded-xl p-5 text-white">
-          <p className="text-sm font-medium text-indigo-100">Total</p>
-          <p className="mt-1 text-3xl font-bold">{patients.length}</p>
-        </div>
-        <div className="bg-cyan-500 rounded-xl p-5 text-white">
-          <p className="text-sm font-medium text-cyan-100">Novos este mês</p>
-          <p className="mt-1 text-3xl font-bold">12</p>
-        </div>
-        <div className="bg-emerald-500 rounded-xl p-5 text-white">
-          <p className="text-sm font-medium text-emerald-100">Avaliações ativas</p>
-          <p className="mt-1 text-3xl font-bold">23</p>
-        </div>
-        <div className="bg-amber-500 rounded-xl p-5 text-white">
-          <p className="text-sm font-medium text-amber-100">Laudos emitidos</p>
-          <p className="mt-1 text-3xl font-bold">156</p>
-        </div>
+      <div className="mb-10 grid gap-6 md:grid-cols-4">
+        <StatCard title="Total Cadastrados" value={patients.length} icon={Users} />
+        <StatCard title="Novos este mês" value="12" trend={{ value: 15, label: "vs mês ant." }} icon={Plus} />
+        <StatCard title="Avaliações Ativas" value="23" icon={ClipboardList} />
+        <StatCard title="Laudos Emitidos" value="156" icon={FileText} />
       </div>
 
-      {/* Search & Filters */}
-      <SectionCard className="mb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Buscar pacientes..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 border-slate-200"
-            />
+      <div className="space-y-6">
+        {/* Search & Filters */}
+        <SectionCard>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full max-w-md group">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Pesquisar por nome ou CPF..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 border-slate-100 bg-slate-50 transition-all focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2 border-slate-100 font-bold hover:bg-slate-50">
+                <Filter className="h-4 w-4 text-slate-400" />
+                Filtros Avançados
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2 border-slate-200">
-              <Filter className="h-4 w-4" />
-              Filtros
-            </Button>
-          </div>
-        </div>
-      </SectionCard>
+        </SectionCard>
 
-      {/* Patients Table */}
-      <SectionCard title="" className="">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
-          </div>
-        ) : filteredPatients.length === 0 ? (
-          <EmptyState
-            title="Nenhum paciente encontrado"
-            description={search ? "Tente buscar por outro termo" : "Cadastre seu primeiro paciente"}
-            action={
-              <Link href="/dashboard/patients/new">
-                <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-                  <Plus className="h-4 w-4" />
-                  Novo Paciente
-                </Button>
-              </Link>
-            }
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase">Paciente</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase">Idade</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase">Sexo</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase">Escolaridade</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase">Cidade</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPatients.map((patient) => (
-                  <TableRow key={patient.id} className="hover:bg-slate-50/50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold">
-                          {patient.full_name?.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900">{patient.full_name}</p>
-                          {patient.mother_name && (
-                            <p className="text-xs text-slate-500">Mãe: {patient.mother_name}</p>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {calculateAge(patient.birth_date)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-xs">
-                        {patient.sex === "M" ? "Masculino" : patient.sex === "F" ? "Feminino" : "—"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-slate-600">{patient.schooling || "—"}</TableCell>
-                    <TableCell className="text-slate-600">
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {patient.city || "—"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Link href={`/dashboard/patients/${patient.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <ChevronRight className="h-4 w-4 text-slate-400" />
-                        </Button>
-                      </Link>
-                    </TableCell>
+        {/* Patients Table */}
+        <SectionCard title="Lista de Pacientes" description="Todos os registros da clínica.">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-primary"></div>
+              <p className="text-sm font-bold text-slate-400 animate-pulse uppercase tracking-widest">Carregando Prontuários...</p>
+            </div>
+          ) : filteredPatients.length === 0 ? (
+            <EmptyState
+              title="Nenhum paciente encontrado"
+              icon={<Users className="h-12 w-12 text-slate-200" />}
+              description={search ? "Não encontramos resultados para sua busca." : "Sua base de pacientes está vazia. Comece cadastrando um novo paciente."}
+              action={
+                <Link href="/dashboard/patients/new">
+                  <Button className="gap-2 font-bold shadow-md">
+                    <Plus className="h-4 w-4" />
+                    Cadastrar Primeiro Paciente
+                  </Button>
+                </Link>
+              }
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Identificação</TableHead>
+                    <TableHead>Idade</TableHead>
+                    <TableHead>Sexo</TableHead>
+                    <TableHead>Escolaridade</TableHead>
+                    <TableHead>Cidade/Local</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </SectionCard>
+                </TableHeader>
+                <TableBody>
+                  {filteredPatients.map((patient) => (
+                    <TableRow key={patient.id} className="group hover:bg-slate-50/50 transition-colors">
+                      <TableCell>
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary text-xs font-black shadow-sm transition-all group-hover:bg-primary group-hover:text-white">
+                            {patient.full_name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 truncate">{patient.full_name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">#{String(patient.id).padStart(4, '0')}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 text-slate-300" />
+                          <span className="text-sm font-bold text-slate-600">{calculateAge(patient.birth_date)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                          patient.sex === "M" 
+                          ? "bg-blue-50 text-blue-600 border-blue-100" 
+                          : patient.sex === "F" 
+                          ? "bg-pink-50 text-pink-600 border-pink-100" 
+                          : "bg-slate-50 text-slate-500 border-slate-100"
+                        }`}>
+                          {patient.sex === "M" ? "Masc" : patient.sex === "F" ? "Fem" : "N/I"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-600 truncate max-w-[150px]">{patient.schooling || "—"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 text-slate-400">
+                          <MapPin className="h-3.5 w-3.5" />
+                          <span className="text-sm font-medium">{patient.city || "Não inf."}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/dashboard/patients/${patient.id}`}>
+                          <Button variant="ghost" size="sm" className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/5">
+                            <ChevronRight className="h-5 w-5" />
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </SectionCard>
+      </div>
     </PageContainer>
   );
 }

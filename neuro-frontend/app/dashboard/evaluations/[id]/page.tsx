@@ -3,10 +3,32 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageContainer, PageHeader, SectionCard, InfoCard, StatCard, EmptyState } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft,
+  User,
+  Calendar,
+  FileText,
+  ClipboardList,
+  FolderOpen,
+  StickyNote,
+  Plus,
+  X,
+  Send,
+  Mail,
+  MessageCircle,
+  Copy,
+  CheckCircle2,
+  ChevronRight,
+  Sparkles,
+  AlertCircle,
+  Clock,
+  ShieldCheck,
+  LayoutDashboard,
+  Edit
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, Calendar, FileText, ClipboardList, FolderOpen, StickyNote, Plus, X, Send, Mail, MessageCircle, Copy, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface Instrument {
@@ -199,14 +221,14 @@ interface AnamnesisResponse {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-700",
-  collecting_data: "bg-amber-50 text-amber-700 border-amber-200",
-  tests_in_progress: "bg-blue-50 text-blue-700 border-blue-200",
-  scoring: "bg-purple-50 text-purple-700 border-purple-200",
-  writing_report: "bg-orange-50 text-orange-700 border-orange-200",
-  in_review: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  archived: "bg-slate-100 text-slate-500",
+  draft: "bg-slate-100 text-slate-600 border-slate-200",
+  collecting_data: "bg-amber-50 text-amber-600 border-amber-100",
+  tests_in_progress: "bg-blue-50 text-blue-600 border-blue-100",
+  scoring: "bg-purple-50 text-purple-600 border-purple-100",
+  writing_report: "bg-orange-50 text-orange-600 border-orange-100",
+  in_review: "bg-indigo-50 text-indigo-600 border-indigo-100",
+  approved: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  archived: "bg-slate-100 text-slate-400 border-slate-200",
 };
 
 type TabType = "overview" | "tests" | "anamnesis" | "documents" | "evolution" | "report";
@@ -668,6 +690,8 @@ export default function EvaluationDetailPage() {
       "ebaped_ij": "/dashboard/tests/ebadep-ij",
       "epq_j": "/dashboard/tests/epq-j",
       "etdah_ad": "/dashboard/tests/etdah-ad",
+      "ravlt": "/dashboard/tests/ravlt",
+      "srs2": "/dashboard/tests/srs2",
     };
     return `${baseUrls[instrumentCode] || "/dashboard/tests"}?evaluation_id=${evaluation?.id}&application_id=${testId}`;
   }
@@ -765,23 +789,32 @@ export default function EvaluationDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-300 p-6 md:p-10 flex items-center justify-center">
-        <div className="text-zinc-600">Carregando...</div>
-      </div>
+      <PageContainer>
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-primary"></div>
+          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest animate-pulse">Sincronizando Dados Clínicos...</p>
+        </div>
+      </PageContainer>
     );
   }
 
   if (!evaluation) {
     return (
-      <div className="min-h-screen bg-slate-300 p-6 md:p-10 flex items-center justify-center">
-        <div className="max-w-lg text-center">
-          <div className="text-zinc-800 font-medium">Avaliação não carregada</div>
-          <div className="mt-2 text-sm text-zinc-600">{errorMessage || "Avaliação não encontrada."}</div>
-          <Button className="mt-4 rounded-xl" onClick={() => router.push('/dashboard/evaluations')}>
-            Voltar para avaliações
-          </Button>
-        </div>
-      </div>
+      <PageContainer>
+        <EmptyState 
+          title="Avaliação não encontrada" 
+          description={errorMessage || "O registro solicitado pode ter sido arquivado ou removido."}
+          icon={<AlertCircle className="h-12 w-12 text-slate-200" />}
+          action={
+            <Link href="/dashboard/evaluations">
+              <Button variant="outline" className="gap-2 font-bold">
+                <ArrowLeft className="h-4 w-4" />
+                Voltar para Lista
+              </Button>
+            </Link>
+          }
+        />
+      </PageContainer>
     );
   }
 
@@ -875,58 +908,46 @@ export default function EvaluationDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-300 p-6 md:p-10">
-      <div className="mx-auto max-w-7xl rounded-[36px] bg-[#f3f0e4] p-5 shadow-2xl ring-1 ring-black/5 md:p-7">
-        <div className="rounded-[28px] bg-gradient-to-r from-[#f6f4ed] via-[#f2efe4] to-[#efe7bf] p-5 md:p-6">
-          <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="rounded-full border border-black/20 bg-white/70 px-5 py-2 text-lg font-medium tracking-tight text-zinc-800 shadow-sm">
-                NeuroAvalia
-              </div>
-            </div>
-            <nav className="flex flex-wrap items-center gap-2 rounded-full bg-white/70 px-3 py-2 text-sm text-zinc-700 shadow-sm">
-              <Link href="/dashboard" className="rounded-full px-4 py-2 hover:bg-black/5">Dashboard</Link>
-              <Link href="/dashboard/evaluations" className="rounded-full px-4 py-2 hover:bg-black/5">Avaliações</Link>
-            </nav>
-          </header>
-
-          <div className="mb-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-medium tracking-tight text-zinc-900">{evaluation.code}</h1>
-                  <Badge className={`${STATUS_COLORS[evaluation.status]} rounded-full`}>
-                    {evaluation.status_display}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-lg text-zinc-600">{evaluation.patient_name}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="rounded-full" onClick={() => router.push(`/dashboard/evaluations/${evaluation.id}/edit`)}>Editar</Button>
-                <Button className="rounded-full" onClick={() => navigateToTab("report")}>Abrir Laudo</Button>
-              </div>
-            </div>
+    <PageContainer>
+      <PageHeader
+        title={evaluation.code}
+        breadcrumbs={
+          <Link href="/dashboard/evaluations" className="inline-flex items-center text-xs font-bold text-primary uppercase tracking-widest hover:underline gap-1">
+            <ArrowLeft className="h-3 w-3" />
+            Processos de Avaliação
+          </Link>
+        }
+        subtitle={`${evaluation.patient_name} • ${evaluation.status_display}`}
+        actions={
+          <div className="flex gap-3">
+            <Button variant="outline" className="gap-2 border-slate-100 font-bold hover:bg-slate-50 transition-all" onClick={() => router.push(`/dashboard/evaluations/${evaluation.id}/edit`)}>
+              <Edit className="h-4 w-4 text-slate-400" />
+              Editar Processo
+            </Button>
+            <Button className="gap-2 shadow-spike font-bold" onClick={() => navigateToTab("report")}>
+              <FileText className="h-4 w-4" />
+              Gerar Laudo
+            </Button>
           </div>
+        }
+      />
 
-          <div className="mb-6 flex flex-wrap gap-2 border-b border-slate-200">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => navigateToTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition ${
-                  activeTab === tab.id
-                    ? "border-zinc-900 text-zinc-900"
-                    : "border-transparent text-zinc-500 hover:text-zinc-700"
-                }`}
-              >
-                <tab.icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
+      <div className="flex flex-wrap gap-1 mb-8 bg-slate-100/50 p-1 rounded-xl border border-slate-100">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => navigateToTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
+              activeTab === tab.id
+                ? "bg-white text-primary shadow-sm"
+                : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+            }`}
+          >
+            <tab.icon className="h-3.5 w-3.5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
           {pageNotice && (
             <div className={`mb-6 rounded-2xl px-4 py-3 text-sm ${pageNotice.type === "success" ? "border border-emerald-200 bg-emerald-50 text-emerald-800" : "border border-rose-200 bg-rose-50 text-rose-800"}`}>
@@ -938,670 +959,617 @@ export default function EvaluationDetailPage() {
           )}
 
           {activeTab === "overview" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 rounded-2xl border-slate-200 shadow-sm">
-                <CardHeader>
-                  <CardTitle>Dados Principais</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-zinc-500">Nome do paciente</p>
-                      <p className="mt-1 font-medium text-zinc-900">{evaluation.patient_name || "—"}</p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-zinc-500">Idade</p>
-                      <p className="mt-1 font-medium text-zinc-900">{getPatientAge(evaluation.patient_birth_date, resolveReferenceDate())}</p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-zinc-500">Responsável</p>
-                      <p className="mt-1 font-medium text-zinc-900">{evaluation.patient_responsible_name || evaluation.examiner_name || "—"}</p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-zinc-500">Data de início</p>
-                      <p className="mt-1 font-medium text-zinc-900">{formatDisplayDate(evaluation.start_date)}</p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-zinc-500">Data da conclusão</p>
-                      <p className="mt-1 font-medium text-zinc-900">{formatDisplayDate(evaluation.end_date)}</p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-zinc-500">Status</p>
-                      <div className="mt-2">
-                        <Badge className={`${STATUS_COLORS[evaluation.status]} rounded-full`}>
-                          {evaluation.status_display}
-                        </Badge>
-                      </div>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+              <div className="lg:col-span-2 space-y-8">
+                <SectionCard title="Dados Principais" description="Informações básicas e identificação do processo.">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <InfoCard label="Paciente" value={evaluation.patient_name || "—"} icon={User} />
+                    <InfoCard label="Idade de Referência" value={getPatientAge(evaluation.patient_birth_date, resolveReferenceDate())} icon={Calendar} />
+                    <InfoCard label="Responsável" value={evaluation.patient_responsible_name || evaluation.examiner_name || "—"} icon={User} />
+                    <InfoCard label="Data de Início" value={formatDisplayDate(evaluation.start_date)} icon={Calendar} />
+                    <InfoCard label="Previsão de Conclusão" value={formatDisplayDate(evaluation.end_date)} icon={Clock} />
+                    <InfoCard label="Status Atual" value={evaluation.status_display} icon={ShieldCheck} />
                   </div>
 
-                  {evaluation.title && (
-                    <div>
-                      <p className="text-sm text-zinc-500">Título do caso</p>
-                      <p className="font-medium">{evaluation.title}</p>
-                    </div>
-                  )}
-
-                  {evaluation.referral_reason && (
-                    <div>
-                      <p className="text-sm text-zinc-500">Motivo do encaminhamento</p>
-                      <p className="text-sm">{evaluation.referral_reason}</p>
-                    </div>
-                  )}
-
-                  {evaluation.evaluation_purpose && (
-                    <div>
-                      <p className="text-sm text-zinc-500">Finalidade da avaliação</p>
-                      <p className="text-sm">{evaluation.evaluation_purpose}</p>
-                    </div>
-                  )}
-
-                  {evaluation.clinical_hypothesis && (
-                    <div>
-                      <p className="text-sm text-zinc-500">Hipótese clínica</p>
-                      <p className="text-sm">{evaluation.clinical_hypothesis}</p>
-                    </div>
-                  )}
-
-                  {evaluation.general_notes && (
-                    <div>
-                      <p className="text-sm text-zinc-500">Observações clínicas</p>
-                      <p className="text-sm">{evaluation.general_notes}</p>
-                    </div>
-                  )}
-
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-center justify-between gap-4">
+                  <div className="mt-8 space-y-6 pt-8 border-t border-slate-50">
+                    {evaluation.title && (
                       <div>
-                        <p className="text-sm text-zinc-500">Anamnese vigente</p>
-                        <p className="mt-1 font-medium text-zinc-900">{evaluation.current_anamnesis?.template_name || "Nenhuma anamnese vigente"}</p>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Título do Caso</h4>
+                        <p className="text-sm font-bold text-slate-700">{evaluation.title}</p>
                       </div>
-                      {evaluation.current_anamnesis ? (
-                        <Badge variant="outline" className={evaluation.current_anamnesis.status === "reviewed" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}>
-                          {evaluation.current_anamnesis.status}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    {evaluation.current_anamnesis?.summary_payload?.chief_complaint && (
-                      <p className="mt-3 text-sm text-slate-600">{evaluation.current_anamnesis.summary_payload.chief_complaint}</p>
                     )}
-                    <Button variant="outline" className="mt-4 rounded-xl" onClick={() => navigateToTab("anamnesis")}>Abrir anamnese</Button>
+
+                    {evaluation.referral_reason && (
+                      <div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Motivo do Encaminhamento</h4>
+                        <p className="text-sm text-slate-600 leading-relaxed">{evaluation.referral_reason}</p>
+                      </div>
+                    )}
+
+                    {evaluation.evaluation_purpose && (
+                      <div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Finalidade</h4>
+                        <p className="text-sm text-slate-600 leading-relaxed">{evaluation.evaluation_purpose}</p>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                </SectionCard>
 
-              <div className="space-y-4">
-                <Card className="rounded-2xl border-slate-200 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Testes Aplicados</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {evaluation.tests.length === 0 ? (
-                      <p className="text-sm text-zinc-500">Nenhum teste aplicado</p>
+                <SectionCard title="Observações e Hipóteses" description="Notas clínicas preliminares.">
+                  <div className="space-y-6">
+                    {evaluation.clinical_hypothesis ? (
+                      <div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Hipótese Clínica</h4>
+                        <p className="text-sm text-slate-600 leading-relaxed">{evaluation.clinical_hypothesis}</p>
+                      </div>
                     ) : (
-                      <div className="space-y-2">
-                        {evaluation.tests.map((test) => (
-                          <div key={test.id} className="flex items-center justify-between text-sm">
-                            <span>{test.instrument_name}</span>
-                            <Badge variant="outline" className={test.is_validated ? "bg-emerald-50" : "bg-amber-50"}>
-                              {test.status}
-                            </Badge>
-                          </div>
-                        ))}
+                      <p className="text-xs font-bold text-slate-400 italic">Nenhuma hipótese clínica registrada.</p>
+                    )}
+
+                    {evaluation.general_notes && (
+                      <div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Anotações Gerais</h4>
+                        <p className="text-sm text-slate-600 leading-relaxed">{evaluation.general_notes}</p>
                       </div>
                     )}
-                    <Button variant="outline" className="w-full mt-4 rounded-xl" onClick={openAddTestModal}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adicionar Teste
-                    </Button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </SectionCard>
+              </div>
 
-                <Card className="rounded-2xl border-slate-200 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between gap-3">
-                    <CardTitle className="text-base">Documentos</CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => navigateToTab("anamnesis")}>Anamnese</Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {evaluation.documents.length === 0 ? (
-                      <p className="text-sm text-zinc-500">Nenhum documento</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {evaluation.documents.map((doc: any) => (
-                          <div key={doc.id} className="text-sm">
-                            {doc.name}
-                          </div>
-                        ))}
+              <div className="space-y-8">
+                <SectionCard title="Checklist Clínico" description="Progresso para o laudo.">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-2 w-2 rounded-full ${evaluation.clinical_checklist?.anamnesis_completed ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        <span className="text-xs font-bold text-slate-600">Anamnese</span>
                       </div>
-                    )}
-                    <Button variant="outline" className="w-full mt-4 rounded-xl">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Anexar Documento
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Status do Laudo</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
-                      <div className="flex items-center justify-between"><span>Anamnese concluída</span><span>{evaluation.clinical_checklist?.anamnesis_completed ? "Sim" : "Não"}</span></div>
-                      <div className="flex items-center justify-between"><span>Anamnese revisada</span><span>{evaluation.clinical_checklist?.anamnesis_reviewed ? "Sim" : "Não"}</span></div>
-                      <div className="flex items-center justify-between"><span>Documentos relevantes</span><span>{evaluation.clinical_checklist?.has_relevant_documents ? "Sim" : "Não"}</span></div>
-                      <div className="flex items-center justify-between"><span>Evolução registrada</span><span>{evaluation.clinical_checklist?.has_progress_entries_for_report ? "Sim" : "Não"}</span></div>
-                      <div className="flex items-center justify-between"><span>Testes validados</span><span>{evaluation.clinical_checklist?.has_validated_tests ? "Sim" : "Não"}</span></div>
+                      <span className="text-[10px] font-black uppercase text-slate-400">{evaluation.clinical_checklist?.anamnesis_completed ? 'Completa' : 'Pendente'}</span>
                     </div>
-                    <Badge className="bg-slate-100 text-slate-700 rounded-full">
-                      {evaluation.clinical_checklist?.ready_for_report ? "Pronto para gerar laudo" : "Dados clínicos incompletos"}
-                    </Badge>
-                    <Button className="w-full mt-4 rounded-xl">
-                      Abrir Editor
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-2 w-2 rounded-full ${evaluation.clinical_checklist?.has_validated_tests ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        <span className="text-xs font-bold text-slate-600">Testagem</span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-slate-400">{evaluation.clinical_checklist?.has_validated_tests ? 'Validada' : 'Em curso'}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-2 w-2 rounded-full ${evaluation.clinical_checklist?.ready_for_report ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        <span className="text-xs font-bold text-slate-600">Laudo Final</span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-slate-400">{evaluation.clinical_checklist?.ready_for_report ? 'Pronto' : 'Aguardando'}</span>
+                    </div>
+                  </div>
+                  <Button className="w-full mt-6 font-bold shadow-sm" onClick={() => navigateToTab("report")}>
+                    Visualizar Laudo
+                  </Button>
+                </SectionCard>
+
+                <SectionCard title="Ações Rápidas">
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full justify-between gap-3 border-slate-100 font-bold hover:bg-slate-50 group" onClick={openAddTestModal}>
+                      <div className="flex items-center gap-3">
+                        <Plus className="h-4 w-4 text-primary" />
+                        <span>Adicionar Teste</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
                     </Button>
-                  </CardContent>
-                </Card>
+                    <Button variant="outline" className="w-full justify-between gap-3 border-slate-100 font-bold hover:bg-slate-50 group" onClick={() => navigateToTab("anamnesis")}>
+                      <div className="flex items-center gap-3">
+                        <Send className="h-4 w-4 text-emerald-500" />
+                        <span>Enviar Anamnese</span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
+                    </Button>
+                  </div>
+                </SectionCard>
               </div>
             </div>
           )}
 
           {activeTab === "tests" && (
-            <Card className="rounded-2xl border-slate-200 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Testes Aplicados</CardTitle>
-                <Button className="rounded-xl" onClick={openAddTestModal}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Teste
+            <SectionCard 
+              title="Testes Aplicados" 
+              description="Gerenciamento de instrumentos e baterias de testagem."
+              actions={
+                <Button className="gap-2 font-bold shadow-sm" onClick={openAddTestModal}>
+                  <Plus className="h-4 w-4" />
+                  Adicionar Instrumento
                 </Button>
-              </CardHeader>
-              <CardContent>
-                {evaluation.tests.length === 0 ? (
-                  <div className="text-center py-8 text-zinc-500">
-                    <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum teste aplicado ainda</p>
-                    <p className="text-sm">Adicione um teste para começar a avaliação</p>
-                  </div>
-                ) : (
+              }
+            >
+              {evaluation.tests.length === 0 ? (
+                <EmptyState
+                  title="Nenhum teste aplicado"
+                  description="Adicione instrumentos psicométricos para iniciar a coleta de dados."
+                  icon={<ClipboardList className="h-10 w-10 text-slate-200" />}
+                />
+              ) : (
+                <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="pb-3 text-left text-sm font-medium text-zinc-500">Teste</th>
-                        <th className="pb-3 text-left text-sm font-medium text-zinc-500">Data</th>
-                        <th className="pb-3 text-left text-sm font-medium text-zinc-500">Status</th>
-                        <th className="pb-3 text-left text-sm font-medium text-zinc-500">Ações</th>
+                      <tr className="border-b border-slate-100">
+                        <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Instrumento</th>
+                        <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Aplicação</th>
+                        <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                        <th className="pb-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       {evaluation.tests.map((test) => (
-                        <tr key={test.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(getTestUrl(test.instrument_code, test.id))}>
-                          <td className="py-3 font-medium">{test.instrument_name}</td>
-                          <td className="py-3">
-                            {test.applied_on ? new Date(test.applied_on).toLocaleDateString("pt-BR") : "—"}
+                        <tr key={test.id} className="group border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                          <td className="py-5 font-bold text-slate-900">{test.instrument_name}</td>
+                          <td className="py-5 text-sm text-slate-500 font-bold">
+                            {test.applied_on ? new Date(test.applied_on).toLocaleDateString("pt-BR") : "Aguardando"}
                           </td>
-                          <td className="py-3">
-                            <Badge variant="outline" className={test.is_validated ? "bg-emerald-50" : "bg-amber-50"}>
+                          <td className="py-5">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                              test.is_validated 
+                              ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                              : "bg-amber-50 text-amber-600 border-amber-100"
+                            }`}>
                               {test.status}
-                            </Badge>
+                            </span>
                           </td>
-                          <td className="py-3" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => router.push(getTestUrl(test.instrument_code, test.id))}>Abrir</Button>
-                              <Button variant="ghost" size="sm" className="text-rose-700 hover:text-rose-800" onClick={() => removeTest(test.id)}>Remover</Button>
+                          <td className="py-5 text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" className="font-bold text-primary" onClick={() => router.push(getTestUrl(test.instrument_code, test.id))}>Abrir</Button>
+                              <Button variant="ghost" size="sm" className="font-bold text-rose-500 hover:text-rose-600" onClick={() => removeTest(test.id)}>Remover</Button>
                             </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              )}
+            </SectionCard>
           )}
 
           {activeTab === "anamnesis" && (
-            <div className="space-y-6">
-              <Card className="rounded-2xl border-slate-200 shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Enviar Anamnese</CardTitle>
-                    <p className="mt-1 text-sm text-slate-500">Convites por link seguro para preenchimento externo por e-mail ou WhatsApp.</p>
-                  </div>
-                  <Button className="rounded-xl" onClick={() => setShowAnamnesisInviteForm((prev) => !prev)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo convite
+            <div className="space-y-8 animate-in fade-in duration-500">
+              <SectionCard 
+                title="Gestão de Anamneses" 
+                description="Envio de convites e acompanhamento de respostas dos responsáveis."
+                actions={
+                  <Button className="gap-2 font-bold shadow-sm" onClick={() => setShowAnamnesisInviteForm(!showAnamnesisInviteForm)}>
+                    <Send className="h-4 w-4" />
+                    Novo Convite
                   </Button>
-                </CardHeader>
-                <CardContent>
-                  {showAnamnesisInviteForm && (
-                    <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        Obrigatórios: template, nome do destinatário e o contato correspondente ao canal escolhido.
+                }
+              >
+                {showAnamnesisInviteForm && (
+                  <div className="mb-8 p-6 rounded-2xl border border-primary/20 bg-primary/5 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Template de Anamnese</label>
+                        <select 
+                          value={anamnesisForm.template_id} 
+                          onChange={(e) => setAnamnesisForm({ ...anamnesisForm, template_id: e.target.value })}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        >
+                          <option value="">Selecione um modelo...</option>
+                          {anamnesisTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
                       </div>
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Template *</label>
-                          <select value={anamnesisForm.template_id} onChange={(e) => setAnamnesisForm({ ...anamnesisForm, template_id: e.target.value })} className={`w-full rounded-xl border bg-white px-3 py-2 ${!anamnesisForm.template_id ? "border-rose-300" : "border-slate-200"}`}>
-                            <option value="">Selecione...</option>
-                            {anamnesisTemplates.map((template) => (
-                              <option key={template.id} value={template.id}>{template.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Canal *</label>
-                          <select value={anamnesisForm.channel} onChange={(e) => setAnamnesisForm({ ...anamnesisForm, channel: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2">
-                            <option value="email">E-mail</option>
-                            <option value="whatsapp">WhatsApp</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Nome do destinatário *</label>
-                          <input value={anamnesisForm.recipient_name} onChange={(e) => setAnamnesisForm({ ...anamnesisForm, recipient_name: e.target.value })} className={`w-full rounded-xl border bg-white px-3 py-2 ${!anamnesisForm.recipient_name ? "border-rose-300" : "border-slate-200"}`} placeholder="Nome do responsável ou paciente" />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Validade</label>
-                          <input type="datetime-local" value={anamnesisForm.expires_at} onChange={(e) => setAnamnesisForm({ ...anamnesisForm, expires_at: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">E-mail {anamnesisForm.channel === "email" ? "*" : ""}</label>
-                          <input type="email" value={anamnesisForm.recipient_email} onChange={(e) => setAnamnesisForm({ ...anamnesisForm, recipient_email: e.target.value })} className={`w-full rounded-xl border bg-white px-3 py-2 ${anamnesisForm.channel === "email" && !anamnesisForm.recipient_email ? "border-rose-300" : "border-slate-200"}`} placeholder="responsavel@email.com" />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">WhatsApp {anamnesisForm.channel === "whatsapp" ? "*" : ""}</label>
-                          <input value={anamnesisForm.recipient_phone} onChange={(e) => setAnamnesisForm({ ...anamnesisForm, recipient_phone: e.target.value })} className={`w-full rounded-xl border bg-white px-3 py-2 ${anamnesisForm.channel === "whatsapp" && !anamnesisForm.recipient_phone ? "border-rose-300" : "border-slate-200"}`} placeholder="(62) 99999-9999" />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <label className="text-sm font-medium">Mensagem opcional</label>
-                          <textarea value={anamnesisForm.message} onChange={(e) => setAnamnesisForm({ ...anamnesisForm, message: e.target.value })} className="min-h-[110px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2" placeholder="Se vazio, o sistema usa a mensagem padrão." />
-                        </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nome do Destinatário</label>
+                        <input 
+                          value={anamnesisForm.recipient_name}
+                          onChange={(e) => setAnamnesisForm({ ...anamnesisForm, recipient_name: e.target.value })}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          placeholder="Ex: Maria (Mãe)"
+                        />
                       </div>
-                      <div className="mt-4 flex gap-2">
-                        <Button className="rounded-xl" onClick={handleCreateAnamnesisInvite} disabled={anamnesisRequiredMissing || savingAnamnesisInvite}>{savingAnamnesisInvite ? "Criando..." : "Criar convite"}</Button>
-                        <Button variant="outline" className="rounded-xl" onClick={() => setShowAnamnesisInviteForm(false)}>Cancelar</Button>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Canal de Envio</label>
+                        <select 
+                          value={anamnesisForm.channel}
+                          onChange={(e) => setAnamnesisForm({ ...anamnesisForm, channel: e.target.value })}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        >
+                          <option value="email">E-mail</option>
+                          <option value="whatsapp">WhatsApp</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {anamnesisForm.channel === "email" ? "E-mail" : "Telefone"}
+                        </label>
+                        <input 
+                          value={anamnesisForm.channel === "email" ? anamnesisForm.recipient_email : anamnesisForm.recipient_phone}
+                          onChange={(e) => setAnamnesisForm({ 
+                            ...anamnesisForm, 
+                            [anamnesisForm.channel === "email" ? "recipient_email" : "recipient_phone"]: e.target.value 
+                          })}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          placeholder={anamnesisForm.channel === "email" ? "email@exemplo.com" : "(00) 00000-0000"}
+                        />
                       </div>
                     </div>
-                  )}
+                    <div className="flex gap-3 justify-end">
+                      <Button variant="ghost" className="font-bold text-slate-400" onClick={() => setShowAnamnesisInviteForm(false)}>Cancelar</Button>
+                      <Button className="font-bold px-8 shadow-sm" onClick={handleCreateAnamnesisInvite} disabled={savingAnamnesisInvite}>
+                        {savingAnamnesisInvite ? "Enviando..." : "Enviar Agora"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-                  {tabLoading ? (
-                    <div className="py-8 text-center text-zinc-500">Carregando anamnese...</div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-                      <div className="space-y-4">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Convites</h3>
-                          {anamnesisInvites.length === 0 ? (
-                            <div className="mt-3 text-sm text-slate-600">Nenhum convite criado para esta avaliação.</div>
-                          ) : (
-                            <div className="mt-3 space-y-3">
-                              {anamnesisInvites.map((invite) => (
-                                <div key={invite.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                                    <div>
-                                      <p className="font-medium text-slate-900">{invite.template_name}</p>
-                                      <p className="text-sm text-slate-500">{invite.recipient_name} • {invite.channel === "email" ? invite.recipient_email : invite.recipient_phone}</p>
-                                      <p className="mt-1 text-xs text-slate-500">Status: {invite.status} • Validade: {invite.expires_at ? new Date(invite.expires_at).toLocaleString("pt-BR") : "padrão"}</p>
-                                    </div>
-                                    <Badge variant="outline" className={invite.status === "completed" ? "bg-emerald-50 text-emerald-700" : invite.status === "in_progress" || invite.status === "opened" ? "bg-blue-50 text-blue-700" : invite.status === "canceled" ? "bg-slate-100 text-slate-600" : "bg-amber-50 text-amber-700"}>{invite.status}</Badge>
-                                  </div>
-                                  <div className="mt-4 flex flex-wrap gap-2">
-                                    <Button variant="outline" className="rounded-xl" onClick={() => copyToClipboard(invite.public_url, "Link copiado com sucesso.")}><Copy className="mr-2 h-4 w-4" />Copiar link</Button>
-                                    <Button variant="outline" className="rounded-xl" onClick={() => window.open(invite.public_url, "_blank")}><Send className="mr-2 h-4 w-4" />Abrir link</Button>
-                                    <Button variant="outline" className="rounded-xl" onClick={() => handleSendAnamnesis(invite.id, "email")} disabled={!invite.recipient_email}><Mail className="mr-2 h-4 w-4" />E-mail</Button>
-                                    <Button variant="outline" className="rounded-xl" onClick={() => handleSendAnamnesis(invite.id, "whatsapp")} disabled={!invite.recipient_phone}><MessageCircle className="mr-2 h-4 w-4" />WhatsApp</Button>
-                                    <Button variant="outline" className="rounded-xl" onClick={() => handleResendAnamnesis(invite.id)}>Reenviar</Button>
-                                    <Button variant="outline" className="rounded-xl" onClick={() => handleCancelAnamnesis(invite.id)}>Cancelar</Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Respostas recebidas</h3>
-                          {anamnesisResponses.length === 0 ? (
-                            <div className="mt-3 text-sm text-slate-600">Nenhuma resposta enviada ainda.</div>
-                          ) : (
-                            <div className="mt-3 space-y-3">
-                              {anamnesisResponses.map((response) => (
-                                <button key={response.id} onClick={() => setSelectedAnamnesisResponse(response)} className={`w-full rounded-2xl border p-4 text-left shadow-sm transition ${selectedAnamnesisResponse?.id === response.id ? "border-zinc-900 bg-white" : "border-slate-200 bg-white hover:bg-slate-50"}`}>
-                                  <p className="font-medium text-slate-900">{response.template_name}</p>
-                                  <p className="text-sm text-slate-500">{response.submitted_by_name || "Sem nome"} • {response.submitted_by_relation || "Sem vínculo"}</p>
-                                  <p className="mt-1 text-xs text-slate-500">Status: {response.status}</p>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                          {!selectedAnamnesisResponse ? (
-                            <div className="text-sm text-slate-600">Selecione uma resposta para revisar.</div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between gap-4">
+                {tabLoading ? (
+                  <div className="py-20 text-center animate-pulse text-slate-300 font-bold uppercase tracking-widest text-xs">Atualizando Anamneses...</div>
+                ) : (
+                  <div className="space-y-12">
+                    {anamnesisInvites.length > 0 && (
+                      <div>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">Convites Ativos</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {anamnesisInvites.map((invite) => (
+                            <div key={invite.id} className="p-5 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-spike transition-all group">
+                              <div className="flex justify-between items-start mb-3">
                                 <div>
-                                  <h3 className="font-semibold text-slate-900">{selectedAnamnesisResponse.template_name}</h3>
-                                  <p className="text-sm text-slate-500">Respondido por {selectedAnamnesisResponse.submitted_by_name || "—"}</p>
+                                  <h5 className="font-bold text-slate-900">{invite.template_name}</h5>
+                                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">{invite.recipient_name} • {invite.channel}</p>
                                 </div>
-                                <Button className="rounded-xl" onClick={() => handleReviewAnamnesis(selectedAnamnesisResponse.id)} disabled={selectedAnamnesisResponse.status === "reviewed"}><CheckCircle2 className="mr-2 h-4 w-4" />Marcar revisada</Button>
+                                <Badge className={`${STATUS_COLORS[invite.status]} rounded-full text-[9px] font-black uppercase tracking-widest`}>
+                                  {invite.status}
+                                </Badge>
                               </div>
-                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                <pre className="whitespace-pre-wrap break-words text-sm text-slate-700">{JSON.stringify(selectedAnamnesisResponse.answers_payload, null, 2)}</pre>
+                              <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100/50">
+                                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-primary hover:bg-primary/5" onClick={() => copyToClipboard(invite.public_url, "Link copiado!")}>Link</Button>
+                                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-emerald-600 hover:bg-emerald-50" onClick={() => handleResendAnamnesis(invite.id)}>Reenviar</Button>
+                                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-rose-500 hover:bg-rose-50 ml-auto" onClick={() => handleCancelAnamnesis(invite.id)}>Cancelar</Button>
                               </div>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === "documents" && (
-            <Card className="rounded-2xl border-slate-200 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Documentos</CardTitle>
-                  <p className="mt-1 text-sm text-slate-500">Obrigatórios para upload: título e arquivo.</p>
-                </div>
-                <Button className="rounded-xl" onClick={() => setShowDocumentForm((prev) => !prev)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Enviar Documento
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {showDocumentForm && (
-                  <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="mb-4 text-sm text-slate-600">Tipos aceitos clinicamente: encaminhamento, relatorios, exames, formularios e anexos relevantes.</div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Título *</label>
-                        <input value={documentForm.title} onChange={(e) => setDocumentForm({ ...documentForm, title: e.target.value })} className={`w-full rounded-xl border bg-white px-3 py-2 ${!documentForm.title ? "border-rose-300" : "border-slate-200"}`} placeholder="Ex: Relatório escolar 2026" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Tipo</label>
-                        <select value={documentForm.document_type} onChange={(e) => setDocumentForm({ ...documentForm, document_type: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <option value="referral">Encaminhamento</option>
-                          <option value="school_report">Relatório escolar</option>
-                          <option value="medical_report">Relatório médico</option>
-                          <option value="therapeutic_report">Relatório terapêutico</option>
-                          <option value="family_attachment">Ficha/anexo da família</option>
-                          <option value="school_activity">Atividade escolar</option>
-                          <option value="exam">Exame</option>
-                          <option value="form">Formulário</option>
-                          <option value="exported_report">Laudo exportado</option>
-                          <option value="other">Outro</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Origem</label>
-                        <input value={documentForm.source} onChange={(e) => setDocumentForm({ ...documentForm, source: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" placeholder="Escola, médico, família..." />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Data do documento</label>
-                        <input type="date" value={documentForm.document_date} onChange={(e) => setDocumentForm({ ...documentForm, document_date: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Arquivo *</label>
-                        <input type="file" onChange={(e) => setDocumentForm({ ...documentForm, file: e.target.files?.[0] || null })} className={`w-full rounded-xl border bg-white px-3 py-2 ${!documentForm.file ? "border-rose-300" : "border-slate-200"}`} />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Observações</label>
-                        <textarea value={documentForm.notes} onChange={(e) => setDocumentForm({ ...documentForm, notes: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 min-h-[90px]" />
-                      </div>
-                    </div>
-                    <label className="mt-4 flex items-center gap-2 text-sm text-slate-600">
-                      <input type="checkbox" checked={documentForm.is_relevant_for_report} onChange={(e) => setDocumentForm({ ...documentForm, is_relevant_for_report: e.target.checked })} />
-                      Marcar como relevante para o laudo
-                    </label>
-                    <div className="mt-4 flex gap-2">
-                      <Button className="rounded-xl" onClick={handleDocumentUpload} disabled={documentRequiredMissing || savingDocument}>{savingDocument ? "Enviando..." : "Salvar documento"}</Button>
-                      <Button variant="outline" className="rounded-xl" onClick={() => setShowDocumentForm(false)}>Cancelar</Button>
-                    </div>
-                  </div>
-                )}
-
-                {tabLoading ? (
-                  <div className="text-center py-8 text-zinc-500">Carregando documentos...</div>
-                ) : documents.length === 0 ? (
-                  <div className="text-center py-8 text-zinc-500">
-                    <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum documento anexado</p>
-                    <p className="text-sm">Envie documentos para esta avaliação</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {documents.map((doc) => (
-                      <div key={doc.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div>
-                            <p className="font-medium text-slate-900">{doc.title}</p>
-                            <p className="text-sm text-slate-500">{doc.document_type_display} • {doc.file_name}</p>
-                            <p className="mt-1 text-sm text-slate-600">{doc.source || "Sem origem informada"}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <a href={doc.file_url} target="_blank" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">Abrir</a>
-                            <Button variant="outline" className="rounded-xl" onClick={() => handleDeleteDocument(doc.id)}>Excluir</Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === "evolution" && (
-            <Card className="rounded-2xl border-slate-200 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Evolução / Sessões</CardTitle>
-                  <p className="mt-1 text-sm text-slate-500">Obrigatórios: tipo de registro e data.</p>
-                </div>
-                <Button className="rounded-xl" onClick={() => setShowProgressForm((prev) => !prev)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Anotação
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {showProgressForm && (
-                  <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Tipo de evolução *</label>
-                        <select value={progressForm.entry_type} onChange={(e) => setProgressForm({ ...progressForm, entry_type: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <option value="anamnesis">Anamnese</option>
-                          <option value="testing_session">Sessão de testagem</option>
-                          <option value="scoring">Correção</option>
-                          <option value="feedback">Devolutiva</option>
-                          <option value="family_contact">Contato com família</option>
-                          <option value="school_contact">Contato com escola</option>
-                          <option value="clinical_meeting">Reunião clínica</option>
-                          <option value="other">Outro</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Data *</label>
-                        <input type="date" value={progressForm.entry_date} onChange={(e) => setProgressForm({ ...progressForm, entry_date: e.target.value })} className={`w-full rounded-xl border bg-white px-3 py-2 ${!progressForm.entry_date ? "border-rose-300" : "border-slate-200"}`} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Hora inicial</label>
-                        <input type="time" value={progressForm.start_time} onChange={(e) => setProgressForm({ ...progressForm, start_time: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Hora final</label>
-                        <input type="time" value={progressForm.end_time} onChange={(e) => setProgressForm({ ...progressForm, end_time: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Objetivo</label>
-                        <input value={progressForm.objective} onChange={(e) => setProgressForm({ ...progressForm, objective: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Testes aplicados</label>
-                        <input value={progressForm.tests_applied} onChange={(e) => setProgressForm({ ...progressForm, tests_applied: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" placeholder="Ex: BPA-2, FDT" />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Comportamento observado</label>
-                        <textarea value={progressForm.observed_behavior} onChange={(e) => setProgressForm({ ...progressForm, observed_behavior: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 min-h-[90px]" />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Notas clínicas</label>
-                        <textarea value={progressForm.clinical_notes} onChange={(e) => setProgressForm({ ...progressForm, clinical_notes: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 min-h-[110px]" />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Próximos passos</label>
-                        <textarea value={progressForm.next_steps} onChange={(e) => setProgressForm({ ...progressForm, next_steps: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 min-h-[90px]" />
-                      </div>
-                    </div>
-                    <label className="mt-4 flex items-center gap-2 text-sm text-slate-600">
-                      <input type="checkbox" checked={progressForm.include_in_report} onChange={(e) => setProgressForm({ ...progressForm, include_in_report: e.target.checked })} />
-                      Incluir este registro no laudo
-                    </label>
-                    <div className="mt-4 flex gap-2">
-                      <Button className="rounded-xl" onClick={handleCreateProgress} disabled={progressRequiredMissing || savingProgress}>{savingProgress ? "Salvando..." : "Salvar evolução"}</Button>
-                      <Button variant="outline" className="rounded-xl" onClick={() => setShowProgressForm(false)}>Cancelar</Button>
-                    </div>
-                  </div>
-                )}
-
-                {tabLoading ? (
-                  <div className="text-center py-8 text-zinc-500">Carregando evolução...</div>
-                ) : progressEntries.length === 0 ? (
-                  <div className="text-center py-8 text-zinc-500">
-                    <StickyNote className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum registro de evolução</p>
-                    <p className="text-sm">Adicione notas de evolução ou sessões</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {progressEntries.map((entry) => (
-                      <div key={entry.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div>
-                            <p className="font-medium text-slate-900">{entry.entry_type_display}</p>
-                            <p className="text-sm text-slate-500">{new Date(entry.entry_date).toLocaleDateString("pt-BR")} • {entry.professional_name}</p>
-                            {entry.objective && <p className="mt-2 text-sm text-slate-700"><span className="font-medium">Objetivo:</span> {entry.objective}</p>}
-                            {entry.clinical_notes && <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">{entry.clinical_notes}</p>}
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Badge variant="outline" className={entry.include_in_report ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}>
-                              {entry.include_in_report ? "Vai para o laudo" : "Uso interno"}
-                            </Badge>
-                            <Button variant="outline" className="rounded-xl" onClick={() => handleDeleteProgress(entry.id)}>Excluir</Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {activeTab === "report" && (
-            <Card className="rounded-2xl border-slate-200 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Laudo</CardTitle>
-                  <p className="mt-1 text-sm text-slate-500">Obrigatório para criar: título do laudo. O laudo consome testes, documentos e evolução já persistidos.</p>
-                </div>
-                <div className="flex gap-2">
-                  {selectedReport && <Button variant="outline" className="rounded-xl" onClick={() => handleBuildReport(selectedReport.id)}>Regenerar seções</Button>}
-                  <Button className="rounded-xl" onClick={() => setShowReportForm((prev) => !prev)}>Novo laudo</Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {showReportForm && (
-                  <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Título do laudo *</label>
-                        <input value={reportForm.title} onChange={(e) => setReportForm({ ...reportForm, title: e.target.value })} className={`w-full rounded-xl border bg-white px-3 py-2 ${!reportForm.title ? "border-rose-300" : "border-slate-200"}`} placeholder="Ex: Laudo Neuropsicológico - Maria Cecilia" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Interessado</label>
-                        <input value={reportForm.interested_party} onChange={(e) => setReportForm({ ...reportForm, interested_party: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" placeholder="Família, escola, médico..." />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Finalidade</label>
-                        <input value={reportForm.purpose} onChange={(e) => setReportForm({ ...reportForm, purpose: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2" placeholder="Avaliação diagnóstica, acompanhamento..." />
-                      </div>
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <Button className="rounded-xl" onClick={handleCreateReport} disabled={reportRequiredMissing || savingReport}>{savingReport ? "Criando..." : "Criar laudo"}</Button>
-                      <Button variant="outline" className="rounded-xl" onClick={() => setShowReportForm(false)}>Cancelar</Button>
-                    </div>
-                  </div>
-                )}
-
-                {tabLoading ? (
-                  <div className="text-center py-8 text-zinc-500">Carregando laudos...</div>
-                ) : reports.length === 0 ? (
-                  <div className="text-center py-8 text-zinc-500">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum laudo criado</p>
-                    <p className="text-sm">Crie um laudo estruturado para esta avaliação</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_1fr]">
-                    <div className="space-y-3">
-                      {reports.map((report) => (
-                        <button key={report.id} onClick={() => openReport(report.id)} className={`w-full rounded-2xl border p-4 text-left shadow-sm transition ${selectedReport?.id === report.id ? "border-zinc-900 bg-zinc-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}>
-                          <p className="font-medium text-slate-900">{report.title}</p>
-                          <p className="mt-1 text-sm text-slate-500">{report.author_name}</p>
-                          <p className="mt-2 text-xs text-slate-500">Atualizado em {new Date(report.updated_at).toLocaleDateString("pt-BR")}</p>
-                        </button>
-                      ))}
-                    </div>
+                    )}
 
                     <div>
-                      {!selectedReport ? (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">Selecione um laudo para revisar as seções.</div>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">Respostas Recebidas</h4>
+                      {anamnesisResponses.length === 0 ? (
+                        <EmptyState 
+                          title="Nenhuma resposta" 
+                          description="Novas respostas aparecerão aqui assim que forem enviadas." 
+                          icon={<Mail className="h-10 w-10 text-slate-200" />}
+                        />
                       ) : (
-                        <div className="space-y-4">
-                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                              <div>
-                                <h3 className="text-lg font-semibold text-slate-900">{selectedReport.title}</h3>
-                                <p className="text-sm text-slate-500">Interessado: {selectedReport.interested_party || "—"} • Finalidade: {selectedReport.purpose || "—"}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {anamnesisResponses.map((res) => (
+                            <div key={res.id} onClick={() => setSelectedAnamnesisResponse(res)} className={`p-5 rounded-2xl border transition-all cursor-pointer ${selectedAnamnesisResponse?.id === res.id ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-300'}`}>
+                              <h5 className="font-bold text-slate-900">{res.template_name}</h5>
+                              <p className="text-[10px] font-bold text-slate-400 mt-0.5">{res.submitted_by_name} ({res.submitted_by_relation})</p>
+                              <div className="mt-3 flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Recebido em {new Date(res.submitted_at || "").toLocaleDateString("pt-BR")}</span>
+                                <Badge className={`${res.status === "reviewed" ? "bg-emerald-500" : "bg-primary"} text-white border-none rounded-full h-2 w-2 p-0`} />
                               </div>
-                              <Button className="rounded-xl" onClick={() => handleBuildReport(selectedReport.id)}>Atualizar snapshot</Button>
-                            </div>
-                          </div>
-                          {(selectedReport.sections || []).map((section) => (
-                            <div key={section.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                              <div className="mb-3 flex items-center justify-between gap-4">
-                                <div>
-                                  <p className="font-medium text-slate-900">{section.title}</p>
-                                  <p className="text-xs text-slate-500">{section.key}</p>
-                                </div>
-                                <Badge variant="outline" className={section.is_locked ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"}>{section.is_locked ? "Bloqueada" : "Editável"}</Badge>
-                              </div>
-                              <textarea
-                                defaultValue={section.edited_text || section.generated_text}
-                                className="min-h-[160px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-                                onBlur={(e) => handleSaveSection(section.id, e.target.value)}
-                              />
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
+
+                    {selectedAnamnesisResponse && (
+                      <div className="pt-8 border-t border-slate-100 animate-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Conteúdo do Resumo</h4>
+                          {selectedAnamnesisResponse.status !== "reviewed" && (
+                            <Button size="sm" className="gap-2 font-bold shadow-sm" onClick={() => handleReviewAnamnesis(selectedAnamnesisResponse.id)}>
+                              <CheckCircle2 className="h-4 w-4" />
+                              Marcar como Revisada
+                            </Button>
+                          )}
+                        </div>
+                        <div className="p-6 rounded-2xl bg-slate-900 text-slate-300 font-mono text-[11px] leading-relaxed overflow-x-auto border border-slate-800 shadow-inner max-h-[400px]">
+                          {JSON.stringify(selectedAnamnesisResponse.answers_payload, null, 2)}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </SectionCard>
+            </div>
           )}
+
+          {activeTab === "documents" && (
+            <SectionCard 
+              title="Arquivo de Documentos" 
+              description="Upload e gestão de anexos clínicos, relatórios externos e exames."
+              actions={
+                <Button className="gap-2 font-bold shadow-sm" onClick={() => setShowDocumentForm(!showDocumentForm)}>
+                  <Plus className="h-4 w-4" />
+                  Upload
+                </Button>
+              }
+            >
+              {showDocumentForm && (
+                <div className="mb-8 p-6 rounded-2xl border border-primary/20 bg-primary/5 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Título do Documento *</label>
+                      <input 
+                        value={documentForm.title}
+                        onChange={(e) => setDocumentForm({ ...documentForm, title: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="Ex: Relatório Médico Dr. Smith"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categoria</label>
+                      <select 
+                        value={documentForm.document_type}
+                        onChange={(e) => setDocumentForm({ ...documentForm, document_type: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      >
+                        <option value="referral">Encaminhamento</option>
+                        <option value="school_report">Escolar</option>
+                        <option value="medical_report">Médico</option>
+                        <option value="other">Outro</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Selecionar Arquivo *</label>
+                      <input 
+                        type="file"
+                        onChange={(e) => setDocumentForm({ ...documentForm, file: e.target.files?.[0] || null })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-primary/10 file:text-primary"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button variant="ghost" className="font-bold text-slate-400" onClick={() => setShowDocumentForm(false)}>Cancelar</Button>
+                    <Button className="font-bold px-8 shadow-sm" onClick={handleDocumentUpload} disabled={savingDocument || !documentForm.file}>
+                      {savingDocument ? "Salvando..." : "Fazer Upload"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {evaluation.documents.length === 0 ? (
+                <EmptyState title="Sem documentos" description="Ficou pendente o anexo de documentos para este paciente." icon={<FolderOpen className="h-10 w-10 text-slate-200" />} />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {evaluation.documents.map((doc: any) => (
+                    <div key={doc.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-spike transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="font-bold text-slate-900 truncate">{doc.title}</h5>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">{doc.document_type}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex gap-2">
+                        <a href={doc.file_url} target="_blank" className="flex-1">
+                          <Button variant="outline" className="w-full text-[10px] font-black uppercase tracking-widest border-slate-100 h-8">Abrir</Button>
+                        </a>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-300 hover:text-rose-500" onClick={() => handleDeleteDocument(doc.id)}><X className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+          )}
+
+          {activeTab === "evolution" && (
+            <SectionCard 
+              title="Anotações de Evolução" 
+              description="Registro diário das sessões avaliativas e observações clínicas."
+              actions={
+                <Button className="gap-2 font-bold shadow-sm" onClick={() => setShowProgressForm(!showProgressForm)}>
+                  <Plus className="h-4 w-4" />
+                  Nova Entrada
+                </Button>
+              }
+            >
+               {showProgressForm && (
+                <div className="mb-8 p-6 rounded-2xl border border-primary/20 bg-primary/5 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tipo de Entrada *</label>
+                      <select 
+                        value={progressForm.entry_type}
+                        onChange={(e) => setProgressForm({ ...progressForm, entry_type: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      >
+                        <option value="testing_session">Sessão de Testagem</option>
+                        <option value="anamnesis">Sessão de Anamnese</option>
+                        <option value="clinical_notes">Nota Clínica</option>
+                        <option value="other">Outro</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Data *</label>
+                      <input 
+                        type="date"
+                        value={progressForm.entry_date}
+                        onChange={(e) => setProgressForm({ ...progressForm, entry_date: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Conteúdo Clínico *</label>
+                      <textarea 
+                        value={progressForm.clinical_notes}
+                        onChange={(e) => setProgressForm({ ...progressForm, clinical_notes: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[120px]"
+                        placeholder="Descreva observações, comportamentos e progressos da sessão..."
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 justify-end pt-2">
+                    <Button variant="ghost" className="font-bold text-slate-400" onClick={() => setShowProgressForm(false)}>Cancelar</Button>
+                    <Button className="font-bold px-8 shadow-sm" onClick={handleCreateProgress} disabled={savingProgress || !progressForm.clinical_notes}>
+                      {savingProgress ? "Salvando..." : "Salvar Registro"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {evaluation.progress_entries.length === 0 ? (
+                <EmptyState title="Sem registros" description="Documente o dia a dia da avaliação para compor o laudo." icon={<StickyNote className="h-10 w-10 text-slate-200" />} />
+              ) : (
+                <div className="space-y-6 relative ml-4 before:absolute before:left-[-16px] before:top-2 before:bottom-2 before:w-px before:bg-slate-100">
+                  {evaluation.progress_entries.map((entry: any) => (
+                    <div key={entry.id} className="relative group">
+                      <div className="absolute left-[-20px] top-2 h-2 w-2 rounded-full bg-slate-200 group-hover:bg-primary transition-colors" />
+                      <div className="p-6 rounded-2xl border border-slate-100 hover:border-slate-200 bg-white shadow-sm transition-all">
+                        <div className="flex justify-between items-center mb-3">
+                          <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-primary/20 text-primary">{entry.entry_type_display}</Badge>
+                          <span className="text-[10px] font-bold text-slate-400">{new Date(entry.entry_date).toLocaleDateString("pt-BR")}</span>
+                        </div>
+                        <p className="text-sm font-medium text-slate-600 leading-relaxed">{entry.clinical_notes}</p>
+                        <div className="mt-4 flex justify-end">
+                          <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-rose-500 hover:bg-rose-50" onClick={() => handleDeleteProgress(entry.id)}>Remover</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+          )}
+
+          {activeTab === "report" && (
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 animate-in fade-in duration-700">
+              <SectionCard title="Criação e Gestão de Laudo" description="Composição técnica do documento final de avaliação.">
+                {reports.length === 0 ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-center space-y-6">
+                    <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center">
+                      <FileText className="h-8 w-8 text-slate-200" />
+                    </div>
+                    <div className="max-w-sm space-y-2">
+                      <h4 className="font-bold text-slate-900">Preparado para Gerar o Laudo?</h4>
+                      <p className="text-sm text-slate-500">O sistema consolidará testes validados e registros de anamnese automaticamente.</p>
+                    </div>
+                    <Button size="lg" className="px-10 font-bold shadow-spike" onClick={() => setShowReportForm(true)}>Criar Novo Laudo</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {reports.map((r) => (
+                           <div 
+                            key={r.id} 
+                            onClick={() => openReport(r.id)}
+                            className={`p-6 rounded-2xl border transition-all cursor-pointer ${selectedReport?.id === r.id ? 'border-primary bg-primary/5' : 'border-slate-100 bg-slate-50/50 hover:bg-white'}`}
+                           >
+                             <div className="flex justify-between items-start mb-4">
+                                <h5 className="font-bold text-slate-900">{r.title}</h5>
+                                <Badge className="bg-emerald-500 text-white border-none rounded-full px-2 py-0.5 text-[8px] font-black">Snapshot</Badge>
+                             </div>
+                             <div className="flex items-center gap-2 mt-4 text-[10px] font-bold text-slate-400">
+                                <Calendar className="h-3 w-3" />
+                                <span>Gerado em {new Date(r.created_at).toLocaleDateString("pt-BR")}</span>
+                             </div>
+                           </div>
+                        ))}
+                     </div>
+
+                     {selectedReport && (
+                        <div className="pt-8 border-t border-slate-100 animate-in slide-in-from-right-4 duration-500">
+                          <div className="flex justify-between items-center mb-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Seções do Documento</h4>
+                            <div className="flex gap-2">
+                               <Button variant="outline" size="sm" className="font-bold gap-2 text-primary border-primary/20">
+                                 <FileText className="h-4 w-4" /> Exportar PDF
+                               </Button>
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            {(selectedReport.sections || []).map((sec) => (
+                              <div key={sec.id} className="p-6 rounded-2xl border border-slate-100 bg-white hover:border-slate-200 transition-all shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h6 className="text-[11px] font-black uppercase tracking-widest text-slate-900">{sec.title}</h6>
+                                  <Badge variant="outline" className="text-[8px] font-black uppercase border-slate-100">{sec.key}</Badge>
+                                </div>
+                                <textarea 
+                                  defaultValue={sec.edited_text || sec.generated_text}
+                                  onBlur={(e) => handleSaveSection(sec.id, e.target.value)}
+                                  className="w-full text-sm text-slate-600 leading-relaxed bg-transparent border-none focus:ring-0 min-h-[100px] resize-none"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                     )}
+                  </div>
+                )}
+              </SectionCard>
+
+              <div className="space-y-8">
+                 <SectionCard title="Configurações">
+                   <div className="space-y-6">
+                      <div className="space-y-3">
+                         <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Paleta Clínica</h5>
+                         <div className="flex gap-2">
+                            <div className="h-6 w-6 rounded-full bg-primary" />
+                            <div className="h-6 w-6 rounded-full bg-emerald-400" />
+                            <div className="h-6 w-6 rounded-full bg-amber-400" />
+                         </div>
+                      </div>
+                      <div className="pt-4 border-t border-slate-50">
+                        <Button className="w-full justify-start gap-3 h-12 bg-white text-slate-700 border border-slate-100 hover:bg-slate-50 font-bold">
+                           <Sparkles className="h-4 w-4 text-primary" /> Redigir com AI
+                        </Button>
+                      </div>
+                   </div>
+                 </SectionCard>
+              </div>
+            </div>
+          )}
+
+      {showAddTestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-lg bg-white rounded-[32px] shadow-spike border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+             <div className="p-8 border-b border-slate-50 bg-slate-50/50">
+               <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-slate-900">Aplicar Instrumento</h3>
+                  <button onClick={() => setShowAddTestModal(false)} className="p-2 rounded-full hover:bg-white text-slate-400 hover:text-slate-600 transition-all"><X className="h-5 w-5" /></button>
+               </div>
+               <p className="mt-1 text-sm text-slate-500">Selecione o teste psicométrico para compor o inventário.</p>
+             </div>
+             
+             <div className="p-8 space-y-6">
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Buscar Teste</label>
+                 <select 
+                  className="w-full h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  onChange={(e) => {
+                    const inst = instruments.find(i => i.id.toString() === e.target.value);
+                    if (inst) addTest(inst.id);
+                  }}
+                 >
+                   <option value="">Selecione um instrumento...</option>
+                   {instruments.map(i => <option key={i.id} value={i.id}>{i.name} ({i.code})</option>)}
+                 </select>
+                 {instrumentFilterError && <p className="text-xs font-bold text-rose-500 mt-2">{instrumentFilterError}</p>}
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Aplicações</p>
+                     <p className="text-xl font-bold text-slate-900">{evaluation.tests.length}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Favoritos</p>
+                     <p className="text-xl font-bold text-slate-900">3</p>
+                  </div>
+               </div>
+             </div>
+
+             <div className="p-8 pt-4 bg-slate-50/50 flex justify-end gap-3">
+                <Button variant="ghost" className="font-bold text-slate-400" onClick={() => setShowAddTestModal(false)}>Cancelar</Button>
+                <Button className="font-bold px-8 shadow-spike border-none" disabled={addingTest}>
+                   {addingTest ? "Adicionando..." : "Proceder"}
+                </Button>
+             </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </PageContainer>
   );
 }

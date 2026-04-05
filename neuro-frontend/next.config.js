@@ -19,16 +19,25 @@ const nextConfig = {
   },
   output: (!isVercel && process.env.BUILD_STANDALONE === 'true') ? 'standalone' : undefined,
   async rewrites() {
-    // INTERNAL_API_BASE_URL dita o alvo interno do SSR no cluster Docker ou backend Deploy (ex: http://backend:8000)
     const backendUrl = normalizeBackendUrl(process.env.INTERNAL_API_BASE_URL)
     return [
       {
-        source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
-      },
-      {
         source: '/api/:path',
         destination: `${backendUrl}/api/:path/`,
+      },
+      {
+        source: '/api/:path/:rest*',
+        destination: `${backendUrl}/api/:path/:rest*`,
+      },
+    ]
+  },
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'X-Forwarded-Host', value: 'localhost:3000' },
+        ],
       },
     ]
   },
