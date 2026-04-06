@@ -6,10 +6,11 @@ import os
 router = Router(tags=["system"])
 
 @router.get("/status")
-def system_status(request):
+def system_status(request, setup: bool = False):
     db_ok = False
     db_error = None
     tables = []
+    setup_result = "Nenhum setup executado"
     
     try:
         with connection.cursor() as cursor:
@@ -19,11 +20,38 @@ def system_status(request):
             # Check if User table exists
             cursor.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'")
             tables = [row[0] for row in cursor.fetchall()]
+
+        # Setup logic if requested and DB connected
+        if setup and db_ok:
+            from django.contrib.auth import get_user_model
+            from django.core.management import call_command
+            
+            User = get_user_model()
+            
+            # Force trigger migrations just in case
+            try:
+                call_command('migrate', interactive=False)
+            except Exception as e:
+                setup_result = f"Erro nas migrações: {str(e)}"
+            
+            if User.objects.count() == 0:
+                User.objects.create_superuser(
+                    username="admin",
+                    email="admin@neuroavalia.com",
+                    password="Neuro@2026",
+                    full_name="Administrador do Sistema",
+                    role="admin"
+                )
+                setup_result = "Usuário admin@neuroavalia.com criado com sucesso! Senha: Neuro@2026"
+            else:
+                setup_result = "Banco já possui usuários. Setup ignorado."
+
     except Exception as e:
         db_error = str(e)
 
     return {
         "status": "online",
+        "setup_result": setup_result,
         "database": {
             "connected": db_ok,
             "error": db_error,

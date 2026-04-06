@@ -6,7 +6,7 @@ services:
     rootDir: .
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     preDeployCommand: python manage.py migrate
-    startCommand: gunicorn config.wsgi:application --log-file -
+    startCommand: python manage.py migrate && gunicorn config.wsgi:application --log-file -
     healthCheckPath: /healthz/
     envVars:
       - key: DJANGO_ENV
