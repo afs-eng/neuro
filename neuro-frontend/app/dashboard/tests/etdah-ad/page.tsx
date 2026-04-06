@@ -111,18 +111,23 @@ function ETDAHADTestPageContent() {
           }
           if (result && result.raw_payload) {
             const raw = result.raw_payload
-            console.log('ETDAH-AD: raw_payload keys:', Object.keys(raw))
             const existingScores: Record<string, string> = {}
             for (let i = 1; i <= 69; i++) {
-              const key = `item_${i.toString().padStart(2, '0')}`
+              const paddedKey = `item_${i.toString().padStart(2, '0')}`
+              const unpaddedKey = `item_${i}`
+              
+              // Tenta várias possibilidades de onde o valor pode estar (devido a versões antigas)
               if (raw.responses && raw.responses[i] !== undefined) {
-                existingScores[`item_${i}`] = String(raw.responses[i])
-              } else if (raw[key] !== undefined) {
-                existingScores[`item_${i}`] = String(raw[key])
+                existingScores[unpaddedKey] = String(raw.responses[i])
+              } else if (raw.responses && raw.responses[paddedKey] !== undefined) {
+                existingScores[unpaddedKey] = String(raw.responses[paddedKey])
+              } else if (raw[paddedKey] !== undefined) {
+                existingScores[unpaddedKey] = String(raw[paddedKey])
+              } else if (raw[unpaddedKey] !== undefined) {
+                existingScores[unpaddedKey] = String(raw[unpaddedKey])
               }
             }
             if (Object.keys(existingScores).length > 0) {
-              console.log('ETDAH-AD: loaded scores:', existingScores)
               setScores(existingScores)
             }
           }
@@ -142,6 +147,12 @@ function ETDAHADTestPageContent() {
     }
     fetchEvaluation();
   }, [evaluationId, applicationId, isEditMode, router]);
+
+  const clearForm = () => {
+    if (confirm("Deseja realmente limpar todos os campos do formulário?")) {
+      setScores({});
+    }
+  };
 
   const handleScoreChange = (item: number, value: string) => {
     const num = parseInt(value);
@@ -190,7 +201,10 @@ function ETDAHADTestPageContent() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="xl:col-span-2 rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Dados da aplicação</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Dados da aplicação
+              {isEditMode && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Modo Edição</Badge>}
+            </CardTitle>
             <CardDescription>Preencha as respostas do paciente.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -250,6 +264,14 @@ function ETDAHADTestPageContent() {
                         className="h-8 w-16 rounded-lg text-center"
                         value={scores[`item_${idx + 1}`] || ""}
                         onChange={(e) => handleScoreChange(idx + 1, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const nextId = `input-item-${idx + 2}`;
+                            document.getElementById(nextId)?.focus();
+                          }
+                        }}
+                        id={`input-item-${idx + 1}`}
                         placeholder="0-5"
                       />
                     </div>
@@ -261,7 +283,10 @@ function ETDAHADTestPageContent() {
             <div className="flex gap-2">
               <Button className="rounded-xl gap-2" onClick={handleSave}>
                 <Save className="h-4 w-4" />
-                Salvar aplicação
+                {isEditMode ? "Salvar Alterações" : "Salvar aplicação"}
+              </Button>
+              <Button variant="outline" className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={clearForm}>
+                Limpar Campos
               </Button>
             </div>
           </CardContent>

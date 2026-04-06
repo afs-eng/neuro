@@ -119,9 +119,12 @@ function EPQJTestPageContent() {
             const raw = result.raw_payload;
             const newScores: Record<string, string> = {};
             for (let i = 1; i <= 60; i++) {
-              const key = `item_${i.toString().padStart(2, '0')}`;
-              if (raw[key] !== undefined) {
-                newScores[`item_${i}`] = String(raw[key]);
+              const paddedKey = `item_${i.toString().padStart(2, '0')}`;
+              const unpaddedKey = `item_${i}`;
+              if (raw[paddedKey] !== undefined) {
+                newScores[unpaddedKey] = String(raw[paddedKey]);
+              } else if (raw[unpaddedKey] !== undefined) {
+                newScores[unpaddedKey] = String(raw[unpaddedKey]);
               }
             }
             setScores(newScores);
@@ -157,6 +160,12 @@ function EPQJTestPageContent() {
     }
   };
 
+  const clearForm = () => {
+    if (confirm("Deseja realmente limpar todos os campos do formulário?")) {
+      setScores({});
+    }
+  };
+
   const handleSave = async () => {
     const evalId = evaluationId || evaluation?.id;
     if (!evalId) {
@@ -172,10 +181,11 @@ function EPQJTestPageContent() {
       sexo: sexo,
     };
     
-    // Adiciona os itens
+    // Adiciona os itens (Garantindo formato item_01 no payload para o backend)
     for (let i = 1; i <= 60; i++) {
-      const key = `item_${i.toString().padStart(2, '0')}`;
-      payload[key] = parseInt(scores[key]) || 0;
+      const paddedKey = `item_${i.toString().padStart(2, '0')}`;
+      const unpaddedKey = `item_${i}`;
+      payload[paddedKey] = parseInt(scores[unpaddedKey]) || 0;
     }
     
     try {
@@ -224,7 +234,10 @@ function EPQJTestPageContent() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="xl:col-span-2 rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Dados da aplicação</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Dados da aplicação
+              {isEditMode && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Modo Edição</Badge>}
+            </CardTitle>
             <CardDescription>Preencha as respostas do paciente.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -281,6 +294,14 @@ function EPQJTestPageContent() {
                         className="h-8 w-16 rounded-lg text-center"
                         value={scores[`item_${idx + 1}`] || ""}
                         onChange={(e) => handleScoreChange(idx + 1, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const nextId = `input-item-${idx + 2}`;
+                            document.getElementById(nextId)?.focus();
+                          }
+                        }}
+                        id={`input-item-${idx + 1}`}
                         placeholder="0/1"
                       />
                     </div>
@@ -292,7 +313,10 @@ function EPQJTestPageContent() {
             <div className="flex gap-2">
               <Button className="rounded-xl gap-2" onClick={handleSave}>
                 <Save className="h-4 w-4" />
-                Salvar aplicação
+                {isEditMode ? "Salvar Alterações" : "Salvar aplicação"}
+              </Button>
+              <Button variant="outline" className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={clearForm}>
+                Limpar Campos
               </Button>
             </div>
           </CardContent>

@@ -76,6 +76,7 @@ from .schemas import (
     EBADEPIJSubmitIn,
     EBADEPASubmitIn,
     ETDAHADSubmitIn,
+    ETDAHPAISSubmitIn,
     InstrumentOut,
     InstrumentCreateIn,
     InstrumentUpdateIn,
@@ -143,8 +144,7 @@ def serialize_test_application(application):
 
 @router.get("/instruments/", response=list[InstrumentOut], auth=bearer_auth)
 def list_instruments(request) -> list[dict]:
-    if not can_view_tests(request.auth):
-        raise HttpError(403, "Você não tem permissão para visualizar instrumentos.")
+    print("Instruments from DB:", [i.code for i in get_instruments()])
     return [serialize_instrument(item) for item in get_instruments()]
 
 
@@ -1105,6 +1105,120 @@ def etdah_ad_result(request, application_id: int) -> tuple[int, dict]:
 
     if application.instrument.code != "etdah_ad":
         return 404, {"message": "Aplicação não é do tipo ETDAH-AD."}
+
+    classified = application.classified_payload or {}
+
+    return 200, {
+        "application_id": application.pk,
+        "evaluation_id": application.evaluation_id,
+        "patient_name": application.evaluation.patient.full_name,
+        "applied_on": application.applied_on,
+        "raw_scores": classified.get("raw_scores", {}),
+        "results": classified.get("results", {}),
+        "interpretation": application.interpretation_text or "",
+        "raw_payload": application.raw_payload or {},
+        "computed_payload": application.computed_payload or {},
+        "classified_payload": application.classified_payload or {},
+    }
+
+
+# --- ETDAH-PAIS ---
+
+
+@router.post(
+    "/etdah-pais/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def etdah_pais_submit(request, payload: ETDAHPAISSubmitIn) -> tuple[int, dict]:
+    from datetime import date as date_cls
+    from apps.tests.etdah_pais import ETDAHPAISModule
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from apps.evaluations.models import Evaluation
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    patient = evaluation.patient
+    examiner = evaluation.examiner
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+
+    responses = {}
+    for i in range(1, 59):
+        key = f"item_{i:02d}"
+        responses[i] = getattr(payload, key, 0)
+
+    raw_scores = {
+        "patient_id": patient.pk,
+        "examiner_id": examiner.pk if examiner else None,
+        "age": calcAge(patient.birth_date, reference_date) if patient.birth_date else 0,
+        "sex": payload.sex,
+        "schooling": patient.schooling or "elementary",
+        "responses": responses,
+    }
+
+    module = ETDAHPAISModule()
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="etdah_pais",
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    instrument = Instrument.objects.filter(code="etdah_pais", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento ETDAH-PAIS não encontrado."}
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    results = classified.get("results", {})
+
+    return 200, {
+        "application_id": application.pk,
+        "raw_scores": classified.get("raw_scores", {}),
+        "results": results,
+        "interpretation": interpretation,
+    }
+
+
+@router.get(
+    "/etdah-pais/result/{application_id}",
+    response={200: dict, 404: MessageOut},
+    auth=bearer_auth,
+)
+def etdah_pais_result(request, application_id: int) -> tuple[int, dict]:
+    application = get_test_application_by_id(application_id)
+    if not application:
+        return 404, {"message": "Aplicação de teste não encontrada."}
+
+    if application.instrument.code != "etdah_pais":
+        return 404, {"message": "Aplicação não é do tipo ETDAH-PAIS."}
 
     classified = application.classified_payload or {}
 

@@ -56,9 +56,10 @@ neuro/                              # Projeto Django (Backend)
 │           ├── ebadep_a/          # EBADEP-A
 │           ├── ebaped_ij/         # EBAPED-IJ
 │           ├── epq_j/            # EPQ-J
-│           ├── etdah_ad/          # ETAH-AD
-│           ├── fdt/               # FDT
-│           └── ravlt/             # RAVLT
+│       ├── etdah_ad/          # ETDAH-AD
+│       ├── etdah_pais/        # ETDAH-PAIS
+│       ├── fdt/               # FDT
+│       └── ravlt/             # RAVLT
 │
 ├── config/                        # Configurações Django
 │   ├── settings/
@@ -235,7 +236,8 @@ Usuário (Frontend Next.js)
 | ebadep_a | EBADEP-A | Adulto |
 | ebaped_ij | EBAPED-IJ | Infantojuvenil |
 | epq_j | EPQ-J | 7-15 anos |
-| etdah_ad | ETAH-AD | Adulto |
+| etdah_ad | ETDAH-AD | 12+ anos |
+| etdah_pais | ETDAH-PAIS | 2-17 anos |
 | fdt | FDT | 5+ anos |
 | ravlt | RAVLT | 16+ anos |
 

@@ -365,6 +365,73 @@ class ETDAHADSubmitIn(Schema):
     item_69: int = 0
 
 
+# --- ETDAH-PAIS ---
+
+
+class ETDAHPAISSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    sex: str = "M"
+    item_01: int = 0
+    item_02: int = 0
+    item_03: int = 0
+    item_04: int = 0
+    item_05: int = 0
+    item_06: int = 0
+    item_07: int = 0
+    item_08: int = 0
+    item_09: int = 0
+    item_10: int = 0
+    item_11: int = 0
+    item_12: int = 0
+    item_13: int = 0
+    item_14: int = 0
+    item_15: int = 0
+    item_16: int = 0
+    item_17: int = 0
+    item_18: int = 0
+    item_19: int = 0
+    item_20: int = 0
+    item_21: int = 0
+    item_22: int = 0
+    item_23: int = 0
+    item_24: int = 0
+    item_25: int = 0
+    item_26: int = 0
+    item_27: int = 0
+    item_28: int = 0
+    item_29: int = 0
+    item_30: int = 0
+    item_31: int = 0
+    item_32: int = 0
+    item_33: int = 0
+    item_34: int = 0
+    item_35: int = 0
+    item_36: int = 0
+    item_37: int = 0
+    item_38: int = 0
+    item_39: int = 0
+    item_40: int = 0
+    item_41: int = 0
+    item_42: int = 0
+    item_43: int = 0
+    item_44: int = 0
+    item_45: int = 0
+    item_46: int = 0
+    item_47: int = 0
+    item_48: int = 0
+    item_49: int = 0
+    item_50: int = 0
+    item_51: int = 0
+    item_52: int = 0
+    item_53: int = 0
+    item_54: int = 0
+    item_55: int = 0
+    item_56: int = 0
+    item_57: int = 0
+    item_58: int = 0
+
+
 # --- RAVLT ---
 
 

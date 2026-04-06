@@ -7,6 +7,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
 const STAGES = [
@@ -106,6 +107,12 @@ function FDTPageContent() {
     }));
   };
 
+  const clearForm = () => {
+    if (confirm("Deseja realmente limpar todos os campos do formulário?")) {
+      setScores(EMPTY_STATE);
+    }
+  };
+
   const handleSave = async () => {
     if (!evaluationId) {
       alert("ID da avaliação não encontrado. Acesse este teste através de uma avaliação.");
@@ -156,7 +163,10 @@ function FDTPageContent() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2 rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Dados da aplicação</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Dados da aplicação
+              {isEditMode && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Modo Edição</Badge>}
+            </CardTitle>
             <CardDescription>Informe o tempo e os erros de cada etapa do FDT.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -217,7 +227,10 @@ function FDTPageContent() {
             <div className="flex gap-2">
               <Button className="rounded-xl gap-2" onClick={handleSave}>
                 <Save className="h-4 w-4" />
-                Salvar aplicação
+                {isEditMode ? "Salvar Alterações" : "Salvar aplicação"}
+              </Button>
+              <Button variant="outline" className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={clearForm}>
+                Limpar Campos
               </Button>
             </div>
           </CardContent>

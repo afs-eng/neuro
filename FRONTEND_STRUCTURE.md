@@ -27,6 +27,14 @@ neuro-frontend/
 │   │   │   │   ├── page.tsx      # Form WISC-IV
 │   │   │   │   └── [id]/
 │   │   │   │       └── result.tsx  # Resultado WISC-IV
+│   │   │   ├── etdah-ad/
+│   │   │   │   ├── page.tsx      # Form ETDAH-AD
+│   │   │   │   └── [id]/
+│   │   │   │       └── result.tsx  # Resultado ETDAH-AD
+│   │   │   ├── etdah-pais/
+│   │   │   │   ├── page.tsx      # Form ETDAH-PAIS
+│   │   │   │   └── [id]/
+│   │   │   │       └── result.tsx  # Resultado ETDAH-PAIS
 │   │   │   └── ...
 │   │   │
 │   │   ├── reports/

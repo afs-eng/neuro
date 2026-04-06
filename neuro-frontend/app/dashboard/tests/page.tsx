@@ -16,6 +16,7 @@ const TESTS_AVAILABLE = [
   { code: "ebadep-ij", name: "EBADEP-IJ", category: "Depressão Infantojuvenil", description: "Escala Baptista de Depressão (Versão Infantil e Juvenil).", is_active: true  },
   { code: "epq-j", name: "EPQ-J", category: "Personalidade", description: "Questionário de Personalidade de Eysenck para Jovens.", is_active: true  },
   { code: "etdah-ad", name: "ETDAH-AD", category: "TDAH em Adultos", description: "Escala de Transtorno do Déficit de Atenção/Hiperatividade.", is_active: true  },
+  { code: "etdah-pais", name: "ETDAH-PAIS", category: "TDAH Infantojuvenil", description: "Escala de Transtorno do Déficit de Atenção/Hiperatividade (Versão para Pais).", is_active: true  },
   { code: "ravlt", name: "RAVLT", category: "Memória", description: "Teste de Aprendizado Auditivo-Verbal de Rey.", is_active: true  },
 ];
 

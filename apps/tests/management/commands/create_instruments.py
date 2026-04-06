@@ -56,6 +56,13 @@ class Command(BaseCommand):
                 "version": "1.0",
                 "is_active": True,
             },
+            {
+                "code": "etdah_pais",
+                "name": "ETDAH-PAIS - Escala de Transtorno de Déficit de Atenção e Hiperatividade - Versão para Pais",
+                "category": "TDAH",
+                "version": "1.0",
+                "is_active": True,
+            },
         ]
 
         for inst in instrumentos:

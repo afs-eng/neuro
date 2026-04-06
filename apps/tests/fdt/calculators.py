@@ -39,19 +39,9 @@ def classify_percentile(percentile: float) -> str:
 
 
 def percentile_range_text(percentile: float) -> str:
-    if percentile < 5:
-        return "< 5"
-    if percentile < 25:
-        return "> 5 < 25"
-    if percentile < 50:
-        return "> 25 < 50"
-    if percentile == 50:
-        return "50"
-    if percentile < 75:
-        return "> 50 < 75"
-    if percentile < 95:
-        return "> 75 < 95"
-    return ">= 95"
+    # Retorna o percentil formatado para facilitar a leitura.
+    # Removendo decimais se for um número inteiro .0 para limpeza visual.
+    return f"{percentile:.1f}".rstrip('0').rstrip('.')
 
 
 def calculate_metric_result(
@@ -84,6 +74,8 @@ def classify_error_percentile(percentile: float) -> str:
 
 
 def manual_percentile_from_table(value: float, norms: dict) -> str:
+    # Esta função busca o percentil baseado nos pontos de corte 5, 25, 50, 75, 95.
+    # Para ser mais preciso, retornamos o valor nominal do percentil encontrado.
     pc95 = norms["pc95"]
     pc75 = norms["pc75"]
     pc50 = norms["pc50"]
@@ -91,21 +83,15 @@ def manual_percentile_from_table(value: float, norms: dict) -> str:
     pc5 = norms["pc5"]
 
     if value <= pc95:
-        return "95" if value == pc95 else ">= 95"
-    if value < pc75:
-        return "> 75 < 95"
-    if value == pc75:
+        return "95"
+    if value <= pc75:
         return "75"
-    if value < pc50:
-        return "> 50 < 75"
-    if value == pc50:
+    if value <= pc50:
         return "50"
-    if value < pc25:
-        return "> 25 < 50"
-    if value == pc25:
+    if value <= pc25:
         return "25"
-    if value < pc5:
-        return "> 5 < 25"
+    if value <= pc5:
+        return "5"
     return "< 5"
 
 

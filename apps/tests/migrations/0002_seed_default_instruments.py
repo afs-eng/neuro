@@ -54,6 +54,13 @@ def seed_default_instruments(apps, schema_editor):
             "version": "1.0",
             "is_active": True,
         },
+        {
+            "code": "etdah_pais",
+            "name": "ETDAH-PAIS - Escala de Transtorno de Deficit de Atencao e Hiperatividade - Versao para Pais",
+            "category": "TDAH",
+            "version": "1.0",
+            "is_active": True,
+        },
     ]
 
     for item in instruments:

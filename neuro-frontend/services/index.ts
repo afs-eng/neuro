@@ -1,0 +1,7 @@
+export * from './patientService'
+export * from './evaluationService'
+export * from './testService'
+export * from './wisc4Service'
+export * from './anamnesisService'
+export * from './documentService'
+export * from './reportService'

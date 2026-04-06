@@ -129,9 +129,7 @@ export default function FDTResultPage() {
                     <th className="pb-3 text-left text-xs font-semibold uppercase text-zinc-500">Subteste</th>
                     <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Tempo</th>
                     <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Média</th>
-                    <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">DP</th>
-                    <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Z</th>
-                    <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Pontos</th>
+                    <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Pontos Ponderados</th>
                     <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Percentil</th>
                     <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Classificação</th>
                   </tr>
@@ -143,11 +141,9 @@ export default function FDTResultPage() {
                       <td className="py-3 text-zinc-900">{item.nome}</td>
                       <td className="py-3 text-center text-zinc-700">{item.valor}</td>
                       <td className="py-3 text-center text-zinc-700">{item.media}</td>
-                      <td className="py-3 text-center text-zinc-700">{item.dp}</td>
-                      <td className="py-3 text-center text-zinc-700">{item.z_score}</td>
                       <td className="py-3 text-center text-zinc-700">{item.pontos_ponderados}</td>
                       <td className="py-3 text-center text-zinc-700">
-                        {item.percentil_texto} ({item.percentil_num})
+                        {item.percentil_num ?? item.percentil_texto}
                       </td>
                       <td className="py-3 text-center">
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${CLASSIFICATION_STYLES[item.classificacao] || "bg-slate-100 text-slate-700"}`}>
@@ -220,9 +216,7 @@ export default function FDTResultPage() {
                       <th className="pb-3 text-left text-xs font-semibold uppercase text-zinc-500">Categoria</th>
                       <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Erros</th>
                       <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Média</th>
-                      <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">DP</th>
-                      <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Z</th>
-                      <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Pontos</th>
+                      <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Pontos Ponderados</th>
                       <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Percentil</th>
                       <th className="pb-3 text-center text-xs font-semibold uppercase text-zinc-500">Classificação</th>
                     </tr>
@@ -234,12 +228,9 @@ export default function FDTResultPage() {
                         <td className="py-3 text-zinc-700">{errorData.categoria || "—"}</td>
                         <td className="py-3 text-center text-zinc-700">{errorData.qtde_erros ?? "—"}</td>
                         <td className="py-3 text-center text-zinc-700">{errorData.media ?? "—"}</td>
-                        <td className="py-3 text-center text-zinc-700">{errorData.desvio_padrao ?? "—"}</td>
-                        <td className="py-3 text-center text-zinc-700">{errorData.z_score ?? "—"}</td>
                         <td className="py-3 text-center text-zinc-700">{errorData.pontos_ponderados ?? "—"}</td>
                         <td className="py-3 text-center text-zinc-700">
-                          {errorData.percentil_manual || "—"}
-                          {typeof errorData.percentil === "number" ? ` (${errorData.percentil})` : ""}
+                          {typeof errorData.percentil === "number" ? errorData.percentil : (errorData.percentil_manual || "—")}
                         </td>
                         <td className="py-3 text-center">
                           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${CLASSIFICATION_STYLES[formatClassification(errorData.classificacao_guilmette || "")] || "bg-slate-100 text-slate-700"}`}>

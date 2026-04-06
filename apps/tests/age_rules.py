@@ -39,6 +39,11 @@ INSTRUMENT_AGE_RULES = {
         "max_age": None,
         "message": "O ETDAH-AD pode ser aplicado apenas a partir de 12 anos.",
     },
+    "etdah_pais": {
+        "min_age": 2,
+        "max_age": 17,
+        "message": "O ETDAH-PAIS pode ser aplicado apenas entre 2 e 17 anos.",
+    },
 }
 
 

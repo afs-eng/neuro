@@ -1,1 +1,1 @@
-{"version":1,"functions":{"/dashboard/patients":{},"/dashboard/patients/[id]":{}}}
+{"version":1,"functions":{"/dashboard/patients/[id]":{},"/dashboard/patients":{}}}

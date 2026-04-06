@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
 const QUESTIONS = [
@@ -68,9 +69,12 @@ function EBADEPIJTestPageContent() {
             const raw = result.raw_payload
             const existingScores: Record<string, string> = {}
             for (let i = 1; i <= 27; i++) {
-              const key = `item_${i.toString().padStart(2, '0')}`
-              if (raw[key] !== undefined) {
-                existingScores[`item_${i}`] = String(raw[key])
+              const paddedKey = `item_${i.toString().padStart(2, '0')}`
+              const unpaddedKey = `item_${i}`
+              if (raw[paddedKey] !== undefined) {
+                existingScores[unpaddedKey] = String(raw[paddedKey])
+              } else if (raw[unpaddedKey] !== undefined) {
+                existingScores[unpaddedKey] = String(raw[unpaddedKey])
               }
             }
             setScores(existingScores)
@@ -92,6 +96,12 @@ function EBADEPIJTestPageContent() {
     fetchEvaluation();
   }, [evaluationId, applicationId, isEditMode, router]);
 
+  const clearForm = () => {
+    if (confirm("Deseja realmente limpar todos os campos do formulário?")) {
+      setScores({});
+    }
+  };
+
   const handleSave = async () => {
     if (!evaluationId) {
       alert("ID da avaliação não encontrado. Acesse este teste através de uma avaliação.");
@@ -107,7 +117,6 @@ function EBADEPIJTestPageContent() {
 
     try {
       const result = await api.post<{ application_id: number }>('/api/tests/ebadep-ij/submit', payload);
-      alert('EBADEP-IJ salvo com sucesso!');
       router.push(`/dashboard/tests/ebadep-ij/${result.application_id}/result?evaluation_id=${evaluationId}`);
     } catch (error: any) {
       console.error('Erro:', error);
@@ -130,7 +139,10 @@ function EBADEPIJTestPageContent() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="xl:col-span-2 rounded-2xl border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Itens do instrumento</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Itens do instrumento
+              {isEditMode && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Modo Edição</Badge>}
+            </CardTitle>
             <CardDescription>Marque a frequência para cada item.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -172,6 +184,14 @@ function EBADEPIJTestPageContent() {
                             setScores({ ...scores, [`item_${idx + 1}`]: val });
                           }
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const nextId = `input-item-${idx + 2}`;
+                            document.getElementById(nextId)?.focus();
+                          }
+                        }}
+                        id={`input-item-${idx + 1}`}
                         placeholder="0-2"
                       />
                     </div>
@@ -183,7 +203,10 @@ function EBADEPIJTestPageContent() {
             <div className="flex gap-2">
               <Button className="rounded-xl gap-2" onClick={handleSave}>
                 <Save className="h-4 w-4" />
-                Salvar aplicação
+                {isEditMode ? "Salvar Alterações" : "Salvar aplicação"}
+              </Button>
+              <Button variant="outline" className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={clearForm}>
+                Limpar Campos
               </Button>
             </div>
           </CardContent>
