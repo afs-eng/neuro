@@ -26,10 +26,12 @@ import {
   Clock,
   ShieldCheck,
   LayoutDashboard,
-  Edit
+  Edit,
+  Printer
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
+import { AnamnesisResponseViewer } from "@/components/anamnesis/AnamnesisResponseViewer";
 
 interface Instrument {
   id: number;
@@ -1296,8 +1298,11 @@ export default function EvaluationDetailPage() {
                             </Button>
                           )}
                         </div>
-                        <div className="p-6 rounded-2xl bg-slate-900 text-slate-300 font-mono text-[11px] leading-relaxed overflow-x-auto border border-slate-800 shadow-inner max-h-[400px]">
-                          {JSON.stringify(selectedAnamnesisResponse.answers_payload, null, 2)}
+                        <div className="print-area">
+                          <AnamnesisResponseViewer 
+                            answers={selectedAnamnesisResponse.answers_payload} 
+                            template={anamnesisTemplates.find(t => t.id === selectedAnamnesisResponse.template_id || t.name === selectedAnamnesisResponse.template_name)}
+                          />
                         </div>
                       </div>
                     )}
