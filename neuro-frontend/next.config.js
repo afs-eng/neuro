@@ -1,46 +1,11 @@
 /** @type {import('next').NextConfig} */
-const normalizeBackendUrl = (value) => {
-  const fallbackUrl = 'https://neuro-k06p.onrender.com'
-
-  if (!value) {
-    return fallbackUrl
-  }
-
-  const normalized = value.replace(/\/$/, '')
-  return normalized.endsWith('/api') ? normalized.slice(0, -4) : normalized
-}
-
-const isVercel = process.env.VERCEL === '1'
-
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost', '127.0.0.1'],
+    domains: ['localhost', '127.0.0.1', 'neuro-k06p.onrender.com'],
   },
-  output: (!isVercel && process.env.BUILD_STANDALONE === 'true') ? 'standalone' : undefined,
-  async rewrites() {
-    const backendUrl = normalizeBackendUrl(process.env.INTERNAL_API_BASE_URL)
-    return [
-      {
-        source: '/api/:path',
-        destination: `${backendUrl}/api/:path/`,
-      },
-      {
-        source: '/api/:path/:rest*',
-        destination: `${backendUrl}/api/:path/:rest*`,
-      },
-    ]
-  },
-  async headers() {
-    return [
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'X-Forwarded-Host', value: 'localhost:3000' },
-        ],
-      },
-    ]
-  },
+  // Removemos rewrites para evitar confusão com domínios internos do Docker
+  // O frontend agora conecta DIRETAMENTE na URL do Render via lib/api.ts
 }
 
 module.exports = nextConfig

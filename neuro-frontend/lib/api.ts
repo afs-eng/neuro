@@ -1,12 +1,23 @@
 function normalizeApiBaseUrl(value?: string) {
-  if (!value) {
-    const isLocalHost = typeof window !== 'undefined' && 
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    return isLocalHost ? 'http://127.0.0.1:8000' : 'https://neuro-k06p.onrender.com';
+  // Verificamos se estamos rodando no navegador ou no servidor do Next.js
+  const isBrowser = typeof window !== 'undefined';
+  const isLocalHost = isBrowser && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.includes('192.168.')
+  );
+
+  // Se for localhost (desenvolvimento), usamos o back-end local
+  if (isLocalHost) return 'http://127.0.0.1:8000';
+
+  // Se tivermos um endereço configurado (Vercel), usamos ele como prioridade
+  if (value && value !== 'http://backend:8000') {
+    const normalized = value.replace(/\/$/, '')
+    return normalized.endsWith('/api') ? normalized.slice(0, -4) : normalized
   }
 
-  const normalized = value.replace(/\/$/, '')
-  return normalized.endsWith('/api') ? normalized.slice(0, -4) : normalized
+  // Fallback absoluto para PRODUÇÃO (Render)
+  return 'https://neuro-k06p.onrender.com';
 }
 
 const API_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL)
