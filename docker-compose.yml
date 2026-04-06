@@ -22,7 +22,6 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Montar diretório inteiro para hot-reload
       - .:/app
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-neuro_user}:${POSTGRES_PASSWORD:-neuro_pass}@db:5432/${POSTGRES_DB:-neuro_db}
@@ -31,6 +30,11 @@ services:
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
       - CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
       - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      # Configurações de Mensageria (Lidas do .env via python-dotenv se houver)
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
     depends_on:
       - db
 
@@ -40,12 +44,11 @@ services:
       dockerfile: Dockerfile
       target: deps
     container_name: neuro-frontend
-    command: npm run dev # Pula o build estático, injeta hot-reload
+    command: npm run dev
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
-      # Montar diretório base do next + ignorar module local
       - ./neuro-frontend:/app
       - /app/node_modules
       - /app/.next
