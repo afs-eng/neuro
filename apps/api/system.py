@@ -34,17 +34,24 @@ def system_status(request, setup: bool = False):
             except Exception as e:
                 setup_result = f"Erro nas migrações: {str(e)}"
             
-            if User.objects.count() == 0:
-                User.objects.create_superuser(
-                    username="admin",
-                    email="admin@neuroavalia.com",
-                    password="Neuro@2026",
-                    full_name="Administrador do Sistema",
-                    role="admin"
-                )
-                setup_result = "Usuário admin@neuroavalia.com criado com sucesso! Senha: Neuro@2026"
+            # Create or update admin user
+            user, created = User.objects.get_or_create(
+                email="admin@neuroavalia.com",
+                defaults={
+                    "username": "admin",
+                    "full_name": "Administrador do Sistema",
+                    "role": "admin",
+                    "is_superuser": True,
+                    "is_staff": True
+                }
+            )
+            user.set_password("Neuro@2026")
+            user.save()
+            
+            if created:
+                setup_result = "Usuário admin@neuroavalia.com CRIADO com sucesso! Senha: Neuro@2026"
             else:
-                setup_result = "Banco já possui usuários. Setup ignorado."
+                setup_result = "Usuário admin@neuroavalia.com ATUALIZADO com sucesso! Senha: Neuro@2026"
 
     except Exception as e:
         db_error = str(e)

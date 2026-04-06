@@ -41,6 +41,10 @@ if render_hostname:
 if backend_public_url:
     _append_unique(CSRF_TRUSTED_ORIGINS, backend_public_url)
 
+CORS_ALLOW_ALL_ORIGINS = True  # LIBERADO PARA TESTE INICIAL
+CORS_ALLOW_CREDENTIALS = True
+
+# Mantemos as configurações originais para referência futura
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS") or []
 if frontend_base_url:
     _append_unique(CORS_ALLOWED_ORIGINS, frontend_base_url)
