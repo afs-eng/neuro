@@ -48,10 +48,37 @@ def system_status(request, setup: bool = False):
             user.set_password("Neuro@2026")
             user.save()
             
+            # Seed Instruments
+            from apps.tests.models.instruments import Instrument
+            standard_tests = [
+                {"code": "fdt", "name": "FDT", "category": "Funções Executivas"},
+                {"code": "ravlt", "name": "RAVLT", "category": "Memória"},
+                {"code": "srs2", "name": "SRS-2", "category": "Autismo"},
+                {"code": "wisc4", "name": "WISC-IV", "category": "Inteligência"},
+                {"code": "bpa2", "name": "BPA-2", "category": "Atenção"},
+                {"code": "ebadep_a", "name": "EBADEP-A", "category": "Depressão"},
+                {"code": "ebadep_ij", "name": "EBADEP-IJ", "category": "Depressão"},
+                {"code": "epq_j", "name": "EPQ-J", "category": "Personalidade"},
+                {"code": "etdah_ad", "name": "ETDAH-AD", "category": "TDAH"},
+                {"code": "etdah_pais", "name": "ETDAH-PAIS", "category": "TDAH"},
+            ]
+            
+            seeded_count = 0
+            for test in standard_tests:
+                _, created_i = Instrument.objects.get_or_create(
+                    code=test["code"],
+                    defaults={
+                        "name": test["name"],
+                        "category": test["category"],
+                        "is_active": True
+                    }
+                )
+                if created_i: seeded_count += 1
+            
             if created:
-                setup_result = "Usuário admin@neuroavalia.com CRIADO com sucesso! Senha: Neuro@2026"
+                setup_result = f"Admin CRIADO e {seeded_count} instrumentos semeados com sucesso!"
             else:
-                setup_result = "Usuário admin@neuroavalia.com ATUALIZADO com sucesso! Senha: Neuro@2026"
+                setup_result = f"Admin ATUALIZADO e {seeded_count} novos instrumentos semeados!"
 
     except Exception as e:
         db_error = str(e)

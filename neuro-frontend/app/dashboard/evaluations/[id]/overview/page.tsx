@@ -681,6 +681,9 @@ export default function EvaluationDetailPage() {
   }
 
   function getTestUrl(instrumentCode: string, testId: number): string {
+    // Normalize code (replace hyphens with underscores)
+    const normalizedCode = instrumentCode.replace(/-/g, '_');
+    
     const baseUrls: Record<string, string> = {
       "fdt": "/dashboard/tests/fdt",
       "wisc4": "/dashboard/tests/wisc4",
@@ -690,10 +693,12 @@ export default function EvaluationDetailPage() {
       "ebaped_ij": "/dashboard/tests/ebadep-ij",
       "epq_j": "/dashboard/tests/epq-j",
       "etdah_ad": "/dashboard/tests/etdah-ad",
+      "etdah_pais": "/dashboard/tests/etdah-pais",
       "ravlt": "/dashboard/tests/ravlt",
       "srs2": "/dashboard/tests/srs2",
     };
-    return `${baseUrls[instrumentCode] || "/dashboard/tests"}?evaluation_id=${evaluation?.id}&application_id=${testId}`;
+    
+    return `${baseUrls[normalizedCode] || "/dashboard/tests"}?evaluation_id=${evaluation?.id}&application_id=${testId}`;
   }
 
   async function removeTest(applicationId: number) {
