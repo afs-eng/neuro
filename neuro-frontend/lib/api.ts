@@ -1,29 +1,21 @@
-function normalizeApiBaseUrl(value?: string) {
-  // Verificamos se estamos rodando no navegador ou no servidor do Next.js
+function normalizeApiBaseUrl() {
   const isBrowser = typeof window !== 'undefined';
   const isLocalHost = isBrowser && (
     window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1' ||
-    window.location.hostname.includes('192.168.')
+    window.location.hostname === '127.0.0.1'
   );
 
-  // Se for localhost (desenvolvimento), usamos o back-end local
+  // Se estiver local, usa o back-end local
   if (isLocalHost) return 'http://127.0.0.1:8000';
 
-  // Se tivermos um endereço configurado (Vercel), usamos ele como prioridade
-  if (value && value !== 'http://backend:8000') {
-    const normalized = value.replace(/\/$/, '')
-    return normalized.endsWith('/api') ? normalized.slice(0, -4) : normalized
-  }
-
-  // Fallback absoluto para PRODUÇÃO (Render)
+  // EXTREMO: Endereço do Render fixo para evitar erros de cache do Vercel
   return 'https://neuro-k06p.onrender.com';
 }
 
-const API_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL)
+const API_URL = normalizeApiBaseUrl();
 
 if (typeof window !== 'undefined') {
-  console.log('🔌 Conectando API em:', API_URL)
+  console.log('🔌 Conexão Direta Estabelecida:', API_URL);
 }
 
 export interface ApiError {
