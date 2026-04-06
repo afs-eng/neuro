@@ -62,10 +62,30 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# No Render, URLs internas podem não requerer SSL
+# Verificamos se DATABASE_URL contém o host interno (dpg-...)
+db_url_env = os.getenv("DATABASE_URL", "")
+is_internal_db = "dpg-" in db_url_env and "-a" in db_url_env
+
+# Se estivermos no Render, forçamos o dj_database_url a usar psycopg
+if db_url_env.startswith("postgres://"):
+    db_url_env = db_url_env.replace("postgres://", "postgresql://", 1)
+
 DATABASES["default"] = dj_database_url.parse(
-    os.getenv("DATABASE_URL", default_database_url),
+    db_url_env or default_database_url,
     conn_max_age=600,
-    ssl_require=env_bool("DATABASE_SSL_REQUIRE", True),
+    ssl_require=env_bool("DATABASE_SSL_REQUIRE", not is_internal_db),
 )
 
 LOGGING["root"]["level"] = os.getenv("DJANGO_LOG_LEVEL", "INFO")
+# Garante que erros de SQL apareçam no log do Render
+LOGGING["loggers"] = {
+    "django.db.backends": {
+        "level": "ERROR",
+        "handlers": ["console"],
+    },
+    "apps.accounts": {
+        "level": "DEBUG",
+        "handlers": ["console"],
+    }
+}

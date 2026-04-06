@@ -11,12 +11,15 @@ from apps.anamnesis.api.router import (
 from apps.tests.api.router import router as tests_router
 from apps.reports.api.router import router as reports_router
 
+from apps.api.system import router as system_router
+
 api = NinjaAPI(
     title="Laudos AI API",
     version="1.0.0",
     docs_url="/docs",
 )
 
+api.add_router("/system/", system_router)
 api.add_router("/accounts/", accounts_router)
 api.add_router("/patients/", patients_router)
 api.add_router("/evaluations/", evaluations_router)

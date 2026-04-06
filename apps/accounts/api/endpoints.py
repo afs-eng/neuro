@@ -29,34 +29,39 @@ router = Router(tags=["accounts"])
 
 @router.post("/login", response=LoginOut)
 def login(request, payload: LoginIn):
-    email = payload.email
-    if not email:
-        raise HttpError(400, "Informe o email")
-
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
-
     try:
-        user = User.objects.get(email=email)
-        user = authenticate(username=user.username, password=payload.password)
-    except User.DoesNotExist:
-        user = None
+        email = payload.email
+        if not email:
+            raise HttpError(400, "Informe o email")
 
-    if not user:
-        raise HttpError(401, "Credenciais inválidas")
-    if not user.is_active:
-        raise HttpError(403, "Usuário inativo")
-    return {
-        "access": user.api_token,
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "full_name": user.display_name,
-            "role": user.role,
-        },
-    }
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        try:
+            user = User.objects.get(email=email)
+            user = authenticate(username=user.username, password=payload.password)
+        except User.DoesNotExist:
+            user = None
+
+        if not user:
+            raise HttpError(401, "Credenciais inválidas")
+        if not user.is_active:
+            raise HttpError(403, "Usuário inativo")
+        return {
+            "access": user.api_token,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "full_name": user.display_name,
+                "role": user.role,
+            },
+        }
+    except Exception as e:
+        import traceback
+        print(f"🔥 Erro crítico no login: {str(e)}")
+        print(traceback.format_exc())
+        raise e
 
 
 @router.get("/me", response=MeOut, auth=django_auth)
