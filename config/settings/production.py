@@ -20,10 +20,16 @@ backend_public_url = os.getenv("BACKEND_PUBLIC_URL", "").strip()
 frontend_base_url = os.getenv("FRONTEND_BASE_URL", "").strip()
 allow_vercel_previews = env_bool("ALLOW_VERCEL_PREVIEWS", True)
 
-ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") or [
+ALLOWED_HOSTS = [
     "sistema-neuro.onrender.com",
+    "neuro-k06p.onrender.com",
     ".onrender.com",
+    "localhost",
+    "127.0.0.1",
 ]
+for host in env_list("ALLOWED_HOSTS"):
+    _append_unique(ALLOWED_HOSTS, host)
+
 _append_unique(ALLOWED_HOSTS, render_hostname)
 _append_unique(ALLOWED_HOSTS, _hostname_from_url(backend_public_url))
 
@@ -35,13 +41,14 @@ if render_hostname:
 if backend_public_url:
     _append_unique(CSRF_TRUSTED_ORIGINS, backend_public_url)
 
-CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
-if not CORS_ALLOWED_ORIGINS and frontend_base_url:
-    CORS_ALLOWED_ORIGINS = [frontend_base_url]
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS") or []
+if frontend_base_url:
+    _append_unique(CORS_ALLOWED_ORIGINS, frontend_base_url)
 
 CORS_ALLOWED_ORIGIN_REGEXES = []
 if allow_vercel_previews:
-    CORS_ALLOWED_ORIGIN_REGEXES.append(r"^https://[a-zA-Z0-9-]+\.vercel\.app$")
+    # Aceita qualquer domínio Vercel (subdomínios e hashes)
+    CORS_ALLOWED_ORIGIN_REGEXES.append(r"^https://[a-zA-Z0-9._-]+\.vercel\.app$")
     _append_unique(CSRF_TRUSTED_ORIGINS, "https://*.vercel.app")
 
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)

@@ -2,7 +2,7 @@ function normalizeApiBaseUrl(value?: string) {
   if (!value) {
     const isLocalHost = typeof window !== 'undefined' && 
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    return isLocalHost ? 'http://127.0.0.1:8000' : 'http://backend:8000';
+    return isLocalHost ? 'http://127.0.0.1:8000' : 'https://neuro-k06p.onrender.com';
   }
 
   const normalized = value.replace(/\/$/, '')
@@ -10,6 +10,10 @@ function normalizeApiBaseUrl(value?: string) {
 }
 
 const API_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL)
+
+if (typeof window !== 'undefined') {
+  console.log('🔌 Conectando API em:', API_URL)
+}
 
 export interface ApiError {
   message: string

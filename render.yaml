@@ -22,15 +22,15 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: sistema-neuro.onrender.com
+        value: neuro-k06p.onrender.com
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://sistema-neuro.onrender.com,https://your-vercel-app.vercel.app
+        value: https://neuro-k06p.onrender.com,https://neuro-7rqkwf1xv-andrefsilvas-projects.vercel.app
       - key: CORS_ALLOWED_ORIGINS
-        value: https://your-vercel-app.vercel.app
+        value: https://neuro-7rqkwf1xv-andrefsilvas-projects.vercel.app
       - key: FRONTEND_BASE_URL
-        value: https://your-vercel-app.vercel.app
+        value: https://neuro-7rqkwf1xv-andrefsilvas-projects.vercel.app
       - key: BACKEND_PUBLIC_URL
-        value: https://sistema-neuro.onrender.com
+        value: https://neuro-k06p.onrender.com
       - key: ALLOW_VERCEL_PREVIEWS
         value: "True"
       - key: EMAIL_BACKEND

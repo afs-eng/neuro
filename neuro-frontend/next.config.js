@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const normalizeBackendUrl = (value) => {
-  const fallbackUrl = 'http://127.0.0.1:8000'
+  const fallbackUrl = 'https://neuro-k06p.onrender.com'
 
   if (!value) {
     return fallbackUrl
