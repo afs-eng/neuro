@@ -21,6 +21,9 @@ export const anamnesisService = {
   // Responses
   getResponses: (evaluationId?: number) => 
     api.get<any[]>(evaluationId ? `/api/anamnesis/responses/?evaluation_id=${evaluationId}` : '/api/anamnesis/responses/'),
+
+  getCurrentResponse: (evaluationId: number | string) =>
+    api.get<any>(`/api/anamnesis/responses/current/${evaluationId}`),
     
   reviewResponse: (responseId: number | string) => 
     api.patch<any>(`/api/anamnesis/responses/${responseId}/review`, { status: "reviewed" }),

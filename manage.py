@@ -3,6 +3,16 @@
 
 import os
 import sys
+from pathlib import Path
+
+# Load .env file if present (before Django settings are read)
+_env_file = Path(__file__).resolve().parent / ".env"
+if _env_file.is_file():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_file)
+    except ImportError:
+        pass
 
 
 def main():

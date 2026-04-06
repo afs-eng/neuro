@@ -300,7 +300,7 @@ export default function EvaluationDetailPage() {
   });
 
   const documentRequiredMissing = !documentForm.title || !documentForm.file;
-  const anamnesisRequiredMissing = !anamnesisForm.template_id || !anamnesisForm.recipient_name || (anamnesisForm.channel === "email" ? !anamnesisForm.recipient_email : !anamnesisForm.recipient_phone);
+  const anamnesisRequiredMissing = !anamnesisForm.template_id || !anamnesisForm.recipient_name || (!anamnesisForm.recipient_email && !anamnesisForm.recipient_phone);
   const progressRequiredMissing = !progressForm.entry_type || !progressForm.entry_date;
   const reportRequiredMissing = !reportForm.title;
 
@@ -443,13 +443,10 @@ export default function EvaluationDetailPage() {
         message: anamnesisForm.message,
         expires_at: anamnesisForm.expires_at ? new Date(anamnesisForm.expires_at).toISOString() : null,
       });
-      setPageNotice({ type: "success", text: "Convite de anamnese criado com sucesso." });
       setShowAnamnesisInviteForm(false);
       setAnamnesisForm({ template_id: "", recipient_name: "", recipient_email: "", recipient_phone: "", channel: "email", expires_at: "", message: "" });
+      await handleSendAnamnesis(invite.id, invite.channel as "email" | "whatsapp");
       await loadAnamnesisData();
-      if (invite.channel === "email") {
-        await handleSendAnamnesis(invite.id, "email");
-      }
     } catch (err: any) {
       setPageNotice({ type: "error", text: err?.message || "Erro ao criar convite de anamnese." });
     } finally {
@@ -461,11 +458,20 @@ export default function EvaluationDetailPage() {
     try {
       const endpoint = channel === "email" ? `/api/anamnesis/invites/${inviteId}/send-email` : `/api/anamnesis/invites/${inviteId}/send-whatsapp`;
       const invite = await api.post<AnamnesisInvite>(endpoint, {});
-      setPageNotice({ type: "success", text: channel === "email" ? "Convite enviado por e-mail." : "Link de WhatsApp gerado e registrado." });
-      await loadAnamnesisData();
-      if (channel === "whatsapp" && invite.delivery_payload?.whatsapp_link) {
-        window.open(String(invite.delivery_payload.whatsapp_link), "_blank");
+      const payload = invite.delivery_payload || {};
+
+      if (channel === "email") {
+        const provider = payload.provider === "resend" ? "Resend" : "SMTP";
+        setPageNotice({ type: "success", text: `Convite enviado por e-mail via ${provider}.` });
+      } else if (payload.auto_sent) {
+        setPageNotice({ type: "success", text: "Convite enviado automaticamente via WhatsApp." });
+      } else {
+        setPageNotice({ type: "success", text: "Link de WhatsApp gerado. Abrindo para envio manual..." });
+        if (payload.whatsapp_link) {
+          window.open(String(payload.whatsapp_link), "_blank");
+        }
       }
+      await loadAnamnesisData();
     } catch (err: any) {
       setPageNotice({ type: "error", text: err?.message || "Erro ao enviar convite." });
     }
@@ -1168,7 +1174,25 @@ export default function EvaluationDetailPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Canal de Envio</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">E-mail</label>
+                        <input 
+                          value={anamnesisForm.recipient_email}
+                          onChange={(e) => setAnamnesisForm({ ...anamnesisForm, recipient_email: e.target.value })}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          placeholder="email@exemplo.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Telefone (WhatsApp)</label>
+                        <input 
+                          value={anamnesisForm.recipient_phone}
+                          onChange={(e) => setAnamnesisForm({ ...anamnesisForm, recipient_phone: e.target.value })}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Enviar primeiro via</label>
                         <select 
                           value={anamnesisForm.channel}
                           onChange={(e) => setAnamnesisForm({ ...anamnesisForm, channel: e.target.value })}
@@ -1177,20 +1201,6 @@ export default function EvaluationDetailPage() {
                           <option value="email">E-mail</option>
                           <option value="whatsapp">WhatsApp</option>
                         </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          {anamnesisForm.channel === "email" ? "E-mail" : "Telefone"}
-                        </label>
-                        <input 
-                          value={anamnesisForm.channel === "email" ? anamnesisForm.recipient_email : anamnesisForm.recipient_phone}
-                          onChange={(e) => setAnamnesisForm({ 
-                            ...anamnesisForm, 
-                            [anamnesisForm.channel === "email" ? "recipient_email" : "recipient_phone"]: e.target.value 
-                          })}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                          placeholder={anamnesisForm.channel === "email" ? "email@exemplo.com" : "(00) 00000-0000"}
-                        />
                       </div>
                     </div>
                     <div className="flex gap-3 justify-end">
@@ -1206,24 +1216,43 @@ export default function EvaluationDetailPage() {
                   <div className="py-20 text-center animate-pulse text-slate-300 font-bold uppercase tracking-widest text-xs">Atualizando Anamneses...</div>
                 ) : (
                   <div className="space-y-12">
-                    {anamnesisInvites.length > 0 && (
+                    {anamnesisInvites.filter(i => i.status !== "canceled" && i.status !== "expired").length > 0 && (
                       <div>
                         <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">Convites Ativos</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {anamnesisInvites.map((invite) => (
+                          {anamnesisInvites.filter(i => i.status !== "canceled" && i.status !== "expired").map((invite) => (
                             <div key={invite.id} className="p-5 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-spike transition-all group">
                               <div className="flex justify-between items-start mb-3">
                                 <div>
                                   <h5 className="font-bold text-slate-900">{invite.template_name}</h5>
-                                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">{invite.recipient_name} • {invite.channel}</p>
+                                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                    {invite.recipient_name} • {invite.channel === "email" ? invite.recipient_email : invite.recipient_phone}
+                                  </p>
+                                  {invite.delivery_payload?.provider && (
+                                    <p className="text-[9px] font-bold text-slate-300 mt-1">
+                                      via {invite.delivery_payload.provider === "resend" ? "Resend" : invite.delivery_payload.provider === "evolution" ? "WhatsApp API" : invite.delivery_payload.provider === "wa_me_link" ? "Link wa.me" : "SMTP"}
+                                      {invite.delivery_payload.auto_sent === false && " (manual)"}
+                                    </p>
+                                  )}
                                 </div>
                                 <Badge className={`${STATUS_COLORS[invite.status]} rounded-full text-[9px] font-black uppercase tracking-widest`}>
                                   {invite.status}
                                 </Badge>
                               </div>
-                              <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100/50">
-                                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-primary hover:bg-primary/5" onClick={() => copyToClipboard(invite.public_url, "Link copiado!")}>Link</Button>
-                                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-emerald-600 hover:bg-emerald-50" onClick={() => handleResendAnamnesis(invite.id)}>Reenviar</Button>
+                              <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100/50 flex-wrap">
+                                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-slate-500 hover:bg-slate-100 gap-1" onClick={() => copyToClipboard(invite.public_url, "Link copiado!")}>
+                                  <Copy className="h-3 w-3" /> Link
+                                </Button>
+                                {invite.recipient_email && (
+                                  <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-blue-600 hover:bg-blue-50 gap-1" onClick={() => handleSendAnamnesis(invite.id, "email")}>
+                                    <Mail className="h-3 w-3" /> E-mail
+                                  </Button>
+                                )}
+                                {invite.recipient_phone && (
+                                  <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-emerald-600 hover:bg-emerald-50 gap-1" onClick={() => handleSendAnamnesis(invite.id, "whatsapp")}>
+                                    <MessageCircle className="h-3 w-3" /> WhatsApp
+                                  </Button>
+                                )}
                                 <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-rose-500 hover:bg-rose-50 ml-auto" onClick={() => handleCancelAnamnesis(invite.id)}>Cancelar</Button>
                               </div>
                             </div>

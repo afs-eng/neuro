@@ -266,7 +266,10 @@ def send_invite_email_endpoint(request, invite_id: int):
     if not invite.recipient_email:
         return 400, {"message": "Este convite não possui e-mail cadastrado."}
     invite.channel = "email"
-    send_invite(invite, frontend_base_url())
+    try:
+        send_invite(invite, frontend_base_url())
+    except Exception as exc:
+        return 400, {"message": f"Erro ao enviar e-mail: {exc}"}
     return 200, serialize_invite(invite)
 
 
@@ -284,7 +287,10 @@ def send_invite_whatsapp_endpoint(request, invite_id: int):
     if not invite.recipient_phone:
         return 400, {"message": "Este convite não possui telefone cadastrado."}
     invite.channel = "whatsapp"
-    send_invite(invite, frontend_base_url())
+    try:
+        send_invite(invite, frontend_base_url())
+    except Exception as exc:
+        return 400, {"message": f"Erro ao enviar WhatsApp: {exc}"}
     return 200, serialize_invite(invite)
 
 

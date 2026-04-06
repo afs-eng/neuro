@@ -15,4 +15,7 @@ dependencies = [
     "pydantic[email]>=2.10.0",
     "python-dateutil>=2.9.0.post0",
     "whitenoise>=6.8.2",
+    "resend>=2.27.0",
+    "requests>=2.33.1",
+    "python-dotenv>=1.2.2",
 ]
