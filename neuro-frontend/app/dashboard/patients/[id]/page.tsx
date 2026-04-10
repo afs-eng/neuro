@@ -142,7 +142,7 @@ export default function PatientDetailPage() {
               <Edit className="h-4 w-4 text-slate-400" />
               Editar Prontuário
             </Button>
-            <Link href={`/dashboard/evaluations/new?patient=${patient.id}`}>
+            <Link href={`/dashboard/evaluations/new?patient_id=${patient.id}`}>
               <Button className="gap-2 shadow-spike font-bold">
                 <Plus className="h-4 w-4" />
                 Nova Avaliação
@@ -208,7 +208,7 @@ export default function PatientDetailPage() {
                   description="Ainda não foram iniciados processos clínicos para este paciente."
                   icon={<ClipboardList className="h-10 w-10 text-slate-200" />}
                   action={
-                    <Link href={`/dashboard/evaluations/new?patient=${patient.id}`}>
+                    <Link href={`/dashboard/evaluations/new?patient_id=${patient.id}`}>
                       <Button className="font-bold shadow-sm">Iniciar Primeira Avaliação</Button>
                     </Link>
                   }

@@ -49,14 +49,14 @@ function RAVLTFormPageContent() {
 
   useEffect(() => {
     async function fetchEvaluation() {
-      if (!evaluationId) {
-        setLoadingEvaluation(false);
-        return;
-      }
-
       if (applicationId) {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
+          if (result && result.evaluation_id && !evaluationId) {
+            const newEvalId = result.evaluation_id.toString();
+            router.replace(`/dashboard/tests/ravlt?application_id=${applicationId}&evaluation_id=${newEvalId}&edit=true`)
+            return
+          }
           if (result && result.is_validated && !searchParams.get("edit")) {
             router.push(`/dashboard/tests/ravlt/${applicationId}/result?evaluation_id=${evaluationId}`)
             return
@@ -89,6 +89,11 @@ function RAVLTFormPageContent() {
         } catch (error) {
           console.log("Teste não encontrado")
         }
+      }
+
+      if (!evaluationId) {
+        setLoadingEvaluation(false);
+        return;
       }
 
       try {

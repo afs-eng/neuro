@@ -100,15 +100,15 @@ def calcular_pontuacoes(respostas: list[int]) -> dict:
 
 def classificar_tabela_18(pontuacao_total: int) -> str:
     if 0 <= pontuacao_total <= 15:
-        return "Comportamento positivo 1"
+        return "Sintomatologia mínima"
     if 16 <= pontuacao_total <= 20:
-        return "Comportamento positivo 2"
+        return "Sintomatologia mínima (presença de indicadores isolados)"
     if 21 <= pontuacao_total <= 30:
-        return "Com sintomatologia leve"
+        return "Sintomatologia Leve (ou sem sintomas clinicamente relevantes)"
     if 31 <= pontuacao_total <= 45:
-        return "Com sintomatologia moderada"
+        return "Sintomatologia Moderada"
     if 46 <= pontuacao_total <= 54:
-        return "Com sintomatologia grave ou severa"
+        return "Sintomatologia Grave ou Severa"
     return "Pontuação fora do intervalo esperado (0-54)"
 
 

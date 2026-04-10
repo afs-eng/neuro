@@ -460,3 +460,16 @@ class SRS2SubmitIn(Schema):
     age: Optional[int] = 10
     respondent_name: Optional[str] = ""
     responses: Optional[dict[str, int]] = {}
+
+
+# --- SCARED ---
+
+
+class SCAREDSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    form: str = "child"  # child or parent
+    gender: Optional[str] = "M"
+    age: Optional[int] = 10
+    responses: Optional[dict[str, int]] = {}
+

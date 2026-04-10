@@ -1,21 +1,22 @@
 from django.conf import settings
 from django.db import models
-
 from apps.evaluations.models import Evaluation
 from apps.patients.models import Patient
 
 
-class ReportStatus(models.TextChoices):
-    DRAFT = "draft", "Rascunho"
-    GENERATING = "generating", "Gerando"
-    IN_REVIEW = "in_review", "Em revisao"
-    FINALIZED = "finalized", "Finalizado"
-    ARCHIVED = "archived", "Arquivado"
-
-
 class ReportQuerySet(models.QuerySet):
     def with_details(self):
-        return self.select_related("evaluation", "patient", "author")
+        return self.select_related("evaluation", "patient", "author").prefetch_related(
+            "sections", "versions"
+        )
+
+
+class ReportStatus(models.TextChoices):
+    DRAFT = "draft", "Rascunho"
+    GENERATING = "generating", "Gerando texto..."
+    IN_REVIEW = "in_review", "Em revisão"
+    FINALIZED = "finalized", "Finalizado"
+    SENT = "sent", "Enviado ao paciente"
 
 
 class Report(models.Model):
@@ -23,7 +24,7 @@ class Report(models.Model):
         Evaluation,
         on_delete=models.CASCADE,
         related_name="reports",
-        verbose_name="avaliacao",
+        verbose_name="avaliação",
     )
     patient = models.ForeignKey(
         Patient,
@@ -37,19 +38,28 @@ class Report(models.Model):
         related_name="reports",
         verbose_name="autor",
     )
-    title = models.CharField("titulo", max_length=255)
+
+    title = models.CharField("título", max_length=255, default="Laudo Neuropsicológico")
     interested_party = models.CharField("interessado", max_length=255, blank=True)
     purpose = models.TextField("finalidade", blank=True)
     status = models.CharField(
         "status",
-        max_length=30,
+        max_length=20,
         choices=ReportStatus.choices,
         default=ReportStatus.DRAFT,
     )
-    snapshot_payload = models.JSONField("snapshot", default=dict, blank=True)
-    final_text = models.TextField("texto final", blank=True)
+
+    # Snapshot dos dados usados para gerar (garante imutabilidade se os testes mudarem depois)
+    context_payload = models.JSONField("contexto clínico", default=dict, blank=True)
+
+    # Texto consolidado (Markdown)
+    generated_text = models.TextField("texto gerado pela IA", blank=True)
+    edited_text = models.TextField("texto editado", blank=True)
+    final_text = models.TextField("texto finalizado", blank=True)
+
     created_at = models.DateTimeField("criado em", auto_now_add=True)
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
+    generated_at = models.DateTimeField("gerado em", null=True, blank=True)
 
     class Meta:
         ordering = ["-updated_at"]
@@ -59,31 +69,47 @@ class Report(models.Model):
     objects = ReportQuerySet.as_manager()
 
     def __str__(self):
-        return self.title
+        return f"{self.title} - {self.patient.full_name}"
 
 
 class ReportSection(models.Model):
     report = models.ForeignKey(
-        Report,
-        on_delete=models.CASCADE,
-        related_name="sections",
-        verbose_name="laudo",
+        Report, on_delete=models.CASCADE, related_name="sections", verbose_name="laudo"
     )
-    key = models.CharField("chave", max_length=100)
-    title = models.CharField("titulo", max_length=255)
+    key = models.CharField(
+        "chave da seção", max_length=100
+    )  # ex: 'anamnese', 'atencao'
+    title = models.CharField("título da seção", max_length=255)
     order = models.PositiveIntegerField("ordem", default=0)
-    source_payload = models.JSONField("payload de origem", default=dict, blank=True)
-    generated_text = models.TextField("texto gerado", blank=True)
-    edited_text = models.TextField("texto editado", blank=True)
-    is_locked = models.BooleanField("bloqueado", default=False)
-    created_at = models.DateTimeField("criado em", auto_now_add=True)
-    updated_at = models.DateTimeField("atualizado em", auto_now=True)
+
+    content_generated = models.TextField("conteúdo IA", blank=True)
+    content_edited = models.TextField("conteúdo editado", blank=True)
+
+    is_locked = models.BooleanField("bloqueado para edição", default=False)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["order", "id"]
-        unique_together = [("report", "key")]
-        verbose_name = "Secao do laudo"
-        verbose_name_plural = "Secoes do laudo"
+        ordering = ["order"]
+        unique_together = ("report", "key")
+        verbose_name = "Seção de laudo"
+        verbose_name_plural = "Seções de laudo"
 
-    def __str__(self):
-        return f"{self.report.title} - {self.title}"
+
+class ReportVersion(models.Model):
+    report = models.ForeignKey(
+        Report, on_delete=models.CASCADE, related_name="versions", verbose_name="laudo"
+    )
+    version_number = models.PositiveIntegerField("versão")
+    content = models.TextField("conteúdo")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="criado por",
+    )
+    created_at = models.DateTimeField("criado em", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-version_number"]
+        verbose_name = "Versão de laudo"
+        verbose_name_plural = "Versões de laudo"

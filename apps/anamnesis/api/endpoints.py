@@ -101,7 +101,9 @@ def serialize_invite(invite) -> dict:
         if invite.completed_at
         else None,
         "expires_at": invite.expires_at.isoformat() if invite.expires_at else None,
-        "created_by_name": invite.created_by.display_name,
+        "created_by_name": invite.created_by.display_name
+        if invite.created_by
+        else None,
         "created_at": invite.created_at.isoformat() if invite.created_at else None,
         "message": invite.message or "",
         "delivery_payload": invite.delivery_payload or {},
@@ -146,6 +148,7 @@ def list_templates(request):
         raise HttpError(
             403, "Você não tem permissão para visualizar templates de anamnese."
         )
+    sync_default_templates()
     return list(
         get_active_templates().values(
             "id",

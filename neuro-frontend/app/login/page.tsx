@@ -146,8 +146,16 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-8 text-center text-sm text-slate-500">
+            Não tem uma conta?{" "}
+            <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-700">
+              Criar conta agora
+            </Link>
+          </p>
+
+          <p className="mt-4 text-center text-xs text-slate-400">
             Sistema para uso exclusivo de profissionais autorizados
           </p>
+
         </div>
       </div>
     </div>

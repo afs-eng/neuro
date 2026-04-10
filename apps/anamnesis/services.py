@@ -348,6 +348,12 @@ def generate_summary_payload(answers_payload: dict, response_type: str) -> dict:
 
 
 def sync_default_templates() -> list[AnamnesisTemplate]:
+    current_codes = [item["code"] for item in get_default_templates()]
+    # Deactivate templates that are not in the current defaults to avoid duplicates (e.g., v1)
+    AnamnesisTemplate.objects.filter(is_active=True).exclude(
+        code__in=current_codes
+    ).update(is_active=False)
+
     templates = []
     for item in get_default_templates():
         template, _ = AnamnesisTemplate.objects.update_or_create(

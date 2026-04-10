@@ -24,10 +24,13 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
     return default or []
 
 
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "django-insecure-j$@b*oz)4m^e!wwr23&=ezplg60$w4@97f$^1mptl5id5v#80y",
-)
+_SECRET_KEY_ENV = os.getenv("SECRET_KEY", "")
+if not _SECRET_KEY_ENV:
+    if os.getenv("DEBUG", "").lower() == "false":
+        raise ValueError("SECRET_KEY deve ser configurada em produção")
+    _SECRET_KEY_ENV = "django-insecure-dev-only-fallback-not-for-production-use"
+
+SECRET_KEY = _SECRET_KEY_ENV
 
 DEBUG = env_bool("DEBUG", True)
 
@@ -38,18 +41,10 @@ ALLOWED_HOSTS = env_list(
 
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
-    ["http://127.0.0.1:3000", "http://localhost:3000"],
+    ["http://127.0.0.1:3000", "http://localhost:3000", "http://0.0.0.0:3000"],
 )
 
-CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS",
-    [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
-)
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
@@ -184,8 +179,8 @@ EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL_TEXT = os.getenv("OPENAI_MODEL_TEXT", "gpt-5")
-OPENAI_MODEL_REASONING = os.getenv("OPENAI_MODEL_REASONING", "gpt-5")
+OPENAI_MODEL_TEXT = os.getenv("OPENAI_MODEL_TEXT", "gpt-4o")
+OPENAI_MODEL_REASONING = os.getenv("OPENAI_MODEL_REASONING", "gpt-4o")
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024

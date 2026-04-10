@@ -1,0 +1,134 @@
+{
+  "nome": "Maria Clara Daher Costa e Silva",
+  "sexo": "Feminino",
+  "data_nascimento": "24/04/2011",
+  "idade": "14 anos e 8 meses",
+  "filiacao": "João Paulo Vaz Costa e Silva e Pollyana Lucena Daher",
+  "escolaridade": "8º ano do ensino fundamental",
+  "interessado": "Familiares",
+  "responsavel_devolutiva": "sua mãe",
+
+  "motivo_encaminhamento": "A paciente Maria Clara veio encaminhada para avaliação neuropsicológica em razão de dificuldades persistentes no contexto escolar, bem como prejuízos na interação social, especialmente no relacionamento com a irmã e com algumas colegas. A avaliação teve como objetivo analisar o perfil cognitivo, atencional, emocional e social da paciente, buscando compreender seu funcionamento global e subsidiar orientações clínicas e escolares adequadas.",
+
+  "historia_pessoal": "A gestação de Maria Clara ocorreu quando a mãe tinha 19 anos de idade e transcorreu sem intercorrências clínicas graves. A mãe relatou manutenção de sono regular ao longo da gestação, negando doenças infectocontagiosas, acidentes ou uso de medicamentos para prevenção de aborto. As atividades maternas concentravam-se predominantemente na frequência à faculdade e em compromissos sociais. História Perinatal: Maria Clara nasceu com 39 semanas de gestação, por parto cesáreo, sem complicações. Desenvolvimento Motor: Maria Clara apresentou atrasos no desenvolvimento motor quando comparada a outras crianças da mesma idade. É destra e não pratica atividades esportivas, restrição associada ao diagnóstico de epilepsia. Desenvolvimento Linguístico: O desenvolvimento da linguagem inicial não foi marcado por dificuldades significativas. Atualmente apresenta boa dicção e pronúncia, porém com tendência a repetir o mesmo assunto com frequência. Desenvolvimento Socioemocional: Na primeira infância, gostava de contato físico, aceitava colo e apresentava sorriso social adequado. Apresenta dificuldade em manter amizades, preferindo relacionar-se com adultos. É descrita como nervosa, irritável, ingênua, carinhosa, tímida, preocupada e desatenta. Histórico Médico: Diagnóstico de epilepsia e acompanhamento psiquiátrico em razão de alterações de humor. Faz uso de Etoxin, Lamotrigina 100 mg e ESC (5 gotas antes de dormir). Sono e Alimentação: Sono de aproximadamente 9 horas por noite. Alimentação adequada para a idade. Histórico Educacional: Retenção escolar no 1º ano do ensino fundamental, dificuldades acadêmicas persistentes, especialmente em matemática. Recebe aulas particulares desde o 4º ano.",
+
+  "wisc_qit": "61",
+  "wisc_classificacao_qit": "Extremamente Baixo",
+  "wisc_idade_cognitiva": "8 anos e 6 meses",
+  "wisc_icv": "84",  "wisc_icv_class": "Média Inferior",
+  "wisc_iop": "61",  "wisc_iop_class": "Extremamente Baixo",
+  "wisc_imo": "52",  "wisc_imo_class": "Extremamente Baixo",
+  "wisc_ivp": "68",  "wisc_ivp_class": "Extremamente Baixo",
+
+  "wisc_interpretacao": "A avaliação neuropsicológica de Maria Clara, por meio da Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV), evidencia perfil cognitivo globalmente rebaixado, com prejuízos significativos em múltiplos índices, especialmente na memória operacional, organização perceptual e velocidade de processamento. O Índice de Compreensão Verbal (ICV = 84) situou-se na faixa média inferior; o Índice de Organização Perceptual (IOP = 61) foi extremamente baixo; a Memória Operacional (IMO = 52) apresentou classificação extremamente baixa; e a Velocidade de Processamento (IVP = 68) também se situou na faixa extremamente baixa. O QIT = 61 reflete funcionamento intelectual significativamente inferior ao esperado para a idade.",
+
+  "wisc_funcao_executiva": [
+    {"teste": "Semelhanças",          "max": "39-44", "medio": "17-29", "min": "7",  "obtido": "23", "class": "Média"},
+    {"teste": "Conceitos Figurativos","max": "28",    "medio": "15-20", "min": "10", "obtido": "11", "class": "Média Inferior"},
+    {"teste": "Compreensão",          "max": "41-42", "medio": "20-29", "min": "14", "obtido": "24", "class": "Média"},
+    {"teste": "Raciocínio Matricial", "max": "35",    "medio": "18-26", "min": "13", "obtido": "12", "class": "Limítrofe"}
+  ],
+  "wisc_func_exec_interpretacao": "O desempenho em Semelhanças e Compreensão, classificados na faixa média, indica capacidade preservada de abstração verbal e julgamento social. Contudo, Conceitos Figurativos em média inferior e Raciocínio Matricial limítrofe evidenciam fragilidades na formação de conceitos não verbais e no raciocínio lógico-visual, refletindo heterogeneidade no funcionamento executivo.",
+
+  "wisc_linguagem": [
+    {"teste": "Semelhanças", "max": "39-44", "medio": "17-29", "min": "7",  "obtido": "23", "class": "Média"},
+    {"teste": "Vocabulário",  "max": "51-68", "medio": "24-38", "min": "14", "obtido": "22", "class": "Limítrofe"},
+    {"teste": "Compreensão",  "max": "41-42", "medio": "20-29", "min": "14", "obtido": "24", "class": "Média"}
+  ],
+  "wisc_linguagem_interpretacao": "As habilidades linguísticas revelam desempenho heterogêneo: abstração verbal e julgamento social preservados (Semelhanças e Compreensão na média), enquanto o vocabulário situa-se na faixa limítrofe, indicando repertório lexical reduzido e limitações na definição semântica de palavras.",
+
+  "wisc_gnosias": [
+    {"teste": "Raciocínio Matricial", "max": "35",    "medio": "18-26", "min": "13", "obtido": "12", "class": "Limítrofe"},
+    {"teste": "Cubos",                "max": "60-68", "medio": "19-36", "min": "11", "obtido": "10", "class": "Extremamente Baixo"}
+  ],
+  "wisc_gnosias_interpretacao": "Os resultados indicam prejuízos significativos nas habilidades visuoespaciais e construtivas. O subteste Cubos, classificado como extremamente baixo, evidencia comprometimento relevante na organização visuoespacial, planejamento construtivo e coordenação visomotora.",
+
+  "wisc_memoria": [
+    {"teste": "Seq. Núm. e Letras", "max": "25-30", "medio": "13-19", "min": "8", "obtido": "6",  "class": "Extremamente Baixo"},
+    {"teste": "Dígitos",            "max": "27-32", "medio": "12-17", "min": "9", "obtido": "10", "class": "Limítrofe"}
+  ],
+  "wisc_memoria_interpretacao": "A memória operacional apresenta comprometimento expressivo. Sequência de Números e Letras situa-se na faixa extremamente baixa, indicando dificuldade grave em reter e manipular informações simultâneas. Dígitos na faixa limítrofe reflete capacidade reduzida de atenção auditiva e memória imediata.",
+
+  "bpa2_resultados": [
+    {"escala": "Atenção Concentrada – AC", "pontos": "22", "percentil": "10", "class": "Inferior"},
+    {"escala": "Atenção Dividida – AD",    "pontos": "18", "percentil": "5",  "class": "Inferior"},
+    {"escala": "Atenção Alternada – AA",   "pontos": "20", "percentil": "10", "class": "Inferior"},
+    {"escala": "Atenção Geral – AG",       "pontos": "60", "percentil": "5",  "class": "Inferior"}
+  ],
+  "bpa2_interpretacao": "Os resultados indicam comprometimento global do funcionamento atencional, com desempenho inferior em todos os componentes avaliados. A atenção concentrada, dividida e alternada situam-se na faixa inferior, refletindo dificuldades significativas em sustentar, distribuir e flexibilizar o foco atencional.",
+
+  "ravlt_esperado": {"a1":"6","a2":"8","a3":"10","a4":"10","a5":"11","b1":"6","a6":"10","a7":"10","r":"15","alt":"13","ret":"1","ip":"0,88","ir":"0,9"},
+  "ravlt_minimo":   {"a1":"5","a2":"6","a3":"7", "a4":"9", "a5":"10","b1":"4","a6":"9", "a7":"7", "r":"12","alt":"7", "ret":"0,89","ip":"0,73","ir":"0,8"},
+  "ravlt_obtido":   {"a1":"6","a2":"6","a3":"10","a4":"10","a5":"10","b1":"4","a6":"8", "a7":"6", "r":"7", "alt":"12","ret":"0,75","ip":"0,67","ir":"0,8"},
+  "ravlt_interpretacao": "Maria Clara apresentou curva de aprendizagem pouco ascendente e baixo ganho progressivo ao longo das repetições. Na evocação tardia (A7 = 6), o desempenho foi inferior ao mínimo esperado, evidenciando esquecimento acelerado. O reconhecimento comprometido (R = 7) indica dificuldades nos processos de recuperação facilitada. Os índices derivados confirmam prejuízos significativos na codificação, armazenamento e evocação verbal.",
+
+  "fdt_resultados": [
+    {"processo": "Leitura",      "tempo_medio": "23,3", "tempo_obtido": "37,44", "erros": "0",  "desempenho": "5",  "class": "Indicativo de Déficit"},
+    {"processo": "Contagem",     "tempo_medio": "30",   "tempo_obtido": "68,91", "erros": "1",  "desempenho": "5",  "class": "Indicativo de Déficit"},
+    {"processo": "Escolha",      "tempo_medio": "47,8", "tempo_obtido": "127",   "erros": "10", "desempenho": "5",  "class": "Indicativo de Déficit"},
+    {"processo": "Alternância",  "tempo_medio": "56,9", "tempo_obtido": "235",   "erros": "16", "desempenho": "5",  "class": "Indicativo de Déficit"},
+    {"processo": "Inibição",     "tempo_medio": "23,8", "tempo_obtido": "89,56", "erros": "—",  "desempenho": "5",  "class": "Indicativo de Déficit"},
+    {"processo": "Flexibilidade","tempo_medio": "33,6", "tempo_obtido": "197,56","erros": "—",  "desempenho": "5",  "class": "Indicativo de Déficit"}
+  ],
+  "fdt_interpretacao": "O desempenho de Maria Clara no FDT revela comprometimento global e acentuado das funções executivas, com prejuízos significativos em todos os processos avaliados. Observa-se lentificação cognitiva importante, dificuldades severas de controle inibitório, flexibilidade cognitiva e alternância de atenção, associadas a elevado índice de erros. Esse padrão é compatível com quadros que envolvem disfunção executiva significativa.",
+
+  "etdah_titulo": "E-TDAH-PAIS",
+  "etdah_resultados": [
+    {"escala": "Fator 1 – Regulação Emocional",        "pontos": "41", "media": "33,03", "percentil": "90,3", "class": "Superior"},
+    {"escala": "Fator 2 – Hiperatividade/Impulsividade","pontos": "18", "media": "24,88", "percentil": "16,1", "class": "Inferior"},
+    {"escala": "Fator 3 – Comportamento Adaptativo",   "pontos": "45", "media": "35,10", "percentil": "81,7", "class": "Média Superior"},
+    {"escala": "Fator 4 – Atenção",                    "pontos": "26", "media": "22,05", "percentil": "68,0", "class": "Média"},
+    {"escala": "ESCORE GERAL",                         "pontos": "130","media": "116,3", "percentil": "68,5", "class": "Média"}
+  ],
+  "etdah_interpretacao": "Os resultados indicam dificuldades emocionais e adaptativas significativas. O Fator 1 – Regulação Emocional situou-se em classificação superior, indicando presença significativa de dificuldades na modulação das emoções. O Fator 3 – Comportamento Adaptativo em média superior aponta dificuldades no cumprimento de regras e organização do comportamento. O Escore Geral médio sugere funcionamento global dentro dos limites esperados, com prejuízos específicos clinicamente relevantes.",
+
+  "scared_autorrelato": [
+    {"escala": "Pânico/Sintomas Somáticos",  "pontos": "14", "media_ou_corte": "5,34",  "percentil": "97,07", "class": "Superior"},
+    {"escala": "Ansiedade Generalizada",     "pontos": "11", "media_ou_corte": "8,87",  "percentil": "71,35", "class": "Média"},
+    {"escala": "Ansiedade Separação",        "pontos": "9",  "media_ou_corte": "4,78",  "percentil": "93,00", "class": "Superior"},
+    {"escala": "Fobia Social",               "pontos": "8",  "media_ou_corte": "5,46",  "percentil": "78,63", "class": "Média Superior"},
+    {"escala": "Evitação Escolar",           "pontos": "2",  "media_ou_corte": "1,24",  "percentil": "73,50", "class": "Média"},
+    {"escala": "Total",                      "pontos": "44", "media_ou_corte": "25,69", "percentil": "93,38", "class": "Superior"}
+  ],
+  "scared_mae": [
+    {"escala": "Pânico/Sintomas Somáticos",  "pontos": "5",  "media_ou_corte": "7",  "percentil": "57,69",  "class": "Não Clínico"},
+    {"escala": "Ansiedade Generalizada",     "pontos": "7",  "media_ou_corte": "9",  "percentil": "50,00",  "class": "Não Clínico"},
+    {"escala": "Ansiedade Separação",        "pontos": "5",  "media_ou_corte": "5",  "percentil": "31,25",  "class": "Clínico"},
+    {"escala": "Fobia Social",               "pontos": "8",  "media_ou_corte": "8",  "percentil": "100,00", "class": "Clínico"},
+    {"escala": "Evitação Escolar",           "pontos": "6",  "media_ou_corte": "3",  "percentil": "87,50",  "class": "Clínico"},
+    {"escala": "Total",                      "pontos": "31", "media_ou_corte": "25", "percentil": "60,98",  "class": "Clínico"}
+  ],
+  "scared_interpretacao": "No autorrelato, Maria Clara apresentou níveis elevados de ansiedade, com classificação superior no Total Geral. Observam-se pontuações superiores em Pânico/Sintomas Somáticos e Ansiedade de Separação. No relato materno, observam-se classificações clínicas em Ansiedade de Separação, Fobia Social e Evitação Escolar. A comparação entre autorrelato e relato materno evidencia convergência parcial, indicando que parcela significativa do sofrimento ansioso ocorre de forma internalizada.",
+
+  "epqj_p_bruto": "5",  "epqj_p_percentil": "80", "epqj_p_class": "Alto",
+  "epqj_e_bruto": "7",  "epqj_e_percentil": "20", "epqj_e_class": "Baixo",
+  "epqj_n_bruto": "16", "epqj_n_percentil": "90", "epqj_n_class": "Alto",
+  "epqj_s_bruto": "12", "epqj_s_percentil": "60", "epqj_s_class": "Médio",
+  "epqj_interpretacao": "O perfil revela combinação de introversão acentuada (Extroversão baixo), instabilidade emocional elevada (Neuroticismo alto) e rigidez comportamental (Psicoticismo alto), configurando padrão de vulnerabilidade para quadros ansiosos. A Sinceridade média reforça a confiabilidade do perfil obtido.",
+
+  "srs2_resultados": [
+    {"fator": "Percepção Social",              "brutos": "11", "tscore": "64", "percentil": "92", "class": "Nível Leve"},
+    {"fator": "Cognição Social",               "brutos": "25", "tscore": "72", "percentil": "99", "class": "Nível Moderado"},
+    {"fator": "Comunicação Social",            "brutos": "29", "tscore": "66", "percentil": "94", "class": "Nível Moderado"},
+    {"fator": "Motivação Social",              "brutos": "16", "tscore": "65", "percentil": "93", "class": "Nível Leve"},
+    {"fator": "Padrões Restritos e Repetitivos","brutos":"11","tscore": "61", "percentil": "86", "class": "Nível Leve"},
+    {"fator": "Comunicação e Interação Social", "brutos":"81","tscore": "68", "percentil": "96", "class": "Nível Moderado"},
+    {"fator": "Pontuação SRS-2 Total",         "brutos": "92", "tscore": "67", "percentil": "96", "class": "Nível Moderado"}
+  ],
+  "srs2_interpretacao": "Embora os resultados indiquem dificuldades no funcionamento social, tais achados devem ser analisados à luz do funcionamento intelectual global e do quadro neurológico associado. As dificuldades sociais identificadas mostram-se compatíveis com o nível intelectual global e com os efeitos neurocognitivos da epilepsia, não sendo observados prejuízos qualitativos específicos que sustentem diagnóstico de TEA.",
+
+  "conclusao": "A avaliação neuropsicológica de Maria Clara Daher Costa e Silva revelou perfil cognitivo e emocional caracterizado por funcionamento intelectual global significativamente rebaixado, associado a prejuízos importantes nos domínios atencional, executivo, mnésico e adaptativo, além de sintomas ansiosos clinicamente relevantes. O funcionamento cognitivo é compatível com Deficiência Intelectual, com impacto direto no desempenho acadêmico e na adaptação às demandas sociais, agravado pela presença de epilepsia. Ressalta-se que o ser humano possui uma natureza dinâmica; não definitiva e não cristalizada. Sendo assim, os resultados aqui expostos dizem respeito ao funcionamento das funções cognitivas no momento presente, podendo haver alterações posteriores dependendo das contingências ambientais vivenciadas e/ou dos acompanhamentos recebidos.",
+
+  "sugestoes_conduta": [
+    "Acompanhamento neurológico contínuo, com monitoramento regular do quadro de epilepsia, ajustes terapêuticos e avaliação periódica dos possíveis impactos cognitivos e comportamentais das crises e da medicação em uso.",
+    "Encaminhamento para acompanhamento psicológico com foco em intervenção cognitivo-comportamental adaptada ao nível intelectual, visando manejo da ansiedade, regulação emocional e fortalecimento de habilidades sociais.",
+    "Acompanhamento psicopedagógico especializado, direcionado às dificuldades acadêmicas persistentes, especialmente em matemática e organização do estudo.",
+    "Intervenção fonoaudiológica continuada, com reavaliação dos objetivos terapêuticos, considerando fala lenta e arrastada, dificuldades de atenção à linguagem oral e repetição de temas.",
+    "Avaliação e acompanhamento em Terapia Ocupacional, com foco em habilidades adaptativas, coordenação motora, organização da rotina e autonomia funcional.",
+    "Orientação à família com psicoeducação sobre Deficiência Intelectual e epilepsia, ajuste de expectativas, manejo comportamental e reforço positivo.",
+    "Adaptações escolares: flexibilização curricular, tempo ampliado, instruções claras e segmentadas, uso de recursos visuais e acompanhamento pedagógico individualizado."
+  ],
+
+  "cidade": "Goiânia",
+  "data_laudo": "15 de janeiro de 2026"
+}

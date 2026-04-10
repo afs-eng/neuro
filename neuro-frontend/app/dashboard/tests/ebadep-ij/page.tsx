@@ -10,33 +10,33 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
 const QUESTIONS = [
-  "Humor deprimido",
-  "Perda ou diminuição de prazer",
+  "Sinto-me estranho e não sei por quê",
+  "Sinto vontade de ficar longe das pessoas da minha casa",
+  "Sinto vontade de ficar longe dos meus amigos",
+  "Estou mais agressivo",
+  "Sinto-me culpado",
+  "Viver está sendo difícil para mim",
   "Choro",
-  "Desesperança",
-  "Desamparo",
-  "Indecisão",
-  "Sentimento de incapacidade",
-  "Sentimentos de inadequação",
-  "Inutilidade",
-  "Carência/dependência",
-  "Negativismo",
-  "Esquiva de situações sociais",
-  "Queda de rendimento na escola",
-  "Autocrítica exacerbada",
-  "Culpa",
-  "Diminuição de concentração",
-  "Pensamento de morte",
-  "Autoestima rebaixada",
-  "Falta de perspectiva sobre o presente",
-  "Falta de perspectiva sobre o futuro (desesperança)",
-  "Alteração de apetite",
-  "Alteração de peso",
-  "Insônia/hipersonia",
-  "Lentidão/agitação psicomotora",
-  "Fadiga/perda de energia",
-  "Sintomas físicos (ex.: dores)",
-  "Irritação",
+  "Sinto-me triste",
+  "Tenho vontade de fazer as coisas que gosto",
+  "Sinto-me sozinho",
+  "Prefiro estar só",
+  "Acredito em um futuro bom",
+  "Meus dias têm sido bons",
+  "Tenho planos para o futuro",
+  "Tenho dormido bem",
+  "Acredito nas minhas capacidades",
+  "Estou feliz com minha vida",
+  "Consigo me concentrar nas minhas tarefas",
+  "Gosto de mim como eu sou",
+  "Tenho me sentido mal, sem estar doente",
+  "Penso em me machucar de propósito",
+  "Penso em me matar",
+  "Tenho comido normalmente",
+  "Sinto-me sem energia",
+  "Sou esperto",
+  "Sinto-me feio",
+  "Sinto que as pessoas não querem estar comigo",
 ];
 
 function EBADEPIJTestPageContent() {
@@ -52,14 +52,14 @@ function EBADEPIJTestPageContent() {
 
   useEffect(() => {
     async function fetchEvaluation() {
-      if (!evaluationId) {
-        setLoadingEvaluation(false);
-        return;
-      }
-
       if (applicationId) {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
+          if (result && result.evaluation_id && !evaluationId) {
+            const newEvalId = result.evaluation_id.toString();
+            router.replace(`/dashboard/tests/ebadep-ij?application_id=${applicationId}&evaluation_id=${newEvalId}&edit=true`)
+            return
+          }
           if (result && result.is_validated && !isEditMode) {
             const resultEvaluationId = result.evaluation_id ? `?evaluation_id=${result.evaluation_id}` : ""
             router.push(`/dashboard/tests/ebadep-ij/${applicationId}/result${resultEvaluationId}`)
@@ -82,6 +82,11 @@ function EBADEPIJTestPageContent() {
         } catch (error) {
           console.log("Teste não encontrado, redirecionando para formulário...")
         }
+      }
+
+      if (!evaluationId) {
+        setLoadingEvaluation(false);
+        return;
       }
 
       try {
@@ -132,7 +137,7 @@ function EBADEPIJTestPageContent() {
         </Button>
         <div>
           <h2 className="text-2xl font-semibold text-slate-900">EBADEP-IJ</h2>
-          <p className="text-sm text-slate-500">Escala Brasileira de Avaliação de Déficits de Atenção e Hiperatividade - Infantojuvenil</p>
+          <p className="text-sm text-slate-500">Escala Baptista de Depressão - Infantojuvenil</p>
         </div>
       </div>
 
@@ -201,7 +206,7 @@ function EBADEPIJTestPageContent() {
             </div>
 
             <div className="flex gap-2">
-              <Button className="rounded-xl gap-2" onClick={handleSave}>
+              <Button className="rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 transition-all font-bold" onClick={handleSave}>
                 <Save className="h-4 w-4" />
                 {isEditMode ? "Salvar Alterações" : "Salvar aplicação"}
               </Button>
@@ -219,7 +224,7 @@ function EBADEPIJTestPageContent() {
           <CardContent className="space-y-4 text-sm text-slate-600">
             <div>
               <p className="font-medium text-slate-900">EBADEP-IJ</p>
-              <p>Escala Brasileira de Avaliação de Déficits de Atenção e Hiperatividade - Versão Infantojuvenil</p>
+              <p>Escala Baptista de Depressão - infantojuvenil</p>
             </div>
             <div>
               <p className="font-medium text-slate-900">Itens</p>

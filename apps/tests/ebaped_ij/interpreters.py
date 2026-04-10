@@ -1,37 +1,37 @@
 INTERPRETATIONS = {
-    "Comportamento positivo 1": {
-        "geral": "Os resultados indicam um perfil comportamental positivo, com escores muito baixos em indicadores de sintomatologia. O avaliado apresenta padrões de comportamento adequados, sem evidências significativas de dificuldades emocionais, comportamentais ou sociais. Este perfil sugere um bom ajuste psicológico e desenvolvimento socioemocional dentro dos parâmetros esperados.",
+    "Sintomatologia mínima": {
+        "geral": "Os resultados sugerem um perfil comportamental muito positivo, com ausência de sintomas clinicamente relevantes. O desenvolvimento socioemocional encontra-se dentro dos parâmetros de normalidade esperados para a faixa etária.",
         "nivel": "muito baixo",
-        "descricao": "ausência de sintomatologia significativa",
+        "descricao": "Essa categoria expressa a ausência de sintomatologia depressiva significativa, sugerindo um bom ajuste emocional e funcional no momento atual.",
     },
-    "Comportamento positivo 2": {
-        "geral": "Os resultados indicam um perfil comportamental positivo, com escores baixos em indicadores de sintomatologia. O avaliado apresenta padrões de comportamento predominantemente adequados, com possíveis indicadores leves que não configuram prejuízo funcional significativo. Este perfil sugere um bom ajuste psicológico geral.",
+    "Sintomatologia mínima (presença de indicadores isolados)": {
+        "geral": "Os resultados sugerem um perfil comportamental positivo, com indicadores mínimos de sintomatologia que não configuram prejuízo funcional.",
         "nivel": "baixo",
-        "descricao": "indicadores mínimos de sintomatologia",
+        "descricao": "Essa categoria expressa um ajuste emocional adequado, embora possam existir flutuações de humor ocasionais comuns ao desenvolvimento infantil e juvenil.",
     },
-    "Com sintomatologia leve": {
-        "geral": "Os resultados indicam a presença de sintomatologia em nível leve. O avaliado apresenta alguns indicadores comportamentais que podem requerer atenção, embora não configurem comprometimento funcional significativo. Recomenda-se monitoramento e, se necessário, intervenções preventivas para evitar agravamento.",
+    "Sintomatologia Leve (ou sem sintomas clinicamente relevantes)": {
+        "geral": "Os resultados sugerem que o avaliado se encontra em um nível de sintomatologia leve.",
         "nivel": "leve",
-        "descricao": "presença leve de sintomatologia",
+        "descricao": "Essa categoria pode expressar a presença de alguns sintomas que podem causar sofrimento psicológico, mas que, na maioria das vezes, não necessariamente limitam a execução de tarefas do cotidiano, considerando que é relativamente esperado que crianças e adolescentes apresentem alguns sintomas avaliados pela EBADEP-IJ, mesmo sem hipótese diagnóstica de transtornos depressivos.",
     },
-    "Com sintomatologia moderada": {
-        "geral": "Os resultados indicam a presença de sintomatologia em nível moderado. O avaliado apresenta indicadores comportamentais que sugerem necessidade de acompanhamento e intervenção. Os escores obtidos apontam para dificuldades que podem estar impactando o funcionamento em diferentes contextos, requerendo atenção profissional.",
+    "Sintomatologia Moderada": {
+        "geral": "Os resultados indicam a presença de sintomatologia em nível moderado.",
         "nivel": "moderado",
-        "descricao": "presença moderada de sintomatologia",
+        "descricao": "Essa categoria expressa a presença de diversos sintomas que podem estar impactando o cotidiano do avaliado, sugerindo sofrimento psíquico que requer atenção clínica e possivelmente intervenção terapêutica.",
     },
-    "Com sintomatologia grave ou severa": {
-        "geral": "Os resultados indicam a presença de sintomatologia em nível grave ou severo. O avaliado apresenta indicadores comportamentais significativos que requerem atenção profissional prioritária. Os escores obtidos sugerem comprometimento funcional que necessita de intervenção imediata e acompanhamento especializado.",
+    "Sintomatologia Grave ou Severa": {
+        "geral": "Os resultados indicam a presença de sintomatologia em nível grave ou severo.",
         "nivel": "grave/severo",
-        "descricao": "presença significativa de sintomatologia",
+        "descricao": "Essa categoria expressa um quadro clínico com sofrimento psíquico intenso e prejuízo funcional significativo, exigindo intervenção profissional imediata e acompanhamento especializado prioritário.",
     },
 }
 
 SYNTHESIS_LEVELS = {
-    "Comportamento positivo 1": "muito positivo",
-    "Comportamento positivo 2": "positivo",
-    "Com sintomatologia leve": "com indicadores leves de sintomatologia",
-    "Com sintomatologia moderada": "com indicadores moderados de sintomatologia",
-    "Com sintomatologia grave ou severa": "com indicadores significativos de sintomatologia",
+    "Sintomatologia mínima": "muito positivo",
+    "Sintomatologia mínima (presença de indicadores isolados)": "positivo",
+    "Sintomatologia Leve (ou sem sintomas clinicamente relevantes)": "com indicadores leves de sintomatologia",
+    "Sintomatologia Moderada": "com indicadores moderados de sintomatologia",
+    "Sintomatologia Grave ou Severa": "com indicadores significativos de sintomatologia",
 }
 
 

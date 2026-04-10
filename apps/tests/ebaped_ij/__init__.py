@@ -56,21 +56,28 @@ class EBADEPIJModule(BaseTestModule):
 
     def interpret(self, context: TestContext, merged_data: dict) -> str:
         classificacao = merged_data.get("classificacao", "")
+        pontos = merged_data.get("pontuacao_total", 0)
+        normas = merged_data.get("normas", {})
+        percentil = normas.get("percentil", "—")
+        escore_t = normas.get("T", "—")
+        estanino = normas.get("estanino", "—")
+        
         interp = interpret_result(classificacao)
+        descricao = interp.get("descricao", "")
 
-        parts = []
-        parts.append(f"Classificação: {classificacao}")
-        parts.append(f"Interpretação: {interp.get('geral', '')}")
+        report = [
+            "## Resultado",
+            "",
+            f"Avaliado foi submetido(a) à EBADEP-IJ e obteve uma pontuação bruta total de **{pontos} pontos**, correspondente ao **percentil {percentil}**, **escore T {escore_t}** e **estanino {estanino}**.",
+            "",
+            f"Esse resultado sugere que o avaliado se encontra na categoria **{classificacao}**.",
+            "",
+            f"{descricao}",
+            "",
+            "Ainda assim, recomenda-se investigação clínica mais aprofundada, especialmente quanto à presença de sintomas ligados a humor deprimido ou irritável, anedonia, desesperança e ideação autolesiva."
+        ]
 
-        if merged_data.get("items_criticos"):
-            items = [str(d["item"]) for d in merged_data["items_criticos"]]
-            parts.append(
-                f"Itens com escore máximo (pontuação 2 corrigido): {', '.join(items)}"
-            )
-
-        parts.append(f"Síntese: {get_synthesis(classificacao)}")
-
-        return "\n".join(parts)
+        return "\n".join(report)
 
 
 register_test_module(EBADEPIJ_CODE, EBADEPIJModule())

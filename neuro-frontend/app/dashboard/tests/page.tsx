@@ -9,6 +9,7 @@ import { useState } from "react";
 
 const TESTS_AVAILABLE = [
   { code: "srs2", name: "SRS-2", category: "Autismo", description: "Escala de Responsividade Social (2ª Edição).", is_active: true },
+  { code: "scared", name: "SCARED", category: "Ansiedade", description: "Screen for Child Anxiety Related Emotional Disorders.", is_active: true },
   { code: "fdt", name: "FDT", category: "Funções Executivas", description: "Avaliação de controle inibitório e atenção alternada (Cinco Dígitos).", is_active: true },
   { code: "wisc4", name: "WISC-IV", category: "Inteligência Infantil", description: "Escala Wechsler de Inteligência para Crianças (Cognição Geral).", is_active: true  },
   { code: "bpa2", name: "BPA-2", category: "Atenção", description: "Bateria Psicológica para Avaliação da Atenção (Sustentada, Alternada).", is_active: true  },

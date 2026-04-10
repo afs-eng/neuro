@@ -61,6 +61,27 @@ def seed_default_instruments(apps, schema_editor):
             "version": "1.0",
             "is_active": True,
         },
+        {
+            "code": "scared",
+            "name": "SCARED - Screen for Child Anxiety Related Emotional Disorders",
+            "category": "Ansiedade",
+            "version": "1.0",
+            "is_active": True,
+        },
+        {
+            "code": "ravlt",
+            "name": "RAVLT - Rey Auditory Verbal Learning Test",
+            "category": "Memoria",
+            "version": "1.0",
+            "is_active": True,
+        },
+        {
+            "code": "srs2",
+            "name": "SRS-2 - Social Responsiveness Scale",
+            "category": "Social / Autismo",
+            "version": "2.0",
+            "is_active": True,
+        },
     ]
 
     for item in instruments:

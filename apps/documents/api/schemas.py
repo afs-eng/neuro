@@ -31,3 +31,16 @@ class DocumentUpdateIn(Schema):
 
 class MessageOut(Schema):
     message: str
+
+
+class DocumentUploadIn(Schema):
+    evaluation_id: int
+    patient_id: int
+    title: str
+    document_type: str = "other"
+    source: str = ""
+    document_date: Optional[date] = None
+    notes: str = ""
+    is_relevant_for_report: bool = True
+    file_content: str  # base64 encoded file
+    file_name: str

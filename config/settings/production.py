@@ -41,7 +41,7 @@ if render_hostname:
 if backend_public_url:
     _append_unique(CSRF_TRUSTED_ORIGINS, backend_public_url)
 
-CORS_ALLOW_ALL_ORIGINS = True  # LIBERADO PARA TESTE INICIAL
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 # Mantemos as configurações originais para referência futura
@@ -91,5 +91,5 @@ LOGGING["loggers"] = {
     "apps.accounts": {
         "level": "DEBUG",
         "handlers": ["console"],
-    }
+    },
 }

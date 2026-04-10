@@ -68,3 +68,30 @@ class LoginIn(Schema):
 class LoginOut(Schema):
     access: str
     user: dict
+
+
+class ForgotPasswordIn(Schema):
+    email: EmailStr
+
+
+class ResetPasswordConfirmIn(Schema):
+    uid: str
+    token: str
+    password: str
+
+
+class RegisterIn(Schema):
+    username: str
+    email: EmailStr
+    password: str
+    full_name: str
+    role: str = "assistant"
+    phone: Optional[str] = ""
+    crp: Optional[str] = ""
+    specialty: Optional[str] = ""
+
+
+class RegisterOut(Schema):
+    success: bool
+    message: str
+    user: Optional[UserOut] = None

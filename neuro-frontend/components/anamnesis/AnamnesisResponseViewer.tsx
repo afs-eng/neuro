@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Printer, CheckCircle2, ChevronRight, FileText } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 interface Field {
   id: string;

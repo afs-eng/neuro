@@ -34,6 +34,13 @@ def can_edit_patients(user) -> bool:
     }
 
 
+def can_access_patient(user, patient) -> bool:
+    if user.is_superuser or user.role in ["admin", "reviewer"]:
+        return True
+    return patient.created_by == user
+
+
+
 def serialize_patient(patient):
     return {
         "id": patient.id,
@@ -62,8 +69,11 @@ def list_patients(request, q: str | None = Query(default=None)):
     if not can_view_patients(user):
         raise HttpError(403, "Você não tem permissão para visualizar pacientes.")
 
-    patients = search_patients(q) if q else get_patients()
+    patients = (
+        search_patients(q, user=user) if q else get_patients(user=user)
+    )
     return [serialize_patient(patient) for patient in patients]
+
 
 
 @router.get(
@@ -81,7 +91,13 @@ def get_patient_endpoint(request, patient_id: int):
     if not patient:
         return 404, {"message": "Paciente não encontrado."}
 
+    if not can_access_patient(user, patient):
+        raise HttpError(
+            403, "Você não tem permissão para acessar os dados deste paciente."
+        )
+
     return 200, serialize_patient(patient)
+
 
 
 @router.post(
@@ -95,8 +111,9 @@ def create_patient_endpoint(request, payload: PatientCreateIn):
     if not can_edit_patients(user):
         return 403, {"message": "Você não tem permissão para criar pacientes."}
 
-    patient = create_patient(**payload.dict())
+    patient = create_patient(**payload.dict(), created_by=user)
     return 201, serialize_patient(patient)
+
 
 
 @router.patch(
@@ -114,5 +131,11 @@ def update_patient_endpoint(request, patient_id: int, payload: PatientUpdateIn):
     if not patient:
         return 404, {"message": "Paciente não encontrado."}
 
+    if not can_access_patient(user, patient):
+        raise HttpError(
+            403, "Você não tem permissão para editar os dados deste paciente."
+        )
+
     patient = update_patient(patient, **payload.dict(exclude_unset=True))
     return 200, serialize_patient(patient)
+

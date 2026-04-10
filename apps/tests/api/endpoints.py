@@ -6,7 +6,12 @@ from apps.accounts.models import UserRole
 from apps.evaluations.models import Evaluation
 from apps.tests.models import Instrument
 from apps.tests.age_rules import get_instrument_age_rule
-from apps.tests.api.schemas import EPQJSubmitIn, RAVLTSubmitIn, SRS2SubmitIn
+from apps.tests.api.schemas import (
+    EPQJSubmitIn,
+    RAVLTSubmitIn,
+    SRS2SubmitIn,
+    SCAREDSubmitIn,
+)
 from apps.tests.selectors import (
     get_instrument_by_id,
     get_instruments,
@@ -85,6 +90,7 @@ from .schemas import (
     TestApplicationUpdateIn,
     MessageOut,
     WISC4SubmitIn,
+    SCAREDSubmitIn,
 )
 
 
@@ -125,10 +131,11 @@ def serialize_instrument(instrument):
 
 
 def serialize_test_application(application):
+    patient = application.evaluation.patient if application.evaluation else None
     return {
         "id": application.id,
         "evaluation_id": application.evaluation_id,
-        "patient_name": application.evaluation.patient.full_name,
+        "patient_name": patient.full_name if patient else None,
         "instrument_id": application.instrument_id,
         "instrument_code": application.instrument.code,
         "instrument_name": application.instrument.name,
@@ -144,7 +151,30 @@ def serialize_test_application(application):
 
 @router.get("/instruments/", response=list[InstrumentOut], auth=bearer_auth)
 def list_instruments(request) -> list[dict]:
-    print("Instruments from DB:", [i.code for i in get_instruments()])
+    # Auto-seed essencial após reset de banco
+    required = [
+        {
+            "code": "scared",
+            "name": "SCARED - Screen for Child Anxiety",
+            "category": "Ansiedade",
+        },
+        {"code": "ravlt", "name": "RAVLT - Memória Auditiva", "category": "Memoria"},
+        {
+            "code": "srs2",
+            "name": "SRS-2 - Escala de Responsividade Social",
+            "category": "Social / Autismo",
+        },
+    ]
+    for item in required:
+        Instrument.objects.get_or_create(
+            code=item["code"],
+            defaults={
+                "name": item["name"],
+                "category": item["category"],
+                "is_active": True,
+            },
+        )
+
     return [serialize_instrument(item) for item in get_instruments()]
 
 
@@ -1487,6 +1517,115 @@ def srs2_result(request, application_id: int) -> tuple[int, dict]:
 
     if application.instrument.code != "srs2":
         return 404, {"message": "Aplicação não é do tipo SRS-2."}
+
+    classified = application.classified_payload or {}
+
+    return 200, {
+        "application_id": application.pk,
+        "evaluation_id": application.evaluation_id,
+        "patient_name": application.evaluation.patient.full_name,
+        "applied_on": application.applied_on,
+        "results": classified,
+        "interpretation": application.interpretation_text or "",
+        "raw_payload": application.raw_payload or {},
+        "computed_payload": application.computed_payload or {},
+        "classified_payload": application.classified_payload or {},
+    }
+
+
+# --- SCARED ---
+
+
+@router.post(
+    "/scared/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def scared_submit(request, payload: SCAREDSubmitIn) -> tuple[int, dict]:
+    from apps.tests.scared import SCAREDModule
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.applications import TestApplication
+
+    if not can_view_tests(request.auth):
+        return 403, {"message": "User not authorized"}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    raw_scores = {
+        "form": payload.form,
+        "gender": payload.gender,
+        "age": payload.age,
+        "responses": payload.responses or {},
+    }
+
+    patient = evaluation.patient
+    idade = payload.age
+    if not idade and patient.birth_date:
+        reference_date = get_reference_date(evaluation, payload.applied_on)
+        idade = calcAge(patient.birth_date, reference_date)
+
+    module = SCAREDModule()
+    ctx = TestContext(
+        patient_name=patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="scared",
+        patient_age=idade or 10,
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed, idade=idade or 10)
+    interpretation = module.interpret(ctx, classified)
+
+    instrument = Instrument.objects.filter(code="scared", is_active=True).first()
+    if not instrument:
+        instrument = Instrument.objects.create(
+            name="SCARED",
+            code="scared",
+            is_active=True,
+        )
+
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    return 200, {
+        "application_id": application.pk,
+        "computed": computed,
+        "classified": classified,
+        "interpretation": interpretation,
+    }
+
+
+@router.get(
+    "/scared/result/{application_id}",
+    response={200: dict, 404: MessageOut},
+    auth=bearer_auth,
+)
+def scared_result(request, application_id: int) -> tuple[int, dict]:
+    application = get_test_application_by_id(application_id)
+    if not application:
+        return 404, {"message": "Aplicação de teste não encontrada."}
+
+    if application.instrument.code != "scared":
+        return 404, {"message": "Aplicação não é do tipo SCARED."}
 
     classified = application.classified_payload or {}
 

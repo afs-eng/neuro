@@ -59,7 +59,9 @@ neuro/                              # Projeto Django (Backend)
 │       ├── etdah_ad/          # ETDAH-AD
 │       ├── etdah_pais/        # ETDAH-PAIS
 │       ├── fdt/               # FDT
-│       └── ravlt/             # RAVLT
+│       ├── ravlt/             # RAVLT
+│       └── scared/            # SCARED
+
 │
 ├── config/                        # Configurações Django
 │   ├── settings/
@@ -240,6 +242,8 @@ Usuário (Frontend Next.js)
 | etdah_pais | ETDAH-PAIS | 2-17 anos |
 | fdt | FDT | 5+ anos |
 | ravlt | RAVLT | 16+ anos |
+| scared | SCARED | 9-18 anos (Autorrelato) / Crianças e Adol. (Pais) |
+
 
 ## Tecnologias
 

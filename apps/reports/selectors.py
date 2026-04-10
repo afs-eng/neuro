@@ -5,12 +5,12 @@ from django.db.models import QuerySet
 from .models import Report, ReportSection
 
 
+def list_reports() -> QuerySet[Report]:
+    return Report.objects.with_details().order_by("-updated_at")
+
+
 def get_reports_by_evaluation(evaluation_id: int) -> QuerySet[Report]:
-    return (
-        Report.objects.with_details()
-        .filter(evaluation_id=evaluation_id)
-        .order_by("-updated_at")
-    )
+    return list_reports().filter(evaluation_id=evaluation_id)
 
 
 def get_report_by_id(report_id: int) -> Optional[Report]:

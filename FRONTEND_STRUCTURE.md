@@ -35,6 +35,11 @@ neuro-frontend/
 │   │   │   │   ├── page.tsx      # Form ETDAH-PAIS
 │   │   │   │   └── [id]/
 │   │   │   │       └── result.tsx  # Resultado ETDAH-PAIS
+│   │   │   ├── ravlt/
+│   │   │   ├── scared/
+│   │   │   │   ├── page.tsx      # Form SCARED
+│   │   │   │   └── [id]/
+│   │   │   │       └── result.tsx  # Resultado SCARED
 │   │   │   └── ...
 │   │   │
 │   │   ├── reports/

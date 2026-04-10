@@ -30,14 +30,14 @@ function BPA2TestPageContent() {
 
   useEffect(() => {
     async function fetchEvaluation() {
-      if (!evaluationId) {
-        setLoadingEvaluation(false);
-        return;
-      }
-
       if (applicationId) {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
+          if (result && result.evaluation_id && !evaluationId) {
+            const newEvalId = result.evaluation_id.toString();
+            router.replace(`/dashboard/tests/bpa2?application_id=${applicationId}&evaluation_id=${newEvalId}&edit=true`)
+            return
+          }
           if (result && result.is_validated) {
             const resultEvaluationId = result.evaluation_id ? `?evaluation_id=${result.evaluation_id}` : ""
             router.push(`/dashboard/tests/bpa2/${applicationId}/result${resultEvaluationId}`)
@@ -60,6 +60,11 @@ function BPA2TestPageContent() {
         } catch (error) {
           console.log("Teste não encontrado, redirecionando para formulário...")
         }
+      }
+
+      if (!evaluationId) {
+        setLoadingEvaluation(false);
+        return;
       }
 
       try {

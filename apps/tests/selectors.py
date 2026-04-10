@@ -6,6 +6,15 @@ from apps.tests.models import Instrument, TestApplication, TestInterpretationTem
 
 
 def get_instruments() -> QuerySet[Instrument]:
+    # Injeta essenciais se sumirem do banco (Pós-Reset)
+    essentials = [
+        {"code": "scared", "name": "SCARED - Ansiedade Infantil", "category": "Ansiedade"},
+        {"code": "ravlt", "name": "RAVLT - Memória Auditiva", "category": "Memoria"},
+        {"code": "srs2", "name": "SRS-2 - Social / Autismo", "category": "Social / Autismo"},
+    ]
+    for item in essentials:
+        Instrument.objects.get_or_create(code=item["code"], defaults={"name": item["name"], "category": item["category"], "is_active": True})
+        
     return Instrument.objects.filter(is_active=True).order_by("name")
 
 

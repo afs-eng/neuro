@@ -30,7 +30,7 @@ import {
   Printer
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { api } from "@/lib/api";
+import { api, resolveApiUrl } from "@/lib/api";
 import { AnamnesisResponseViewer } from "@/components/anamnesis/AnamnesisResponseViewer";
 
 interface Instrument {
@@ -401,7 +401,7 @@ export default function EvaluationDetailPage() {
     if (!evaluation) return;
     setTabLoading(true);
     try {
-      const data = await api.get<EvaluationDocument[]>(`/api/documents/?evaluation_id=${evaluation.id}`);
+      const data = await api.get<EvaluationDocument[]>(`/api/documents/list/?evaluation_id=${evaluation.id}`);
       setDocuments(data);
     } catch (err: any) {
       setPageNotice({ type: "error", text: err?.message || "Erro ao carregar documentos." });
@@ -561,22 +561,37 @@ export default function EvaluationDetailPage() {
     if (!evaluation || documentRequiredMissing) return;
     setSavingDocument(true);
     try {
-      const formData = new FormData();
-      formData.append("evaluation_id", String(evaluation.id));
-      formData.append("patient_id", String(evaluation.patient_id));
-      formData.append("title", documentForm.title);
-      formData.append("document_type", documentForm.document_type);
-      formData.append("source", documentForm.source);
-      formData.append("document_date", documentForm.document_date);
-      formData.append("notes", documentForm.notes);
-      formData.append("is_relevant_for_report", String(documentForm.is_relevant_for_report));
-      formData.append("file", documentForm.file as File);
-      await api.post("/api/documents/upload", formData);
+      const file = documentForm.file as File;
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // Remove data:mime;base64,
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const payload = {
+        evaluation_id: evaluation.id,
+        patient_id: evaluation.patient_id,
+        title: documentForm.title,
+        document_type: documentForm.document_type,
+        source: documentForm.source,
+        document_date: documentForm.document_date || undefined,
+        notes: documentForm.notes,
+        is_relevant_for_report: documentForm.is_relevant_for_report,
+        file_content: base64,
+        file_name: file.name,
+      };
+
+      await api.post("/api/documents/add/", payload);
+
       setPageNotice({ type: "success", text: "Documento enviado com sucesso." });
       setDocumentForm({ title: "", document_type: "other", source: "", document_date: "", notes: "", is_relevant_for_report: true, file: null });
       setShowDocumentForm(false);
       loadDocuments();
     } catch (err: any) {
+      console.error("Upload error:", err);
       setPageNotice({ type: "error", text: err?.message || "Erro ao enviar documento." });
     } finally {
       setSavingDocument(false);
@@ -585,7 +600,7 @@ export default function EvaluationDetailPage() {
 
   async function handleDeleteDocument(documentId: number) {
     try {
-      await api.delete(`/api/documents/${documentId}`);
+      await api.delete(`/api/documents/delete/${documentId}`);
       setPageNotice({ type: "success", text: "Documento excluído com sucesso." });
       loadDocuments();
     } catch (err: any) {
@@ -597,7 +612,7 @@ export default function EvaluationDetailPage() {
     if (!evaluation || progressRequiredMissing) return;
     setSavingProgress(true);
     try {
-      await api.post("/api/evaluations/progress-entries", {
+      await api.post("/api/evaluations/progress-entries/", {
         evaluation_id: evaluation.id,
         patient_id: evaluation.patient_id,
         entry_type: progressForm.entry_type,
@@ -624,7 +639,7 @@ export default function EvaluationDetailPage() {
 
   async function handleDeleteProgress(entryId: number) {
     try {
-      await api.delete(`/api/evaluations/progress-entries/${entryId}`);
+      await api.delete(`/api/evaluations/progress-entries/${entryId}/`);
       setPageNotice({ type: "success", text: "Registro de evolução excluído com sucesso." });
       loadProgressEntries();
     } catch (err: any) {
@@ -704,6 +719,7 @@ export default function EvaluationDetailPage() {
       "etdah_pais": "/dashboard/tests/etdah-pais",
       "ravlt": "/dashboard/tests/ravlt",
       "srs2": "/dashboard/tests/srs2",
+      "scared": "/dashboard/tests/scared",
     };
     
     return `${baseUrls[normalizedCode] || "/dashboard/tests"}?evaluation_id=${evaluation?.id}&application_id=${testId}`;
@@ -1366,11 +1382,11 @@ export default function EvaluationDetailPage() {
                 </div>
               )}
 
-              {evaluation.documents.length === 0 ? (
+              {documents.length === 0 ? (
                 <EmptyState title="Sem documentos" description="Ficou pendente o anexo de documentos para este paciente." icon={<FolderOpen className="h-10 w-10 text-slate-200" />} />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {evaluation.documents.map((doc: any) => (
+                  {documents.map((doc: any) => (
                     <div key={doc.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-spike transition-all group">
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
@@ -1382,7 +1398,7 @@ export default function EvaluationDetailPage() {
                         </div>
                       </div>
                       <div className="mt-4 flex gap-2">
-                        <a href={doc.file_url} target="_blank" className="flex-1">
+                        <a href={resolveApiUrl(doc.file_url)} target="_blank" rel="noreferrer" className="flex-1">
                           <Button variant="outline" className="w-full text-[10px] font-black uppercase tracking-widest border-slate-100 h-8">Abrir</Button>
                         </a>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-300 hover:text-rose-500" onClick={() => handleDeleteDocument(doc.id)}><X className="h-4 w-4" /></Button>
@@ -1485,7 +1501,13 @@ export default function EvaluationDetailPage() {
                       <h4 className="font-bold text-slate-900">Preparado para Gerar o Laudo?</h4>
                       <p className="text-sm text-slate-500">O sistema consolidará testes validados e registros de anamnese automaticamente.</p>
                     </div>
-                    <Button size="lg" className="px-10 font-bold shadow-spike" onClick={() => setShowReportForm(true)}>Criar Novo Laudo</Button>
+                    <Button
+                      size="lg"
+                      className="px-10 font-bold shadow-spike"
+                      onClick={() => router.push(`/dashboard/reports/generate/${evaluation.id}`)}
+                    >
+                      Criar Novo Laudo
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-8">
@@ -1513,9 +1535,14 @@ export default function EvaluationDetailPage() {
                           <div className="flex justify-between items-center mb-6">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Seções do Documento</h4>
                             <div className="flex gap-2">
-                               <Button variant="outline" size="sm" className="font-bold gap-2 text-primary border-primary/20">
-                                 <FileText className="h-4 w-4" /> Exportar PDF
-                               </Button>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 className="font-bold gap-2 text-primary border-primary/20"
+                                 onClick={() => router.push(`/dashboard/reports/${selectedReport.id}`)}
+                               >
+                                  <FileText className="h-4 w-4" /> Abrir Editor
+                                </Button>
                             </div>
                           </div>
                           <div className="space-y-4">
@@ -1551,9 +1578,16 @@ export default function EvaluationDetailPage() {
                          </div>
                       </div>
                       <div className="pt-4 border-t border-slate-50">
-                        <Button className="w-full justify-start gap-3 h-12 bg-white text-slate-700 border border-slate-100 hover:bg-slate-50 font-bold">
+                        <Button
+                          className="w-full justify-start gap-3 h-12 bg-white text-slate-700 border border-slate-100 hover:bg-slate-50 font-bold"
+                          onClick={() =>
+                            selectedReport
+                              ? router.push(`/dashboard/reports/${selectedReport.id}`)
+                              : router.push(`/dashboard/reports/generate/${evaluation.id}`)
+                          }
+                        >
                            <Sparkles className="h-4 w-4 text-primary" /> Redigir com AI
-                        </Button>
+                         </Button>
                       </div>
                    </div>
                  </SectionCard>

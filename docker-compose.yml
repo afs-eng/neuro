@@ -4,11 +4,11 @@ services:
     container_name: neuro-db
     restart: unless-stopped
     ports:
-      - "5432:5432"  # Exportado para DBeaver local
+      - "5432:5432"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-neuro_db}
-      POSTGRES_USER: ${POSTGRES_USER:-neuro_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-neuro_pass}
+      POSTGRES_DB: neuro_db
+      POSTGRES_USER: neuro_user
+      POSTGRES_PASSWORD: neuro_pass
     volumes:
       - neuro_postgres_data:/var/lib/postgresql/data
 
@@ -24,17 +24,12 @@ services:
     volumes:
       - .:/app
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-neuro_user}:${POSTGRES_PASSWORD:-neuro_pass}@db:5432/${POSTGRES_DB:-neuro_db}
+      - DATABASE_URL=postgresql://neuro_user:neuro_pass@db:5432/neuro_db
       - DEBUG=True
       - DJANGO_ENV=local
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
       - CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
       - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-      # Configurações de Mensageria (Lidas do .env via python-dotenv se houver)
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
-      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
-      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
     depends_on:
       - db
 
@@ -53,7 +48,7 @@ services:
       - /app/node_modules
       - /app/.next
     environment:
-      - NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
       - INTERNAL_API_BASE_URL=http://backend:8000
       - WATCHPACK_POLLING=true
     depends_on:

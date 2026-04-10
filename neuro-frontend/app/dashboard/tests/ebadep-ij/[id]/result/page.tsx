@@ -8,34 +8,36 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 const ITEM_LABELS: Record<number, string> = {
-  1: 'Humor deprimido',
-  2: 'Perda ou diminuição de prazer',
-  3: 'Choro',
-  4: 'Desesperança',
-  5: 'Desamparo',
-  6: 'Indecisão',
-  7: 'Sentimento de incapacidade',
-  8: 'Sentimentos de inadequação',
-  9: 'Inutilidade',
-  10: 'Carência/dependência',
-  11: 'Negativismo',
-  12: 'Esquiva de situações sociais',
-  13: 'Queda de rendimento na escola',
-  14: 'Autocrítica exacerbada',
-  15: 'Culpa',
-  16: 'Diminuição de concentração',
-  17: 'Pensamento de morte',
-  18: 'Autoestima rebaixada',
-  19: 'Falta de perspectiva sobre o presente',
-  20: 'Falta de perspectiva sobre o futuro',
-  21: 'Alteração de apetite',
-  22: 'Alteração de peso',
-  23: 'Insônia ou hipersonia',
-  24: 'Lentidão ou agitação psicomotora',
-  25: 'Fadiga ou perda de energia',
-  26: 'Sintomas físicos',
-  27: 'Irritação',
+  1: 'Sinto-me estranho e não sei por quê',
+  2: 'Sinto vontade de ficar longe das pessoas da minha casa',
+  3: 'Sinto vontade de ficar longe dos meus amigos',
+  4: 'Estou mais agressivo',
+  5: 'Sinto-me culpado',
+  6: 'Viver está sendo difícil para mim',
+  7: 'Choro',
+  8: 'Sinto-me triste',
+  9: 'Tenho vontade de fazer as coisas que gosto',
+  10: 'Sinto-me sozinho',
+  11: 'Prefiro estar só',
+  12: 'Acredito em um futuro bom',
+  13: 'Meus dias têm sido bons',
+  14: 'Tenho planos para o futuro',
+  15: 'Tenho dormido bem',
+  16: 'Acredito nas minhas capacidades',
+  17: 'Estou feliz com minha vida',
+  18: 'Consigo me concentrar nas minhas tarefas',
+  19: 'Gosto de mim como eu sou',
+  20: 'Tenho me sentido mal, sem estar doente',
+  21: 'Penso em me machucar de propósito',
+  22: 'Penso em me matar',
+  23: 'Tenho comido normalmente',
+  24: 'Sinto-me sem energia',
+  25: 'Sou esperto',
+  26: 'Sinto-me feio',
+  27: 'Sinto que as pessoas não querem estar comigo',
 }
+
+const AUTHOR_NAME = "Dra. Claudette Maria Medeiros Baptista";
 
 const CLASSIFICATION_STYLES: Record<string, string> = {
   Mínimo: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -109,135 +111,156 @@ export default function EBADEPIJResultPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push('/dashboard')}>
+          <Button variant="outline" className="rounded-xl gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => router.push('/dashboard')}>
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Button>
-          <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push(`/dashboard/tests/ebadep-ij?evaluation_id=${result.evaluation_id}&application_id=${params.id}&edit=true`)}>
+          <Button variant="outline" className="rounded-xl gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => router.push(`/dashboard/tests/ebadep-ij?evaluation_id=${result.evaluation_id}&application_id=${params.id}&edit=true`)}>
             <Edit className="h-4 w-4" />
             Editar
           </Button>
-          <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push(`/dashboard/evaluations/${result.evaluation_id}?tab=overview`)}>
+          <Button variant="outline" className="rounded-xl gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => router.push(`/dashboard/evaluations/${result.evaluation_id}?tab=overview`)}>
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Button>
-          <Button variant="outline" className="rounded-xl gap-2">
+          <Button variant="outline" className="rounded-xl gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => window.print()}>
             <Printer className="h-4 w-4" />
             Imprimir
           </Button>
-          <Button className="rounded-xl gap-2">
+          <Button className="rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 transition-all font-bold">
             <Download className="h-4 w-4" />
             Exportar PDF
           </Button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8">
-        <div className="text-center border-b pb-6">
-          <h1 className="text-2xl font-bold text-slate-900">EBADEP-IJ</h1>
-          <p className="text-lg text-slate-600">Escala Baptista de Depressão - Infantojuvenil</p>
-          <p className="text-sm text-slate-500 mt-1">Relatório estruturado do protocolo</p>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-10 print:shadow-none print:border-none print:p-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           <section>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-4 flex items-center gap-2">
+                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                 Dados de Identificação
+              </h2>
+              <div className="border border-slate-100 rounded-2xl overflow-hidden bg-slate-50/30">
+                <table className="w-full text-xs">
+                  <tbody>
+                    <tr className="border-b border-slate-100"><td className="py-3 px-4 font-black text-slate-400 uppercase w-1/3">Paciente</td><td className="py-3 px-4 text-slate-900 font-bold">{result.patient_name}</td></tr>
+                    <tr className="border-b border-slate-100"><td className="py-3 px-4 font-black text-slate-400 uppercase">Aplicação</td><td className="py-3 px-4 text-slate-900 font-bold">{result.applied_on || '—'}</td></tr>
+                    <tr className="border-b border-slate-100"><td className="py-3 px-4 font-black text-slate-400 uppercase">Examinador</td><td className="py-3 px-4 text-slate-900 font-bold">{result.examiner_name && result.examiner_name !== '—' ? result.examiner_name : 'Dr. André'}</td></tr>
+                    <tr><td className="py-3 px-4 font-black text-slate-400 uppercase">Protocolo</td><td className="py-3 px-4 text-slate-900 font-bold">{params.id}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+           </section>
+
+           <section>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-4 flex items-center gap-2">
+                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                 Escore Geral e Normas
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                 <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Pontos Brutos</p>
+                    <p className="text-3xl font-black text-slate-900 leading-none">{classified.pontuacao_total ?? '—'}</p>
+                 </div>
+                 <div className={`rounded-2xl p-4 border flex flex-col justify-center ${getClassificationStyle(classified.classificacao || '')}`}>
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Classificação</p>
+                    <p className="text-sm font-black tracking-tight leading-tight uppercase">{classified.classificacao || '—'}</p>
+                 </div>
+                 <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Percentil</p>
+                    <p className="text-3xl font-black text-slate-900 leading-none">{norms.percentil ?? '—'}</p>
+                 </div>
+                 <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Escore T</p>
+                    <p className="text-3xl font-black text-slate-900 leading-none">{norms.T ?? '—'}</p>
+                 </div>
+                 <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Estanino</p>
+                    <p className="text-3xl font-black text-slate-900 leading-none">{norms.estanino ?? '—'}</p>
+                 </div>
+              </div>
+           </section>
         </div>
 
-        <section>
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">DADOS DA APLICAÇÃO</h2>
-          <div className="border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <tbody>
-                <tr className="border-b"><td className="py-3 px-4 font-medium text-slate-700 w-1/3">Paciente</td><td className="py-3 px-4 text-slate-900">{result.patient_name}</td></tr>
-                <tr className="border-b"><td className="py-3 px-4 font-medium text-slate-700">Aplicação</td><td className="py-3 px-4 text-slate-900">{result.applied_on || '—'}</td></tr>
-                <tr className="border-b"><td className="py-3 px-4 font-medium text-slate-700">Total de itens</td><td className="py-3 px-4 text-slate-900">27</td></tr>
-                <tr><td className="py-3 px-4 font-medium text-slate-700">Itens críticos</td><td className="py-3 px-4 text-slate-900">{criticalItems.length}</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">SÍNTESE DOS RESULTADOS</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
-              <p className="text-sm text-slate-500">Pontuação total</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">{classified.pontuacao_total ?? '—'}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
-              <p className="text-sm text-slate-500">Classificação</p>
-              <div className="mt-3"><Badge className={getClassificationStyle(classified.classificacao || '')}>{classified.classificacao || '—'}</Badge></div>
-            </div>
-            <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
-              <p className="text-sm text-slate-500">Síntese</p>
-              <p className="mt-2 text-sm font-medium text-slate-900">{classified.sintese || '—'}</p>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">NORMAS</h2>
-          <div className="border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <tbody>
-                <tr className="border-b"><td className="py-3 px-4 font-medium text-slate-700 w-1/3">Percentil</td><td className="py-3 px-4 text-slate-900">{norms.percentil ?? '—'}</td></tr>
-                <tr className="border-b"><td className="py-3 px-4 font-medium text-slate-700">T</td><td className="py-3 px-4 text-slate-900">{norms.T ?? '—'}</td></tr>
-                <tr><td className="py-3 px-4 font-medium text-slate-700">Estanino</td><td className="py-3 px-4 text-slate-900">{norms.estanino ?? '—'}</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">PONTUAÇÕES DO PROTOCOLO</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-xl p-4">
-              <h3 className="font-semibold text-slate-900 mb-2">Itens negativos</h3>
-              <p className="text-3xl font-semibold text-slate-900">{protocol.soma_itens_negativos ?? '—'}</p>
-            </div>
-            <div className="border rounded-xl p-4">
-              <h3 className="font-semibold text-slate-900 mb-2">Itens positivos</h3>
-              <p className="text-3xl font-semibold text-slate-900">{protocol.soma_itens_positivos ?? '—'}</p>
+        <section className="relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600 rounded-full" />
+          <div className="bg-slate-50/50 rounded-3xl p-8 border border-slate-100 shadow-inner group transition-all hover:bg-white hover:border-emerald-100">
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-8 flex items-center gap-3">
+               <div className="h-4 w-4 rounded bg-emerald-100 flex items-center justify-center">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+               </div>
+               Síntese de Interpretação Clínica do Especialista
+            </h2>
+            <div className="prose prose-slate max-w-none">
+               <div className="text-sm text-slate-700 font-medium leading-relaxed whitespace-pre-wrap print:text-black">
+                 {/* Design para o título ## Resultado se presente no texto */}
+                 {(result.interpretation_text || result.interpretation || '').split('\n').map((line: string, i: number) => {
+                   if (line.startsWith('## ')) {
+                     return <h3 key={i} className="text-xl font-black text-slate-900 mt-6 mb-4 uppercase tracking-tight">{line.replace('## ', '')}</h3>
+                   }
+                   if (line.includes('**')) {
+                     const parts = line.split('**');
+                     return (
+                       <p key={i} className="mb-4">
+                         {parts.map((p, j) => (j % 2 === 1 ? <strong key={j} className="font-black text-emerald-700 bg-emerald-50 px-1 rounded">{p}</strong> : p))}
+                       </p>
+                     )
+                   }
+                   return line.trim() ? <p key={i} className="mb-4">{line}</p> : <div key={i} className="h-2" />
+                 })}
+               </div>
             </div>
           </div>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">ITENS CRÍTICOS</h2>
+          <div className="flex items-center justify-between mb-4">
+             <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Análise de Itens Críticos</h2>
+             <span className="text-[10px] font-black text-red-500 uppercase">{criticalItems.length} identificados</span>
+          </div>
           {criticalItems.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 gap-2">
               {criticalItems.map((item: any) => (
-                <Badge key={item.item} className="bg-red-50 text-red-700 border-red-200">Item {item.item}</Badge>
+                <div key={item.item} className="h-10 w-full flex flex-col items-center justify-center rounded-xl bg-red-50 border border-red-100">
+                   <span className="text-[9px] font-black text-red-400 uppercase leading-none">Item</span>
+                   <span className="text-sm font-black text-red-700 leading-none">{item.item}</span>
+                </div>
               ))}
             </div>
           ) : (
-            <div className="border rounded-xl p-4 text-sm text-slate-600">Nenhum item crítico identificado.</div>
+            <div className="border border-dashed border-slate-200 rounded-2xl p-4 text-center">
+               <p className="text-[10px] font-black text-slate-400 uppercase">Nenhum item de alerta clínica máxima identificado</p>
+            </div>
           )}
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">REGISTRO DE RESPOSTAS</h2>
-          <p className="text-sm text-slate-600 mb-4">Legenda: 0 = Nunca/Poucas vezes | 1 = Algumas vezes | 2 = Muitas vezes/Sempre</p>
-          <div className="border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Registro de Respostas (27 Itens)</h2>
+          <div className="border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+            <table className="w-full text-xs">
               <thead>
-                <tr className="bg-slate-100">
-                  <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
-                  <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
-                  <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
-                  <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
-                  <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
-                  <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
-                  <th className="py-2 px-2 text-center font-medium text-slate-700 w-12">Item</th>
-                  <th className="py-2 px-2 text-center font-medium text-slate-700 w-16">Resp.</th>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="py-2 px-2 text-center font-black text-slate-400 uppercase w-12">Item</th>
+                  <th className="py-2 px-2 text-center font-black text-slate-400 uppercase w-16">Resp.</th>
+                  <th className="py-2 px-2 text-center font-black text-slate-400 uppercase w-12">Item</th>
+                  <th className="py-2 px-2 text-center font-black text-slate-400 uppercase w-16">Resp.</th>
+                  <th className="py-2 px-2 text-center font-black text-slate-400 uppercase w-12">Item</th>
+                  <th className="py-2 px-2 text-center font-black text-slate-400 uppercase w-16">Resp.</th>
+                  <th className="py-2 px-2 text-center font-black text-slate-400 uppercase w-12">Item</th>
+                  <th className="py-2 px-2 text-center font-black text-slate-400 uppercase w-16">Resp.</th>
                 </tr>
               </thead>
               <tbody>
                 {responseRows.map((row, idx) => (
-                  <tr key={idx} className={`border-t ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
+                  <tr key={idx} className={`border-t border-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
                     {row.map((itemNumber) => {
                       const item = detailItems.find((entry: any) => entry.item === itemNumber)
                       return (
                         <>
-                          <td className="py-1 px-2 text-center text-slate-700 font-medium">{String(itemNumber).padStart(2, '0')}</td>
-                          <td className="py-1 px-2 text-center">
-                            <span className={`inline-block w-8 h-6 leading-6 rounded font-bold ${item?.resposta === 2 ? 'bg-red-100 text-red-800' : item?.resposta === 1 ? 'bg-amber-100 text-amber-800' : item?.resposta === 0 ? 'bg-slate-200 text-slate-700' : 'bg-slate-100 text-slate-400'}`}>
+                          <td className="py-1.5 px-2 text-center text-slate-700 font-bold">{String(itemNumber).padStart(2, '0')}</td>
+                          <td className="py-1.5 px-2 text-center">
+                            <span className={`inline-flex items-center justify-center w-8 h-6 rounded-lg font-black text-[10px] ${item?.resposta === 2 ? 'bg-red-500 text-white' : item?.resposta === 1 ? 'bg-amber-400 text-white' : item?.resposta === 0 ? 'bg-slate-200 text-slate-700' : 'bg-slate-100 text-slate-400'}`}>
                               {item?.resposta ?? '-'}
                             </span>
                           </td>
@@ -246,8 +269,8 @@ export default function EBADEPIJResultPage() {
                     })}
                     {Array.from({ length: 4 - row.length }).map((_, emptyIdx) => (
                       <>
-                        <td key={`empty-item-${idx}-${emptyIdx}`} className="py-1 px-2" />
-                        <td key={`empty-resp-${idx}-${emptyIdx}`} className="py-1 px-2" />
+                        <td key={`empty-item-${idx}-${emptyIdx}`} className="py-1.5 px-2" />
+                        <td key={`empty-resp-${idx}-${emptyIdx}`} className="py-1.5 px-2" />
                       </>
                     ))}
                   </tr>
@@ -255,16 +278,9 @@ export default function EBADEPIJResultPage() {
               </tbody>
             </table>
           </div>
+          <p className="mt-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Legenda: 0 = Nunca/Poucas vezes | 1 = Algumas vezes | 2 = Muitas vezes/Sempre</p>
         </section>
 
-        {result.interpretation_text && (
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">INTERPRETAÇÃO</h2>
-            <div className="border rounded-xl p-4 whitespace-pre-wrap text-sm text-slate-600 leading-relaxed">
-              {result.interpretation_text}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   )

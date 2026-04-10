@@ -1,5 +1,7 @@
 from datetime import date
 from django.db import models
+from django.conf import settings
+
 
 
 class SchoolingLevel(models.TextChoices):
@@ -32,6 +34,15 @@ class Patient(models.Model):
     responsible_phone = models.CharField(
         "telefone do responsável", max_length=30, blank=True, null=True
     )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="patients",
+        verbose_name="criado por",
+        null=True,
+        blank=True,
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

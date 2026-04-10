@@ -1,10 +1,10 @@
 def get_severity_level(classificacao: str) -> int:
     levels = {
-        "Comportamento positivo 1": 1,
-        "Comportamento positivo 2": 2,
-        "Com sintomatologia leve": 3,
-        "Com sintomatologia moderada": 4,
-        "Com sintomatologia grave ou severa": 5,
+        "Sintomatologia mínima": 1,
+        "Sintomatologia mínima (presença de indicadores isolados)": 2,
+        "Sintomatologia Leve (ou sem sintomas clinicamente relevantes)": 3,
+        "Sintomatologia Moderada": 4,
+        "Sintomatologia Grave ou Severa": 5,
     }
     return levels.get(classificacao, 0)
 

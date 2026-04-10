@@ -59,6 +59,12 @@ def can_edit_evaluations(user) -> bool:
     }
 
 
+def can_access_evaluation(user, evaluation) -> bool:
+    if user.is_superuser or user.role in ["admin", "reviewer"]:
+        return True
+    return evaluation.examiner == user
+
+
 def serialize_evaluation(evaluation, include_details=False):
     patient = evaluation.patient
     examiner = evaluation.examiner
@@ -190,7 +196,9 @@ def list_evaluations(
         raise HttpError(403, "Você não tem permissão para visualizar avaliações.")
 
     evaluations = (
-        get_evaluations_by_patient(patient_id) if patient_id else get_evaluations()
+        get_evaluations_by_patient(patient_id, user=user)
+        if patient_id
+        else get_evaluations(user=user)
     )
     return [serialize_evaluation(evaluation) for evaluation in evaluations]
 
@@ -209,6 +217,9 @@ def get_evaluation_endpoint(request, evaluation_id: int) -> tuple[int, dict]:
     evaluation = get_evaluation_by_id(evaluation_id)
     if not evaluation:
         return 404, {"message": "Avaliação não encontrada."}
+
+    if not can_access_evaluation(user, evaluation):
+        raise HttpError(403, "Você não tem permissão para visualizar esta avaliação.")
 
     return 200, serialize_evaluation(evaluation, include_details=True)
 
@@ -230,7 +241,7 @@ def create_evaluation_endpoint(
     if not patient:
         return 404, {"message": "Paciente não encontrado."}
 
-    examiner = None
+    examiner = user
     if payload.examiner_id:
         examiner = User.objects.filter(id=payload.examiner_id, is_active=True).first()
 
@@ -268,6 +279,9 @@ def update_evaluation_endpoint(
     if not evaluation:
         return 404, {"message": "Avaliação não encontrada."}
 
+    if not can_access_evaluation(user, evaluation):
+        raise HttpError(403, "Você não tem permissão para editar esta avaliação.")
+
     data = payload.dict(exclude_unset=True)
 
     if "patient_id" in data:
@@ -298,6 +312,9 @@ def update_evaluation_endpoint(
 def list_progress_entries_endpoint(request, evaluation_id: int) -> list[dict]:
     if not can_view_evaluations(request.auth):
         raise HttpError(403, "Você não tem permissão para visualizar evoluções.")
+    evaluation = Evaluation.objects.filter(id=evaluation_id).first()
+    if not evaluation or not can_access_evaluation(request.auth, evaluation):
+        raise HttpError(403, "Você não tem permissão para acessar esta avaliação.")
     return [
         serialize_progress_entry(item)
         for item in get_progress_entries_by_evaluation(evaluation_id)
@@ -305,7 +322,7 @@ def list_progress_entries_endpoint(request, evaluation_id: int) -> list[dict]:
 
 
 @router.post(
-    "/progress-entries",
+    "/progress-entries/",
     response={201: ProgressEntryOut, 403: MessageOut, 404: MessageOut, 400: MessageOut},
     auth=bearer_auth,
 )
@@ -352,7 +369,7 @@ def create_progress_entry_endpoint(
 
 
 @router.patch(
-    "/progress-entries/{entry_id}",
+    "/progress-entries/{entry_id}/",
     response={200: ProgressEntryOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )
@@ -383,7 +400,7 @@ def update_progress_entry_endpoint(
 
 
 @router.delete(
-    "/progress-entries/{entry_id}",
+    "/progress-entries/{entry_id}/",
     response={200: MessageOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )

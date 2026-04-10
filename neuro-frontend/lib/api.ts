@@ -14,6 +14,12 @@ function normalizeApiBaseUrl() {
 
 const API_URL = normalizeApiBaseUrl();
 
+export function resolveApiUrl(path: string) {
+  if (!path) return API_URL
+  if (/^https?:\/\//i.test(path)) return path
+  return `${API_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 if (typeof window !== 'undefined') {
   console.log('🔌 Conexão Direta Estabelecida:', API_URL);
 }
@@ -21,6 +27,43 @@ if (typeof window !== 'undefined') {
 export interface ApiError {
   message: string
   status: number
+}
+
+function stringifyApiError(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+
+  if (Array.isArray(value)) {
+    const items = value
+      .map((item) => stringifyApiError(item))
+      .filter(Boolean)
+    return items.join(', ')
+  }
+
+  if (value && typeof value === 'object') {
+    if ('msg' in value && typeof (value as { msg?: unknown }).msg === 'string') {
+      return (value as { msg: string }).msg
+    }
+
+    if ('message' in value) {
+      return stringifyApiError((value as { message?: unknown }).message)
+    }
+
+    if ('detail' in value) {
+      return stringifyApiError((value as { detail?: unknown }).detail)
+    }
+
+    const entries = Object.entries(value as Record<string, unknown>)
+      .map(([key, entryValue]) => {
+        const text = stringifyApiError(entryValue)
+        return text ? `${key}: ${text}` : ''
+      })
+      .filter(Boolean)
+
+    return entries.join(', ')
+  }
+
+  return ''
 }
 
 async function fetchAPI<T>(
@@ -47,24 +90,9 @@ async function fetchAPI<T>(
     let errorMessage = `Erro: ${res.status}`
     try {
       const errorData = await res.json()
-      if (typeof errorData === 'string') {
-        errorMessage = errorData
-      } else if (errorData.message) {
-        errorMessage = errorData.message
-      } else if (errorData.detail) {
-        errorMessage = errorData.detail
-      } else if (Array.isArray(errorData)) {
-        errorMessage = errorData.map((e: any) => e.msg || JSON.stringify(e)).join(', ')
-      } else if (typeof errorData === 'object') {
-        const firstKey = Object.keys(errorData)[0]
-        const firstError = errorData[firstKey]
-        if (Array.isArray(firstError)) {
-          errorMessage = `${firstKey}: ${firstError[0]}`
-        } else if (typeof firstError === 'object' && firstError.msg) {
-          errorMessage = firstError.msg
-        } else {
-          errorMessage = String(firstError)
-        }
+      const normalizedError = stringifyApiError(errorData)
+      if (normalizedError) {
+        errorMessage = normalizedError
       }
     } catch {}
     const error: ApiError = {

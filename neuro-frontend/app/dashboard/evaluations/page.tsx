@@ -64,20 +64,21 @@ export default function EvaluationsPage() {
   async function fetchEvaluations() {
     try {
       const data = await api.get<Evaluation[]>("/api/evaluations/");
-      setEvaluations(data);
+      setEvaluations(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error("Erro ao buscar avaliações:", err);
+      setEvaluations([]);
     } finally {
       setLoading(false);
     }
   }
 
-  const filteredEvaluations = evaluations.filter(
+  const filteredEvaluations = Array.isArray(evaluations) ? evaluations.filter(
     (e) =>
-      e.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (e.title && e.title.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+      (e.patient_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (e.code?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (e.title?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+  ) : [];
 
   if (loading) {
     return (
@@ -107,7 +108,7 @@ export default function EvaluationsPage() {
              <Button variant="outline" className="h-11 rounded-xl border-slate-200 text-slate-500 font-bold gap-2">
                <Filter className="h-4 w-4" /> Filtros
              </Button>
-             <Link href="/dashboard/patients">
+             <Link href="/dashboard/evaluations/new">
                 <Button className="h-11 rounded-xl font-bold gap-2 shadow-sm border-none">
                   <Plus className="h-4 w-4" /> Nova Avaliação
                 </Button>

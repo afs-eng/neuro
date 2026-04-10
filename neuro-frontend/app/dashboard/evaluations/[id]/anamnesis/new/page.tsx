@@ -20,7 +20,12 @@ export default function NewAnamnesisPage() {
         api.get<any[]>("/api/anamnesis/templates/"),
         api.get<any>(`/api/evaluations/${evaluationId}`),
       ])
-      setTemplates(templatesData)
+      const activeTemplates = (templatesData || []).filter(t => 
+        t.schema_payload && 
+        Array.isArray(t.schema_payload.steps) && 
+        t.schema_payload.steps.length > 0
+      )
+      setTemplates(activeTemplates)
       setEvaluation(evaluationData)
     }
     load()

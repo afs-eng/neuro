@@ -40,6 +40,19 @@ function SRS2PageContent() {
 
   useEffect(() => {
     async function loadData() {
+      if (!evaluationId && applicationId) {
+        try {
+          const result = await api.get<any>(`/api/tests/applications/${applicationId}`);
+          if (result && result.evaluation_id) {
+            const newEvalId = result.evaluation_id.toString();
+            router.replace(`/dashboard/tests/srs2?application_id=${applicationId}&evaluation_id=${newEvalId}&edit=true`);
+            return;
+          }
+        } catch (err) {
+          console.error("Error loading:", err);
+        }
+      }
+
       try {
         if (applicationId && !isEditMode) {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`);
@@ -74,7 +87,7 @@ function SRS2PageContent() {
       }
     }
     loadData();
-  }, [applicationId, isEditMode, router]);
+  }, [applicationId, isEditMode, router, evaluationId]);
 
   useEffect(() => {
     if (!loading && evaluationId) {

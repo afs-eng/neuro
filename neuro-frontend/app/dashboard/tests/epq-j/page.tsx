@@ -110,6 +110,11 @@ function EPQJTestPageContent() {
       if (applicationId) {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`)
+          if (result && result.evaluation_id && !currentEvalId) {
+            const newEvalId = result.evaluation_id.toString();
+            router.replace(`/dashboard/tests/epq-j?application_id=${applicationId}&evaluation_id=${newEvalId}&edit=true`)
+            return
+          }
           if (result && result.is_validated && !isEditMode) {
             const resultEvaluationId = result.evaluation_id ? `?evaluation_id=${result.evaluation_id}` : ""
             router.push(`/dashboard/tests/epq-j/${applicationId}/result${resultEvaluationId}`)

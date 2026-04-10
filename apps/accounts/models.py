@@ -1,5 +1,5 @@
-from enum import unique
 from django.contrib.auth.models import AbstractUser
+
 from django.db import models
 import secrets
 
@@ -17,14 +17,26 @@ def generate_api_token():
 
 
 class User(AbstractUser):
+    email = models.EmailField(unique=True)
+
     full_name = models.CharField(max_length=255, blank=True)
     role = models.CharField(
         max_length=30,
         choices=UserRole.choices,
         default=UserRole.ASSISTANT,
     )
+    SEX_CHOICES = [
+        ("M", "Masculino"),
+        ("F", "Feminino"),
+        ("O", "Outro"),
+    ]
+    sex = models.CharField(max_length=1, choices=SEX_CHOICES, default="M")
     phone = models.CharField(max_length=30, blank=True)
-    crp = models.CharField(max_length=50, blank=True)
+
+    crp = models.CharField(max_length=50, blank=True, unique=True, null=True)
+
+
+
     specialty = models.CharField(max_length=120, blank=True)
     is_active_clinical = models.BooleanField(default=True)
     api_token = models.CharField(
@@ -38,7 +50,26 @@ class User(AbstractUser):
 
     @property
     def display_name(self) -> str:
-        return self.full_name or self.get_full_name() or self.username
+        # Get only the first name
+        name_parts = (self.full_name or self.username).split()
+        first_name = name_parts[0] if name_parts else self.username
+
+        # Clean name from existing Dr/Dra (case insensitive)
+        clean_name = first_name.replace("Dr.", "").replace("Dra.", "").replace("Dr", "").replace("Dra", "").strip()
+
+        prefix = "Dra. " if self.sex == "F" else "Dr. "
+        return f"{prefix}{clean_name}"
+
+
+    @property
+    def initials(self) -> str:
+        if self.full_name:
+            parts = self.full_name.split()
+            if len(parts) >= 2:
+                return f"{parts[0][0]}{parts[-1][0]}".upper()
+            return parts[0][:2].upper()
+        return self.username[:2].upper()
+
 
     @property
     def can_manage_users(self) -> bool:
