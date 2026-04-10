@@ -1,220 +1,245 @@
-# Estrutura do Frontend Next.js
+# Frontend Structure
 
-```
+## Visao Geral
+
+O frontend principal fica em `neuro-frontend/` e usa `Next.js 14` com `App Router`, `React`, `TypeScript` e `Tailwind CSS`.
+
+O projeto esta organizado por areas funcionais do dashboard e por camadas simples:
+
+- `app/` para rotas e layouts
+- `components/` para interface reutilizavel
+- `services/` para acesso a API Django
+- `lib/` para infraestrutura compartilhada
+- `types/` para contratos TypeScript
+
+## Estrutura Atual
+
+```text
 neuro-frontend/
 ├── app/
-│   ├── (auth)/
-│   │   ├── login/
+│   ├── dashboard/
+│   │   ├── accounts/
 │   │   │   └── page.tsx
-│   │   └── layout.tsx
-│   │
-│   ├── (dashboard)/
-│   │   ├── patients/
-│   │   │   ├── page.tsx          # Lista pacientes
-│   │   │   ├── [id]/
-│   │   │   │   └── page.tsx      # Detalhes paciente
-│   │   │   └── new/
-│   │   │       └── page.tsx      # Novo paciente
-│   │   │
+│   │   ├── ai/
+│   │   │   └── page.tsx
+│   │   ├── documents/
+│   │   │   └── page.tsx
 │   │   ├── evaluations/
-│   │   │   ├── page.tsx          # Lista avaliações
+│   │   │   ├── page.tsx
+│   │   │   ├── new/
+│   │   │   │   └── page.tsx
 │   │   │   └── [id]/
-│   │   │       └── page.tsx      # Detalhes avaliação
-│   │   │
+│   │   │       ├── layout.tsx
+│   │   │       ├── page.tsx
+│   │   │       ├── edit/page.tsx
+│   │   │       ├── overview/page.tsx
+│   │   │       ├── progress/page.tsx
+│   │   │       ├── documents/page.tsx
+│   │   │       ├── tests/page.tsx
+│   │   │       ├── report/page.tsx
+│   │   │       └── anamnesis/
+│   │   │           ├── page.tsx
+│   │   │           ├── new/page.tsx
+│   │   │           └── [anamnesisId]/page.tsx
+│   │   ├── patients/
+│   │   │   ├── page.tsx
+│   │   │   ├── new/page.tsx
+│   │   │   └── [id]/page.tsx
+│   │   ├── reports/
+│   │   │   ├── page.tsx
+│   │   │   ├── [id]/page.tsx
+│   │   │   └── generate/[evaluationId]/page.tsx
 │   │   ├── tests/
-│   │   │   ├── page.tsx          # Lista testes disponíveis
-│   │   │   ├── wisc4/
-│   │   │   │   ├── page.tsx      # Form WISC-IV
-│   │   │   │   └── [id]/
-│   │   │   │       └── result.tsx  # Resultado WISC-IV
+│   │   │   ├── page.tsx
+│   │   │   ├── bpa2/
+│   │   │   ├── ebadep-a/
+│   │   │   ├── ebadep-ij/
+│   │   │   ├── epq-j/
 │   │   │   ├── etdah-ad/
-│   │   │   │   ├── page.tsx      # Form ETDAH-AD
-│   │   │   │   └── [id]/
-│   │   │   │       └── result.tsx  # Resultado ETDAH-AD
 │   │   │   ├── etdah-pais/
-│   │   │   │   ├── page.tsx      # Form ETDAH-PAIS
-│   │   │   │   └── [id]/
-│   │   │   │       └── result.tsx  # Resultado ETDAH-PAIS
+│   │   │   ├── fdt/
 │   │   │   ├── ravlt/
 │   │   │   ├── scared/
-│   │   │   │   ├── page.tsx      # Form SCARED
-│   │   │   │   └── [id]/
-│   │   │   │       └── result.tsx  # Resultado SCARED
-│   │   │   └── ...
-│   │   │
-│   │   ├── reports/
-│   │   │   └── page.tsx          # Lista laudos
-│   │   │
-│   │   └── layout.tsx            # Layout com sidebar
-│   │
-│   ├── api/
-│   │   └── auth/
-│   │       └── [...nextauth]/    # NextAuth handlers
-│   │
-│   ├── layout.tsx                # Root layout
-│   └── page.tsx                  # Redirect para dashboard
-│
+│   │   │   ├── srs2/
+│   │   │   └── wisc4/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── public/
+│   │   └── anamnesis/[token]/page.tsx
+│   ├── forgot-password/page.tsx
+│   ├── login/page.tsx
+│   ├── register/page.tsx
+│   ├── reset-password/page.tsx
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
 ├── components/
-│   ├── ui/                       # Componentes reutilizáveis
-│   │   ├── Button.tsx
-│   │   ├── Input.tsx
-│   │   ├── Card.tsx
-│   │   ├── Table.tsx
-│   │   ├── Modal.tsx
-│   │   └── ...
-│   │
+│   ├── anamnesis/
+│   │   ├── AnamnesisResponseViewer.tsx
+│   │   ├── FieldRenderer.tsx
+│   │   ├── FormStepRenderer.tsx
+│   │   ├── InternalAnamnesisEditor.tsx
+│   │   ├── ProgressHeader.tsx
+│   │   ├── RepeaterField.tsx
+│   │   ├── ReviewSummary.tsx
+│   │   └── types.ts
+│   ├── evaluations/
+│   │   ├── EvaluationHeader.tsx
+│   │   └── EvaluationTabs.tsx
 │   ├── layout/
-│   │   ├── Sidebar.tsx
-│   │   ├── Header.tsx
-│   │   └── SidebarItem.tsx
-│   │
-│   ├── patients/
-│   │   ├── PatientList.tsx
-│   │   ├── PatientCard.tsx
-│   │   └── PatientForm.tsx
-│   │
+│   │   ├── AppHeader.tsx
+│   │   ├── AppLayout.tsx
+│   │   ├── AppSidebar.tsx
+│   │   └── SystemLayout.tsx
 │   ├── tests/
-│   │   ├── WISC4/
-│   │   │   ├── SubtestForm.tsx
-│   │   │   ├── IndexTable.tsx
-│   │   │   └── ResultChart.tsx
-│   │   └── ...
-│   │
-│   └── reports/
-│       └── ReportViewer.tsx
-│
+│   │   └── wisc4/
+│   └── ui/
+│       ├── avatar.tsx
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── card.tsx
+│       ├── dropdown-menu.tsx
+│       ├── input.tsx
+│       ├── page.tsx
+│       ├── progress.tsx
+│       ├── scroll-area.tsx
+│       ├── select.tsx
+│       ├── separator.tsx
+│       ├── table.tsx
+│       └── tabs.tsx
 ├── lib/
-│   ├── api.ts                   # Fetch wrapper
-│   ├── auth.ts                  # Auth utilities
-│   └── utils.ts                 # Helpers
-│
-├── types/
-│   ├── patient.ts
-│   ├── evaluation.ts
-│   ├── wisc4.ts
-│   └── ...
-│
-├── services/                    # Chamadas API específicas
-│   ├── patientService.ts
+│   ├── api.ts
+│   └── utils.ts
+├── services/
+│   ├── anamnesisService.ts
+│   ├── documentService.ts
 │   ├── evaluationService.ts
+│   ├── index.ts
+│   ├── patientService.ts
+│   ├── reportService.ts
+│   ├── testService.ts
 │   └── wisc4Service.ts
-│
-├── tailwind.config.ts
-├── next.config.js
+├── types/
+│   ├── evaluation.ts
+│   ├── index.ts
+│   ├── patient.ts
+│   └── tests/
+│       └── wisc4.ts
 ├── package.json
+├── postcss.config.js
+├── tailwind.config.ts
 └── tsconfig.json
 ```
 
-## Arquivos Principais
+## Organizacao de Rotas
 
-### lib/api.ts - Fetch wrapper
-```typescript
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+### Rotas publicas
 
-export async function fetchAPI<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = await getToken()
-  
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  })
+- `/login`
+- `/register`
+- `/forgot-password`
+- `/reset-password`
+- `/public/anamnesis/[token]`
 
-  if (!res.ok) {
-    throw new Error(`API Error: ${res.status}`)
-  }
+### Rotas autenticadas
 
-  return res.json()
-}
+Todas as telas de operacao ficam sob `app/dashboard/` e usam `app/dashboard/layout.tsx`, que encapsula o `AppLayout`.
 
-// Helper methods
-export const api = {
-  get: <T>(url: string) => fetchAPI<T>(url),
-  post: <T>(url: string, data: unknown) => 
-    fetchAPI<T>(url, { method: 'POST', body: JSON.stringify(data) }),
-  put: <T>(url: string, data: unknown) => 
-    fetchAPI<T>(url, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: <T>(url: string) => 
-    fetchAPI<T>(url, { method: 'DELETE' }),
-}
-```
+As principais areas sao:
 
-### services/patientService.ts
-```typescript
+- `patients`: cadastro e consulta de pacientes
+- `evaluations`: ciclo principal da avaliacao
+- `tests`: aplicacao e visualizacao de instrumentos
+- `reports`: geracao e leitura de laudos
+- `documents`: anexos da avaliacao
+- `accounts`: area administrativa
+- `ai`: superficie de recursos assistivos
+
+## Layout e Navegacao
+
+O layout autenticado usa tres componentes centrais:
+
+- `components/layout/AppLayout.tsx`: casca principal do dashboard
+- `components/layout/AppSidebar.tsx`: navegacao lateral
+- `components/layout/AppHeader.tsx`: cabecalho superior
+
+Hoje o controle visual da sidebar acontece no cliente via `useState`, dentro do proprio `AppLayout`.
+
+## Integracao com a API
+
+O frontend conversa diretamente com o backend Django por meio de `lib/api.ts`.
+
+Responsabilidades dessa camada:
+
+- resolver a base URL da API
+- anexar token JWT salvo em `localStorage`
+- tratar `FormData` e JSON
+- normalizar mensagens de erro
+- expor helpers `get`, `post`, `put`, `patch` e `delete`
+
+Exemplo de uso:
+
+```ts
 import { api } from '@/lib/api'
 
-export interface Patient {
-  id: number
-  full_name: string
-  birth_date: string
-  sex: string
-  schooling?: string
-}
-
-export const patientService = {
-  list: () => api.get<Patient[]>('/api/patients/'),
-  
-  get: (id: number) => api.get<Patient>(`/api/patients/${id}/`),
-  
-  create: (data: Partial<Patient>) => 
-    api.post<Patient>('/api/patients/', data),
-  
-  update: (id: number, data: Partial<Patient>) => 
-    api.put<Patient>(`/api/patients/${id}/`, data),
-  
-  delete: (id: number) => api.delete(`/api/patients/${id}/`),
+export const testService = {
+  getInstruments: () => api.get<any[]>('/api/tests/instruments/'),
+  addApplication: (evaluationId: number, instrumentId: number) =>
+    api.post('/api/tests/applications/', {
+      evaluation_id: evaluationId,
+      instrument_id: instrumentId,
+    }),
 }
 ```
 
-### app/(dashboard)/patients/page.tsx
-```typescript
-import { patientService } from '@/services/patientService'
-import { PatientList } from '@/components/patients/PatientList'
+## Services
 
-export default async function PatientsPage() {
-  const patients = await patientService.list()
-  
-  return (
-    <div>
-      <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Pacientes</h1>
-        <a href="/patients/new" className="btn btn-primary">
-          Novo Paciente
-        </a>
-      </div>
-      <PatientList patients={patients} />
-    </div>
-  )
-}
-```
+Os `services/` concentram o consumo dos endpoints do backend e evitam espalhar chamadas HTTP nas paginas.
 
-### .env.local
-```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key
-```
+- `patientService.ts`: pacientes
+- `evaluationService.ts`: avaliacoes e progresso
+- `anamnesisService.ts`: templates, respostas e fluxo publico/interno
+- `documentService.ts`: upload e listagem de anexos
+- `reportService.ts`: laudos e geracao
+- `testService.ts`: instrumentos e aplicacoes
+- `wisc4Service.ts`: operacoes especificas do WISC-IV
 
-## Instalação
+## Padrao das Paginas de Testes
 
-```bash
-npx create-next-app@latest neuro-frontend
-# Escolher: TypeScript, Tailwind, App Router
+As paginas de testes seguem um padrao simples:
 
-cd neuro-frontend
-npm install @tanstack/react-query axios next-auth
-```
+- pagina raiz do instrumento para aplicacao ou entrada
+- pagina `[id]/page.tsx` para detalhes/edicao quando necessario
+- pagina `[id]/result/page.tsx` para leitura clinica do resultado
 
-## Integração com Django
+Instrumentos atualmente expostos no frontend:
 
-1. **CORS** - Configure em Django (`django-cors-headers`)
-2. **Auth** - Use JWT ou Session auth
-3. **API** - Sua API já existe em `apps/tests/api/`
+- `bpa2`
+- `ebadep-a`
+- `ebadep-ij`
+- `epq-j`
+- `etdah-ad`
+- `etdah-pais`
+- `fdt`
+- `ravlt`
+- `scared`
+- `srs2`
+- `wisc4`
 
-Quer que eu crie alguns arquivos de exemplo para começar?
+## Observacoes Arquiteturais
+
+- O frontend atual e majoritariamente client-side nas telas do dashboard.
+- A autenticacao no browser depende do token salvo localmente.
+- Existe uma base de componentes `ui/` reutilizavel com Radix UI e utilitarios de estilo.
+- A pasta `components/tests/wisc4/` existe, mas hoje a maior parte da tela de resultado esta implementada diretamente na rota correspondente.
+- O frontend novo convive com telas legadas renderizadas pelo proprio Django no backend.
+
+## Stack do Frontend
+
+- Next.js 14.1
+- React 18
+- TypeScript 5
+- Tailwind CSS 3
+- Radix UI
+- TanStack React Query (instalado, uso parcial)
+- Axios (instalado, mas a camada principal atual usa `fetch` em `lib/api.ts`)

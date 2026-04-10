@@ -1,286 +1,347 @@
-# NeuroAvalia - Arquitetura Full-Stack
+# Project Architecture
 
-## Visão Geral
+## Visao Geral
 
-Projeto de gestão de avaliações neuropsicológicas com backend Django e frontend Next.js, estruturado como monólito modular orientado a domínio.
+O repositorio contem uma arquitetura full-stack com duas frentes principais:
 
-## Arquitetura de Alto Nível
+- backend Django modular em `apps/`
+- frontend Next.js em `neuro-frontend/`
 
-```
-neuro/                              # Projeto Django (Backend)
-├── apps/                           # Aplicações por domínio
-│   ├── accounts/                   # Usuários e autenticação
-│   ├── ai/                        # Camada de IA (LangChain)
-│   │   ├── api/
-│   │   ├── services/
-│   │   ├── providers/
-│   │   ├── chains/
-│   │   ├── prompts/
-│   │   ├── guards/
-│   │   ├── logging/
-│   │   └── schemas/
-│   ├── anamnesis/                  # Questionários de anamnese
-│   ├── api/                        # API principal (Ninja)
-│   ├── audit/                     # Auditoria de ações
-│   │   ├── models.py              # AuditLog
-│   │   └── services.py            # AuditService
-│   ├── common/                    # Componentes compartilhados
-│   ├── documents/                 # Gestão de documentos
-│   ├── evaluations/               # Avaliações neuropsicológicas
-│   ├── messaging/                 # Sistema de mensagens
-│   ├── patients/                  # Gestão de pacientes
-│   ├── reports/                   # Laudos e relatórios
-│   └── tests/                     # Testes psicológicos (NÚCLEO CLÍNICO)
-│       ├── base/
-│       │   ├── types.py           # Tipos (TestContext, ComputedScore, etc)
-│       │   ├── interfaces.py      # Protocolos (ICalculator, IClassifier)
-│       │   └── exceptions.py      # Exceções customizadas
-│       ├── models/
-│       │   ├── instruments.py     # Instrument
-│       │   ├── applications.py    # TestApplication
-│       │   └── templates.py       # InterpretationTemplate
-│       ├── services/
-│       │   ├── application_service.py
-│       │   ├── scoring_service.py
-│       │   └── interpretation_service.py
-│       ├── selectors.py           # Queries do domínio
-│       ├── registry.py            # Registro de instrumentos
-│       ├── api/
-│       │   ├── router.py
-│       │   ├── endpoints.py
-│       │   └── schemas.py
-│       ├── norms/                 # Tabelas normativas
-│       └── instrumentos/
-│           ├── wisc4/             # WISC-IV
-│           ├── bpa2/              # BPA-2
-│           ├── ebadep_a/          # EBADEP-A
-│           ├── ebaped_ij/         # EBAPED-IJ
-│           ├── epq_j/            # EPQ-J
-│       ├── etdah_ad/          # ETDAH-AD
-│       ├── etdah_pais/        # ETDAH-PAIS
-│       ├── fdt/               # FDT
-│       ├── ravlt/             # RAVLT
-│       └── scared/            # SCARED
+O estado atual e de transicao controlada: o sistema novo em Next.js ja cobre o dashboard principal, enquanto o backend Django ainda mantem telas server-rendered em `config/templates/` para partes legadas e apoio operacional.
 
-│
-├── config/                        # Configurações Django
-│   ├── settings/
-│   │   ├── base.py               # Configurações base
-│   │   ├── local.py              # Desenvolvimento
-│   │   └── production.py          # Produção
-│   ├── urls.py
-│   ├── asgi.py
-│   └── wsgi.py
-│
-├── theme/                         # Tema Tailwind
-│   └── static_src/
-│
-├── infra/                         # Infraestrutura Docker
-│
-└── manage.py
+## Estrutura de Alto Nivel
 
-
-neuro-frontend/                   # Projeto Next.js (Frontend)
-├── app/
-│   ├── dashboard/
-│   │   ├── accounts/
-│   │   ├── ai/
-│   │   ├── documents/
-│   │   ├── evaluations/
-│   │   ├── patients/
-│   │   ├── reports/
-│   │   ├── tests/
-│   │   └── page.tsx
-│   ├── login/
-│   ├── layout.tsx
-│   └── page.tsx
-│
-├── components/
-│   ├── ui/
-│   ├── layout/
+```text
+neuro/
+├── apps/                      # dominios Django
+│   ├── accounts/
+│   ├── ai/
+│   ├── anamnesis/
+│   ├── api/
+│   ├── audit/
+│   ├── common/
+│   ├── documents/
+│   ├── evaluations/
+│   ├── messaging/
 │   ├── patients/
-│   ├── tests/
-│   └── anamnesis/
-│
-├── lib/
-│   ├── api.ts
-│   └── utils.ts
-│
-├── services/
-├── types/
-│
-└── package.json
+│   ├── reports/
+│   └── tests/
+├── config/                    # settings, urls, templates e assets Django
+├── infra/                     # artefatos de infraestrutura
+├── theme/                     # integracao Tailwind do lado Django
+├── neuro-frontend/            # frontend Next.js
+├── files/
+├── media/
+├── static/
+├── staticfiles/
+├── manage.py
+├── pyproject.toml
+├── docker-compose.yml
+└── docker-compose.prod.yml
 ```
 
-## Padrão Interno dos Apps
+## Backend Django
 
-Cada app segue uma estrutura modular:
+### Organizacao por dominio
 
-```
-apps/<app_name>/
-├── models/           # Modelos Django
-├── api/              # Endpoints Ninja
-├── services/         # Lógica de negócio
-├── selectors.py      # Consultas DB
-├── validators.py     # Validações
-├── permissions.py    # Permissões
-├── workflows.py      # Fluxos complexos
-├── storage/          # Integração com storage
+Cada app do backend concentra responsabilidade de negocio bem definida.
+
+- `apps/accounts/`: autenticacao, usuarios e regras de acesso
+- `apps/ai/`: camada assistiva de IA, isolada do calculo clinico
+- `apps/anamnesis/`: templates, convites e respostas de anamnese
+- `apps/api/`: roteador principal da API, auth e endpoints transversais
+- `apps/audit/`: rastreabilidade de eventos sensiveis
+- `apps/common/`: utilitarios compartilhados
+- `apps/documents/`: anexos por avaliacao
+- `apps/evaluations/`: avaliacao clinica e progresso
+- `apps/messaging/`: email e WhatsApp desacoplados
+- `apps/patients/`: cadastro e dados demograficos
+- `apps/reports/`: geracao e organizacao de laudos
+- `apps/tests/`: motor dos instrumentos psicologicos
+
+### Estrutura recorrente dos apps
+
+Nem todos os apps seguem exatamente a mesma arvore, mas o padrao dominante hoje e:
+
+```text
+apps/<dominio>/
+├── api/
+├── migrations/
+├── models.py
+├── selectors.py
+├── services.py        # ou services/
+├── views.py           # quando ha tela Django
+├── urls.py            # quando ha rotas Django
 └── apps.py
 ```
 
-## Camada de IA (`apps/ai/`)
+## API e Interfaces
 
-Regras obrigatórias:
-- LangChain existe apenas aqui
-- IA é apenas **assistiva**
-- IA **não calcula** escore, percentil, classificação ou norma
-- IA **não substitui** revisão humana
-- IA recebe dados **já estruturados** pelo backend
-- IA não acessa banco diretamente
+O backend expoe duas interfaces principais:
 
+### 1. API JSON
+
+- definida principalmente por `apps/api/router.py`
+- publicada em `config/urls.py` sob `/api/`
+- consumida pelo frontend Next.js
+
+### 2. Telas Django server-rendered
+
+Ainda existem rotas HTML no backend, por exemplo:
+
+- `/` para dashboard legado
+- `/pacientes/`
+- `/avaliacoes/`
+- `/testes/`
+- `/relatorios/`
+
+Isso mostra que a arquitetura atual e hibrida, nao exclusivamente SPA ou API-only.
+
+## Frontend Next.js
+
+O frontend novo fica em `neuro-frontend/` e usa App Router.
+
+### Camadas principais
+
+- `app/`: rotas, layouts e paginas
+- `components/`: componentes de interface por area
+- `services/`: consumo da API Django
+- `lib/`: infraestrutura compartilhada, incluindo `api.ts`
+- `types/`: contratos TypeScript
+
+### Areas funcionais expostas
+
+- autenticacao: `login`, `register`, `forgot-password`, `reset-password`
+- dashboard autenticado
+- pacientes
+- avaliacoes
+- documentos
+- laudos
+- testes psicologicos
+- anamnese publica por token
+
+## Dominio Clinico Central
+
+O fluxo principal do sistema gira em torno destas entidades:
+
+1. `Patient`
+2. `Evaluation`
+3. `TestApplication`
+4. `AnamnesisResponse`
+5. `EvaluationDocument`
+6. `Report`
+
+Resumo do fluxo:
+
+1. cadastrar paciente
+2. abrir avaliacao
+3. registrar anamnese, documentos e progresso
+4. aplicar instrumentos
+5. calcular e classificar resultados no backend
+6. consolidar laudo
+
+## Modulo `apps/tests/`
+
+Esse e o nucleo de calculo dos instrumentos.
+
+Estrutura atual resumida:
+
+```text
+apps/tests/
+├── api/
+├── base/
+├── management/
+├── migrations/
+├── models/
+├── norms/
+├── permissions/
+├── services/
+├── validators/
+├── registry.py
+├── selectors.py
+├── age_rules.py
+├── models.py
+├── urls.py
+├── views.py
+├── bpa2/
+├── ebadep_a/
+├── ebaped_ij/
+├── epq_j/
+├── etdah_ad/
+├── etdah_pais/
+├── fdt/
+├── ravlt/
+├── scared/
+├── srs2/
+└── wisc4/
 ```
-apps/ai/
-├── api/              # Endpoints para IA
-├── services/         # AIService
-├── providers/        # OpenAI, Anthropic, etc
-├── chains/          # LangChain chains
-├── prompts/          # Templates de prompt
-├── guards/          # Validations (AIGuard)
-├── logging/         # AILogger
-└── schemas/         # Schemas Pydantic
-```
 
-## Módulo `tests` (Núcleo Clínico)
+Padrao esperado por instrumento:
 
-Estrutura padrão de cada instrumento:
-
-```
+```text
 apps/tests/<instrumento>/
-├── __init__.py      # Registra instrumento
-├── config.py        # Configuração do instrumento
-├── schemas.py       # Schemas de input/output
-├── validators.py    # Validações específicas
-├── loaders.py       # Carregamento de tabelas
-├── calculators.py  # Cálculo de escores
-├── classifiers.py  # Classificações clínicas
-├── interpreters.py  # Interpretações
-└── constants.py    # Constantes
+├── __init__.py
+├── config.py
+├── schemas.py
+├── validators.py
+├── calculators.py
+├── classifiers.py
+└── interpreters.py
 ```
 
-### Separação de Dados
+Responsabilidades do backend de testes:
 
-Toda aplicação de teste segue esta estrutura:
+- validar payload bruto
+- aplicar regras etarias
+- calcular escores
+- classificar segundo normas
+- montar payload computado e classificado
+- persistir `TestApplication`
 
-| Campo | Descrição |
-|-------|-----------|
-| `raw_payload` | Dado bruto digitado |
-| `computed_payload` | Resultado calculado (escore, percentil) |
-| `classified_payload` | Classificação clínica |
-| `interpretation_text` | Interpretação |
+Instrumentos atualmente presentes no repositorio:
 
-## Camada de Auditoria (`apps/audit/`)
+- `bpa2`
+- `ebadep_a`
+- `ebaped_ij`
+- `epq_j`
+- `etdah_ad`
+- `etdah_pais`
+- `fdt`
+- `ravlt`
+- `scared`
+- `srs2`
+- `wisc4`
 
-Modelo AuditLog para rastrear ações críticas:
-- CRUD de pacientes, avaliações, laudos
-- Exportação e impressão
-- Login/logout
-- Acesso a dados sensíveis
+## Camada de IA
+
+`apps/ai/` permanece isolado do nucleo clinico.
+
+Estrutura atual:
+
+```text
+apps/ai/
+├── api/
+├── chains/
+├── guards/
+├── logging/
+├── prompts/
+├── providers/
+├── schemas/
+└── services/
+```
+
+Diretrizes arquiteturais implicitas no codigo e na documentacao do projeto:
+
+- IA e assistiva, nao normativa
+- calculo clinico continua no backend de dominio
+- acesso a IA passa por guardrails e prompts controlados
+
+## Anamnese
+
+`apps/anamnesis/` contem o fluxo estruturado de formularios clinicos.
+
+Estrutura atual:
+
+```text
+apps/anamnesis/
+├── api/
+├── templates/
+├── migrations/
+├── constants.py
+├── models.py
+├── selectors.py
+└── services.py
+```
+
+No frontend, esse dominio aparece em dois contextos:
+
+- edicao interna por avaliacao
+- preenchimento publico por token em `app/public/anamnesis/[token]/page.tsx`
+
+## Relatorios e Documentos
+
+### `apps/documents/`
+
+Responsavel por anexos de avaliacao e metadados associados.
+
+### `apps/reports/`
+
+Concentra geracao e organizacao do laudo. Hoje a estrutura inclui tanto `services.py` quanto uma pasta `services/`, alem de `builders/` e `prompts/`, indicando que o modulo cresceu alem do formato simples de um unico arquivo.
+
+## Mensageria
+
+`apps/messaging/` desacopla o envio de comunicacoes do restante do dominio.
+
+Arquivos principais:
+
+- `email_service.py`
+- `whatsapp_service.py`
+- `services.py`
+
+Isso facilita troca futura de provedor sem contaminar os fluxos clinicos.
+
+## Configuracao e Deploy
+
+### Config Django
+
+```text
+config/
+├── settings/
+│   ├── base.py
+│   ├── local.py
+│   └── production.py
+├── templates/
+├── static/
+├── staticfiles/
+├── urls.py
+├── asgi.py
+└── wsgi.py
+```
+
+### Artefatos operacionais
+
+- `docker-compose.yml`
+- `docker-compose.prod.yml`
+- `backend.Dockerfile`
+- `render.yaml`
+- `VERCEL_DEPLOY.md`
+- `DEPLOY.md`
 
 ## Fluxo de Dados
 
-```
-Usuário (Frontend Next.js)
-    │
-    ▼ HTTP JSON
-┌─────────────────────────────┐
-│    Django Ninja API         │
-│  (apps/api, apps/tests)     │
-└──────────────┬──────────────┘
-               │
-    ┌──────────┴──────────┐
-    │                     │
-┌───▼────────┐    ┌───────▼─────┐
-│  Services  │    │     AI      │
-│ (negocio)  │    │ (assistivo) │
-└─────┬──────┘    └─────────────┘
-      │
-┌─────▼──────┐
-│ Django ORM │
-│ + PostgreSQL│
-└────────────┘
+```text
+Usuario
+  |
+  | HTTP / JSON
+  v
+Next.js frontend (`neuro-frontend`)
+  |
+  | fetch em `lib/api.ts`
+  v
+Django API (`/api/`)
+  |
+  +--> services / selectors / models por dominio
+  |
+  +--> modulo `apps/tests/` para calculo clinico
+  |
+  +--> modulo `apps/ai/` para apoio assistivo
+  v
+Banco de dados e arquivos
 ```
 
-## Endpoints API
+## Stack Atual
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/api/patients/` | Lista pacientes |
-| POST | `/api/patients/` | Cria paciente |
-| GET | `/api/patients/{id}/` | Detalhes |
-| PUT | `/api/patients/{id}/` | Atualiza |
-| DELETE | `/api/patients/{id}/` | Remove |
-| GET | `/api/evaluations/` | Lista avaliações |
-| POST | `/api/evaluations/` | Cria avaliação |
-| GET | `/api/tests/wisc4/` | Info WISC-IV |
-| POST | `/api/tests/wisc4/calculate/` | Calcula WISC-IV |
-| GET | `/api/tests/{code}/result/{id}/` | Resultado |
-| GET | `/api/ai/generate/` | Geração IA |
-| GET | `/api/audit/logs/` | Logs de auditoria |
-| POST | `/api/auth/login/` | Login JWT |
+- Backend: Django 5.1+
+- API: Django Ninja
+- Frontend: Next.js 14.1
+- UI: React 18 + Tailwind CSS 3 + Radix UI
+- Banco: SQLite no ambiente atual, com caminho para PostgreSQL em producao
+- Deploy: Render, Vercel e Docker
 
-## Testes Psicológicos
+## Observacoes Importantes
 
-| Código | Nome | Faixa Etária |
-|--------|------|--------------|
-| wisc4 | WISC-IV | 6-16 anos |
-| bpa2 | BPA-2 | Adulto |
-| ebadep_a | EBADEP-A | Adulto |
-| ebaped_ij | EBAPED-IJ | Infantojuvenil |
-| epq_j | EPQ-J | 7-15 anos |
-| etdah_ad | ETDAH-AD | 12+ anos |
-| etdah_pais | ETDAH-PAIS | 2-17 anos |
-| fdt | FDT | 5+ anos |
-| ravlt | RAVLT | 16+ anos |
-| scared | SCARED | 9-18 anos (Autorrelato) / Crianças e Adol. (Pais) |
-
-
-## Tecnologias
-
-| Camada | Tecnologia |
-|--------|------------|
-| Backend | Django 4+ |
-| API | Django Ninja |
-| Frontend | Next.js 14 (App Router) |
-| UI | Tailwind CSS |
-| Auth | JWT |
-| Database | SQLite (dev) / PostgreSQL (prod) |
-| IA | LangChain (backend) |
-| Message Queue | Pronto para Celery + Redis |
-| Deploy | Docker, Vercel + Railway/Render |
-
-## Estrutura de Diretórios
-
-```
-/home/andre/neuro/
-├── apps/              # 12 apps Django
-├── config/           # Settings separados
-├── theme/            # Tailwind
-├── neuro-frontend/   # Next.js
-├── staticfiles/
-├── infra/            # Docker
-├── docker-compose.yml
-├── docker-compose.prod.yml
-├── pyproject.toml
-├── requirements.txt
-└── uv.lock
-```
-
-## Pronto para Crescer
-
-A arquitetura está preparada para:
-- Celery + Redis (tarefas assíncronas)
-- Nginx (reverse proxy)
-- Workers separados (processamento intenso)
-- Cache distribuído
-- Escalabilidade horizontal
+- O repositorio ainda contem uma camada Django HTML legado em paralelo ao frontend Next.js.
+- O frontend consome a API diretamente e usa token no `localStorage`.
+- `apps/tests/` e o centro do comportamento clinico deterministico.
+- `apps/ai/` deve continuar separado da logica normativa e de escore.
+- A arquitetura atual privilegia modularidade por dominio, mas sem impor uma rigidez artificial unica para todos os apps.
