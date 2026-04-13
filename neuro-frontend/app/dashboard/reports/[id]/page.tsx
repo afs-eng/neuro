@@ -106,14 +106,14 @@ export default function ReportDetailPage() {
     setSaving(true);
     setNotice("");
     try {
-      const updated = await reportService.regenerateSection(report.id, activeSection.key);
+      const updated = await reportService.regenerateSection(report.id, activeSection.key) as Record<string, string | undefined>;
       setReport((current: any) => ({
         ...current,
         sections: current.sections.map((section: any) =>
           section.id === activeSection.id ? { ...section, ...updated } : section
         ),
       }));
-      setEditedText(updated.edited_text || updated.generated_text || "");
+      setEditedText(String(updated.edited_text || updated.generated_text || ""));
       setNotice("Secao regenerada com sucesso.");
       await loadReport();
     } catch (err: any) {
@@ -145,9 +145,9 @@ export default function ReportDetailPage() {
       const preferredSection = wiscSubscaleSections.find((section: any) => section.id === activeSectionId)
         || wiscSubscaleSections[0];
       if (preferredSection && updatedSections[preferredSection.key]) {
-        const updated = updatedSections[preferredSection.key];
+        const updated = updatedSections[preferredSection.key] as Record<string, string | undefined>;
         setActiveSectionId(updated.id ?? preferredSection.id);
-        setEditedText(updated.edited_text || updated.generated_text || "");
+        setEditedText(String(updated.edited_text || updated.generated_text || ""));
       }
 
       setNotice("Subscalas-Wisc regeneradas com sucesso.");

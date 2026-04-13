@@ -1395,9 +1395,9 @@ export default function EvaluationDetailPage() {
                           )}
                         </div>
                         <div className="print-area">
-                          <AnamnesisResponseViewer 
-                            answers={selectedAnamnesisResponse.answers_payload} 
-                            template={anamnesisTemplates.find(t => t.id === selectedAnamnesisResponse.template_id || t.name === selectedAnamnesisResponse.template_name)}
+                          <AnamnesisResponseViewer
+                            answers={selectedAnamnesisResponse.answers_payload}
+                            template={anamnesisTemplates.find(t => t.id === selectedAnamnesisResponse.template_id || t.name === selectedAnamnesisResponse.template_name) as any}
                           />
                         </div>
                       </div>

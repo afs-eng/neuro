@@ -1,4 +1,5 @@
 import { Patient } from './patient'
+export type { Patient }
 
 // ============================================================
 // Evaluation

@@ -70,6 +70,7 @@ interface TestApplication {
 
 interface Report {
   id: number;
+  evaluation_id?: number;
   evaluation_code: string;
   evaluation_title: string;
   author_name: string;
@@ -432,10 +433,10 @@ export default function PatientDetailPage() {
                                     <span>Aplicado em: {formatDate(test.applied_on)}</span>
                                   </>
                                 )}
-                                {"evaluation_code" in test && test.evaluation_code && (
+                                {(test as any).evaluation_code && (
                                   <>
                                     <span className="h-1 w-1 rounded-full bg-slate-300" />
-                                    <span className="text-primary font-semibold">{test.evaluation_code}</span>
+                                    <span className="text-primary font-semibold">{(test as any).evaluation_code}</span>
                                   </>
                                 )}
                               </div>
