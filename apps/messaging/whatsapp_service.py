@@ -69,7 +69,8 @@ def _send_via_evolution(
 
 def _build_whatsapp_link(*, recipient_phone: str, body: str) -> dict:
     phone = _normalize_phone(recipient_phone)
-    whatsapp_link = f"https://wa.me/{phone}?text={quote(body)}"
+    # Preserve URL characters (: / ? & =) during encoding
+    whatsapp_link = f"https://wa.me/{phone}?text={quote(body, safe='/:?&=')}"
     return {
         "channel": "whatsapp",
         "provider": "wa_me_link",

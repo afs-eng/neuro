@@ -1,5 +1,5 @@
 from django.conf import settings
-from ninja import Router
+from ninja import Query, Router
 from ninja.errors import HttpError
 
 from apps.accounts.models import UserRole
@@ -188,7 +188,7 @@ def get_template_endpoint(request, template_id: int):
 
 
 @router.post(
-    "/invites/",
+    "/invites",
     response={
         201: AnamnesisInviteOut,
         400: MessageOut,
@@ -231,7 +231,7 @@ def create_invite_endpoint(request, payload: AnamnesisInviteCreateIn):
 
 
 @router.get("/invites", response=list[AnamnesisInviteOut], auth=bearer_auth)
-def list_invites_endpoint(request, evaluation_id: int):
+def list_invites_endpoint(request, evaluation_id: int = Query(...)):
     if not can_view(request.auth):
         raise HttpError(
             403, "Você não tem permissão para visualizar convites de anamnese."
@@ -327,7 +327,7 @@ def cancel_invite_endpoint(request, invite_id: int):
 
 
 @router.get("/responses", response=list[AnamnesisResponseOut], auth=bearer_auth)
-def list_responses_endpoint(request, evaluation_id: int):
+def list_responses_endpoint(request, evaluation_id: int = Query(...)):
     if not can_view(request.auth):
         raise HttpError(
             403, "Você não tem permissão para visualizar respostas de anamnese."
@@ -356,7 +356,7 @@ def get_current_response_endpoint(request, evaluation_id: int):
 
 
 @router.post(
-    "/responses/",
+    "/responses",
     response={
         201: AnamnesisResponseOut,
         400: MessageOut,

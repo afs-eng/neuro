@@ -31,7 +31,13 @@
       "Bash(git rm *)",
       "Bash(npx *)",
       "Bash(kill *)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(docker compose *)",
+      "Bash(docker ps *)",
+      "Bash(hostname *)",
+      "Bash(ip *)",
+      "Bash(docker port *)",
+      "Bash(docker exec *)"
     ]
   },
   "$version": 3
