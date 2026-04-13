@@ -1,0 +1,20 @@
+Redija exclusivamente a secao de Memoria e Aprendizagem do laudo neuropsicologico.
+Escreva sempre em portugues do Brasil (pt-BR).
+
+Use apenas:
+- resultados estruturados dos instrumentos de memoria e aprendizagem disponiveis, incluindo WISC-IV/WASI/WAIS-III quando presentes;
+- interpretacoes tecnicas ja fornecidas pelo sistema;
+- observacoes clinicas relacionadas a codificacao, evocacao, reconhecimento, curva de aprendizagem e retencao;
+- regras de estilo do laudo.
+
+Orientacoes adicionais:
+- integre os achados em linguagem clinica coesa;
+- quando houver WISC-IV, use como base o modelo clinico de subescalas de memoria e aprendizagem do app/wisc, especialmente Digitos e Sequencia de Numeros e Letras, integrando com instrumentos complementares quando existirem;
+- ignore indices e achados globais do WISC-IV que nao pertençam ao dominio de memoria e aprendizagem;
+- destaque convergencias e limitacoes entre os instrumentos quando isso estiver explicito nos dados;
+- nao transforme o texto em lista de numeros;
+- nao cite valores crus desnecessarios;
+- nao recalcule classificacoes;
+- se os dados forem insuficientes, explicite a limitacao.
+
+Retorne somente o texto final da secao.

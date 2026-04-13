@@ -17,7 +17,7 @@ export default function NewAnamnesisPage() {
   useEffect(() => {
     async function load() {
       const [templatesData, evaluationData] = await Promise.all([
-        api.get<any[]>("/api/anamnesis/templates/"),
+        api.get<any[]>("/api/anamnesis/templates"),
         api.get<any>(`/api/evaluations/${evaluationId}`),
       ])
       const activeTemplates = (templatesData || []).filter(t => 

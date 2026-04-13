@@ -142,7 +142,7 @@ def serialize_response(response) -> dict:
     }
 
 
-@router.get("/templates/", response=list[AnamnesisTemplateOut], auth=bearer_auth)
+@router.get("/templates", response=list[AnamnesisTemplateOut], auth=bearer_auth)
 def list_templates(request):
     if not can_view(request.auth):
         raise HttpError(
@@ -230,7 +230,7 @@ def create_invite_endpoint(request, payload: AnamnesisInviteCreateIn):
     return 201, serialize_invite(invite)
 
 
-@router.get("/invites/", response=list[AnamnesisInviteOut], auth=bearer_auth)
+@router.get("/invites", response=list[AnamnesisInviteOut], auth=bearer_auth)
 def list_invites_endpoint(request, evaluation_id: int):
     if not can_view(request.auth):
         raise HttpError(
@@ -326,7 +326,7 @@ def cancel_invite_endpoint(request, invite_id: int):
     return 200, serialize_invite(cancel_invite(invite))
 
 
-@router.get("/responses/", response=list[AnamnesisResponseOut], auth=bearer_auth)
+@router.get("/responses", response=list[AnamnesisResponseOut], auth=bearer_auth)
 def list_responses_endpoint(request, evaluation_id: int):
     if not can_view(request.auth):
         raise HttpError(

@@ -22,7 +22,10 @@ class ReportSectionOut(Schema):
     source_payload: dict = {}
     generated_text: str
     edited_text: str
+    generation_metadata: dict = {}
+    warnings_payload: List[str] = []
     is_locked: bool
+    updated_at: Optional[str] = None
 
 
 class ReportVersionOut(Schema):
@@ -56,6 +59,7 @@ class ReportOut(Schema):
     generated_text: str
     edited_text: str
     final_text: str
+    ai_metadata: dict = {}
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     generated_at: Optional[str] = None

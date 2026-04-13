@@ -54,3 +54,8 @@ def update_patient(patient: Patient, **data):
         setattr(patient, field, value)
     patient.save()
     return patient
+
+
+def delete_patient(patient: Patient) -> None:
+    # Evaluations, documents, tests, reports etc. are deleted via CASCADE
+    patient.delete()

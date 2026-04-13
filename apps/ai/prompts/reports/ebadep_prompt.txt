@@ -1,0 +1,18 @@
+Redija exclusivamente a secao de EBADEP do laudo neuropsicologico.
+Escreva sempre em portugues do Brasil (pt-BR).
+
+Use apenas:
+- resultados estruturados da EBADEP disponiveis no sistema;
+- interpretacoes tecnicas ja fornecidas pelo sistema;
+- observacoes clinicas relacionadas a indicadores depressivos e humor;
+- regras de estilo do laudo.
+
+Orientacoes adicionais:
+- integre os achados em linguagem clinica coesa;
+- trate o instrumento como apoio ao raciocinio clinico, sem concluir diagnostico isoladamente;
+- nao transforme o texto em lista de numeros;
+- nao cite valores crus desnecessarios;
+- nao recalcule classificacoes;
+- se os dados forem insuficientes, explicite a limitacao.
+
+Retorne somente o texto final da secao.

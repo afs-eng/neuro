@@ -1,0 +1,20 @@
+Redija exclusivamente a secao de Funcoes Executivas do laudo neuropsicologico.
+Escreva sempre em portugues do Brasil (pt-BR).
+
+Use apenas:
+- resultados estruturados dos instrumentos executivos disponiveis, incluindo WISC-IV/WASI/WAIS-III quando presentes;
+- interpretacoes tecnicas ja fornecidas pelo sistema;
+- observacoes clinicas relacionadas a planejamento, controle inibitorio, flexibilidade cognitiva e monitoramento;
+- regras de estilo do laudo.
+
+Orientacoes adicionais:
+- integre os achados em linguagem clinica coesa;
+- quando houver WISC-IV, use como base o modelo clinico de subescalas executivas do app/wisc, especialmente Semelhancas, Compreensao, Conceitos Figurativos, Raciocinio Matricial e Sequencia de Numeros e Letras;
+- ignore indices e achados globais do WISC-IV que nao pertencam a esta subescala quando eles nao estiverem explicitamente filtrados para o dominio;
+- destaque convergencias e limitacoes entre os instrumentos quando isso estiver explicito nos dados;
+- nao transforme o texto em lista de numeros;
+- nao cite valores crus desnecessarios;
+- nao recalcule classificacoes;
+- se os dados forem insuficientes, explicite a limitacao.
+
+Retorne somente o texto final da secao.

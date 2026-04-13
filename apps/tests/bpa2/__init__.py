@@ -5,7 +5,12 @@ from .schemas import BPA2RawInput, SubtestResult
 from .validators import validate_bpa2_input
 from .calculators import calculate_total, load_table, get_age_group, classify_score
 from .classifiers import find_strengths_weaknesses
-from .interpreters import interpret_subtest, interpret_global, NOMES_SUBTESTES
+from .interpreters import (
+    NOMES_SUBTESTES,
+    build_clinical_summary,
+    build_report_intro,
+    build_subtest_paragraph,
+)
 
 SUBTEST_CODES = ["ac", "ad", "aa"]
 
@@ -90,27 +95,22 @@ class BPA2Module(BaseTestModule):
         }
 
     def interpret(self, context: TestContext, merged_data: dict) -> str:
-        parts = []
+        patient_name = (context.patient_name or "Paciente").split(" ", 1)[0]
+        parts = [build_report_intro(patient_name), ""]
         for st in merged_data.get("subtestes", []):
-            interp = interpret_subtest(st["codigo"], st["classificacao"])
             parts.append(
-                f"{st['subteste']}: {st['classificacao']} (percentil {st['percentil']})"
+                build_subtest_paragraph(
+                    st["codigo"],
+                    st["classificacao"],
+                    st.get("percentil", 0),
+                    patient_name,
+                )
             )
-            parts.append(interp)
             parts.append("")
 
-        ag = next(
-            (s for s in merged_data.get("subtestes", []) if s["codigo"] == "ag"), None
+        parts.append(
+            build_clinical_summary(merged_data.get("subtestes", []), patient_name)
         )
-        if ag:
-            parts.append(f"Perfil Global: {interpret_global(ag['classificacao'])}")
-
-        if merged_data.get("pontos_fortes"):
-            parts.append(f"Pontos fortes: {', '.join(merged_data['pontos_fortes'])}")
-        if merged_data.get("pontos_fragilizados"):
-            parts.append(
-                f"Pontos fragilizados: {', '.join(merged_data['pontos_fragilizados'])}"
-            )
 
         return "\n".join(parts)
 

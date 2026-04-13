@@ -54,7 +54,7 @@ def serialize_document(document) -> dict:
     }
 
 
-@router.get("list/", response=list[DocumentOut], auth=bearer_auth)
+@router.get("list", response=list[DocumentOut], auth=bearer_auth)
 def list_documents(request, evaluation_id: int) -> list[dict]:
     if not can_view_documents(request.auth):
         raise HttpError(403, "Você não tem permissão para visualizar documentos.")
@@ -64,7 +64,7 @@ def list_documents(request, evaluation_id: int) -> list[dict]:
 
 
 @router.get(
-    "get/{document_id}/", response={200: DocumentOut, 404: MessageOut}, auth=bearer_auth
+    "get/{document_id}", response={200: DocumentOut, 404: MessageOut}, auth=bearer_auth
 )
 def get_document_endpoint(request, document_id: int) -> tuple[int, dict]:
     if not can_view_documents(request.auth):
@@ -77,7 +77,7 @@ def get_document_endpoint(request, document_id: int) -> tuple[int, dict]:
 
 
 @router.post(
-    "add/",
+    "add",
     response={201: DocumentOut, 400: MessageOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )
@@ -122,7 +122,7 @@ def upload_document_endpoint(request, payload: DocumentUploadIn) -> tuple[int, d
 
 
 @router.patch(
-    "update/{document_id}/",
+    "update/{document_id}",
     response={200: DocumentOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )

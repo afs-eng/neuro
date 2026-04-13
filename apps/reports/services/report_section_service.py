@@ -1,9 +1,21 @@
+from django.utils import timezone
+
 from apps.reports.models import Report, ReportSection, ReportVersion
 from apps.reports.builders.snapshot_builder import build_report_snapshot
+from apps.reports.services.report_ai_service import ReportAIService
+from apps.reports.services.report_generation_service import ReportGenerationService
 from apps.reports.services.report_version_service import ReportVersionService
 
 
 class ReportSectionService:
+    @staticmethod
+    def _rebuild_report_text(report: Report):
+        report.edited_text = "\n\n".join(
+            f"## {item.title}\n{item.content_edited or item.content_generated}"
+            for item in report.sections.all()
+        )
+        report.save(update_fields=["edited_text", "updated_at"])
+
     @staticmethod
     def regenerate_section(report: Report, section_key: str, user=None):
         """
@@ -14,27 +26,57 @@ class ReportSectionService:
         if not section or section.is_locked:
             return None
 
-        # Puxa o snapshot (Dados do momento em que o laudo foi gerado)
-        context = report.context_payload or build_report_snapshot(report.evaluation)
+        context = build_report_snapshot(report.evaluation)
+        report.context_payload = context
 
-        # Simulação de nova chamada ao Provedor de IA com o prompt da seção específica
-        # TODO: Integrar com LLM usando context + section_key + prompt_especifico
-        new_text = f"🔄 Texto regenerado para a seção: {section.title}."
+        warnings = []
+        generation_metadata = {}
+        if ReportAIService.supports_section(section_key):
+            generation_result = ReportAIService.generate_section(
+                report, section_key, context
+            )
+            new_text = generation_result["content"]
+            warnings = generation_result.get("warnings") or []
+            generation_metadata = generation_result.get("metadata") or {}
+        else:
+            new_text = ReportGenerationService._generate_section_text(
+                report, section_key, context
+            )
+            generation_metadata = {
+                "provider": "deterministic",
+                "model": "rules-based",
+                "section": section_key,
+            }
+
+        generation_metadata = {
+            **generation_metadata,
+            "generated_at": timezone.now().isoformat(),
+        }
+
         previous_generated = section.content_generated
         previous_edited = section.content_edited
 
-        # Salva a alteração
         section.content_generated = new_text
-        # Se o texto editado for igual ao gerado anterior, atualizamos o editado também
+        section.generation_metadata = generation_metadata
+        section.warnings_payload = warnings
         if previous_edited == previous_generated:
             section.content_edited = new_text
 
-        section.save()
-        report.edited_text = "\n\n".join(
-            f"## {item.title}\n{item.content_edited or item.content_generated}"
-            for item in report.sections.all()
+        section.save(
+            update_fields=[
+                "content_generated",
+                "content_edited",
+                "generation_metadata",
+                "warnings_payload",
+                "updated_at",
+            ]
         )
-        report.save(update_fields=["edited_text", "updated_at"])
+        report.ai_metadata = {
+            **(report.ai_metadata or {}),
+            "last_generation": generation_metadata,
+        }
+        report.save(update_fields=["context_payload", "ai_metadata", "updated_at"])
+        ReportSectionService._rebuild_report_text(report)
         ReportVersionService.create_version(report, user=user)
         return section
 
@@ -44,9 +86,5 @@ class ReportSectionService:
         section.content_edited = new_content
         section.save()
         report = section.report
-        report.edited_text = "\n\n".join(
-            f"## {item.title}\n{item.content_edited or item.content_generated}"
-            for item in report.sections.all()
-        )
-        report.save(update_fields=["edited_text", "updated_at"])
+        ReportSectionService._rebuild_report_text(report)
         return section

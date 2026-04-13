@@ -1,0 +1,19 @@
+Redija exclusivamente a secao de Aspectos Emocionais, Comportamentais e Escalas Complementares do laudo neuropsicologico.
+Escreva sempre em portugues do Brasil (pt-BR).
+
+Use apenas:
+- resultados estruturados das escalas emocionais e comportamentais disponiveis;
+- interpretacoes tecnicas ja fornecidas pelo sistema;
+- observacoes clinicas relacionadas a humor, ansiedade, comportamento, personalidade e ajustamento;
+- regras de estilo do laudo.
+
+Orientacoes adicionais:
+- integre os achados em linguagem clinica coesa;
+- destaque convergencias e divergencias entre informantes e instrumentos quando isso estiver explicito nos dados;
+- mantenha prudencia clinica, sem transformar escalas isoladas em conclusao diagnostica fechada;
+- nao transforme o texto em lista de numeros;
+- nao cite valores crus desnecessarios;
+- nao recalcule classificacoes;
+- se os dados forem insuficientes, explicite a limitacao.
+
+Retorne somente o texto final da secao.

@@ -21,7 +21,7 @@ from .calculators import (
     lookup_cpi_score,
 )
 from .classifiers import find_strengths_weaknesses, find_significant_differences
-from .interpreters import interpret_index, interpret_qi
+from .interpreters import interpret_index, interpret_qi, interpret_wisc4_profile
 
 
 class WISC4Module(BaseTestModule):
@@ -148,11 +148,15 @@ class WISC4Module(BaseTestModule):
                 "subtestes": subtests_for_index,
             }
             if composite_data:
+                _, composite_classification = get_classification_composto(
+                    composite_data["escore"]
+                )
                 index_entry.update(
                     {
                         "escore_composto": composite_data["escore"],
                         "percentil": composite_data["percentil"],
                         "intervalo_confianca": composite_data[f"ic_{confidence_level}"],
+                        "classificacao": composite_classification,
                     }
                 )
             index_results.append(index_entry)
@@ -172,6 +176,7 @@ class WISC4Module(BaseTestModule):
             }
 
         qi_total = qit_data["escore"]
+        _, qit_classificacao = get_classification_composto(qi_total)
 
         # GAI = ICV + IOP
         gai_soma = sum(
@@ -216,6 +221,7 @@ class WISC4Module(BaseTestModule):
                 "escore_composto": qit_data["escore"],
                 "percentil": qit_data["percentil"],
                 "intervalo_confianca": qit_data[f"ic_{confidence_level}"],
+                "classificacao": qit_classificacao,
             },
             "gai_data": {
                 "soma_ponderados": gai_soma,
@@ -238,25 +244,8 @@ class WISC4Module(BaseTestModule):
         }
 
     def interpret(self, context: TestContext, merged_data: dict) -> str:
-        parts = []
-        parts.append(f"QI Total: {merged_data['qi_total']}")
-        parts.append("")
-
-        for idx in merged_data.get("indices", []):
-            parts.append(f"{idx['nome']}: {idx['soma_ponderados']}")
-            parts.append("")
-
-        if merged_data.get("pontos_fortes"):
-            parts.append(f"Pontos fortes: {', '.join(merged_data['pontos_fortes'])}")
-        if merged_data.get("pontos_fragilizados"):
-            parts.append(
-                f"Pontos fragilizados: {', '.join(merged_data['pontos_fragilizados'])}"
-            )
-        if merged_data.get("diferencas_significativas"):
-            parts.append("Diferenças significativas:")
-            parts.extend(merged_data["diferencas_significativas"])
-
-        return "\n".join(parts)
+        first_name = (context.patient_name or "Paciente").split(" ", 1)[0]
+        return interpret_wisc4_profile(merged_data, first_name)
 
 
 register_test_module(WISC4_CODE, WISC4Module())

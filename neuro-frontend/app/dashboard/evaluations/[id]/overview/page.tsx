@@ -247,6 +247,7 @@ export default function EvaluationDetailPage() {
   const [loadingInstruments, setLoadingInstruments] = useState(false);
   const [addingTest, setAddingTest] = useState(false);
   const [instrumentFilterError, setInstrumentFilterError] = useState<string | null>(null);
+  const [selectedInstrumentIds, setSelectedInstrumentIds] = useState<number[]>([]);
   const [documents, setDocuments] = useState<EvaluationDocument[]>([]);
   const [anamnesisTemplates, setAnamnesisTemplates] = useState<AnamnesisTemplate[]>([]);
   const [anamnesisInvites, setAnamnesisInvites] = useState<AnamnesisInvite[]>([]);
@@ -358,7 +359,7 @@ export default function EvaluationDetailPage() {
   async function loadInstruments() {
     setLoadingInstruments(true);
     try {
-      const data = await api.get<Instrument[]>("/api/tests/instruments/");
+      const data = await api.get<Instrument[]>("/api/tests/instruments");
       setInstruments(data);
     } catch (err: any) {
       console.error("Erro ao carregar instrumentos:", err);
@@ -373,7 +374,7 @@ export default function EvaluationDetailPage() {
     setAddingTest(true);
     try {
       setInstrumentFilterError(null);
-      const newTest = await api.post<any>("/api/tests/applications/", {
+      const newTest = await api.post<any>("/api/tests/applications", {
         evaluation_id: evaluation.id,
         instrument_id: instrumentId,
       });
@@ -401,7 +402,7 @@ export default function EvaluationDetailPage() {
     if (!evaluation) return;
     setTabLoading(true);
     try {
-      const data = await api.get<EvaluationDocument[]>(`/api/documents/list/?evaluation_id=${evaluation.id}`);
+      const data = await api.get<EvaluationDocument[]>(`/api/documents/list?evaluation_id=${evaluation.id}`);
       setDocuments(data);
     } catch (err: any) {
       setPageNotice({ type: "error", text: err?.message || "Erro ao carregar documentos." });
@@ -415,9 +416,9 @@ export default function EvaluationDetailPage() {
     setTabLoading(true);
     try {
       const [templates, invites, responses] = await Promise.all([
-        api.get<AnamnesisTemplate[]>("/api/anamnesis/templates/"),
-        api.get<AnamnesisInvite[]>(`/api/anamnesis/invites/?evaluation_id=${evaluation.id}`),
-        api.get<AnamnesisResponse[]>(`/api/anamnesis/responses/?evaluation_id=${evaluation.id}`),
+        api.get<AnamnesisTemplate[]>("/api/anamnesis/templates"),
+        api.get<AnamnesisInvite[]>(`/api/anamnesis/invites?evaluation_id=${evaluation.id}`),
+        api.get<AnamnesisResponse[]>(`/api/anamnesis/responses?evaluation_id=${evaluation.id}`),
       ]);
       setAnamnesisTemplates(templates);
       setAnamnesisInvites(invites);
@@ -434,7 +435,7 @@ export default function EvaluationDetailPage() {
     if (!evaluation || anamnesisRequiredMissing) return;
     setSavingAnamnesisInvite(true);
     try {
-      const invite = await api.post<AnamnesisInvite>("/api/anamnesis/invites/", {
+      const invite = await api.post<AnamnesisInvite>("/api/anamnesis/invites", {
         evaluation_id: evaluation.id,
         patient_id: evaluation.patient_id,
         template_id: Number(anamnesisForm.template_id),
@@ -536,7 +537,7 @@ export default function EvaluationDetailPage() {
     if (!evaluation) return;
     setTabLoading(true);
     try {
-      const data = await api.get<ReportItem[]>(`/api/reports/?evaluation_id=${evaluation.id}`);
+      const data = await api.get<ReportItem[]>(`/api/reports?evaluation_id=${evaluation.id}`);
       setReports(data);
       if (selectFirst && data[0]) {
         await openReport(data[0].id);
@@ -584,7 +585,7 @@ export default function EvaluationDetailPage() {
         file_name: file.name,
       };
 
-      await api.post("/api/documents/add/", payload);
+      await api.post("/api/documents/add", payload);
 
       setPageNotice({ type: "success", text: "Documento enviado com sucesso." });
       setDocumentForm({ title: "", document_type: "other", source: "", document_date: "", notes: "", is_relevant_for_report: true, file: null });
@@ -612,7 +613,7 @@ export default function EvaluationDetailPage() {
     if (!evaluation || progressRequiredMissing) return;
     setSavingProgress(true);
     try {
-      await api.post("/api/evaluations/progress-entries/", {
+      await api.post("/api/evaluations/progress-entries", {
         evaluation_id: evaluation.id,
         patient_id: evaluation.patient_id,
         entry_type: progressForm.entry_type,
@@ -639,7 +640,7 @@ export default function EvaluationDetailPage() {
 
   async function handleDeleteProgress(entryId: number) {
     try {
-      await api.delete(`/api/evaluations/progress-entries/${entryId}/`);
+      await api.delete(`/api/evaluations/progress-entries/${entryId}`);
       setPageNotice({ type: "success", text: "Registro de evolução excluído com sucesso." });
       loadProgressEntries();
     } catch (err: any) {
@@ -697,10 +698,18 @@ export default function EvaluationDetailPage() {
   }
 
   function openAddTestModal() {
+    setSelectedInstrumentIds([]);
+    setInstrumentFilterError(null);
     setShowAddTestModal(true);
     if (instruments.length === 0) {
       loadInstruments();
     }
+  }
+
+  function closeAddTestModal() {
+    setShowAddTestModal(false);
+    setSelectedInstrumentIds([]);
+    setInstrumentFilterError(null);
   }
 
   function getTestUrl(instrumentCode: string, testId: number): string {
@@ -875,20 +884,69 @@ export default function EvaluationDetailPage() {
     });
   };
 
+  function toggleInstrumentSelection(instrumentId: number) {
+    setSelectedInstrumentIds((current) =>
+      current.includes(instrumentId)
+        ? current.filter((id) => id !== instrumentId)
+        : [...current, instrumentId]
+    );
+  }
+
+  async function addSelectedTests() {
+    if (!evaluation || selectedInstrumentIds.length === 0) return;
+    setAddingTest(true);
+    try {
+      setInstrumentFilterError(null);
+      const newTests = [];
+      for (const instrumentId of selectedInstrumentIds) {
+        const newTest = await api.post<any>("/api/tests/applications", {
+          evaluation_id: evaluation.id,
+          instrument_id: instrumentId,
+        });
+        newTests.push({
+          id: newTest.id,
+          instrument_name: newTest.instrument_name,
+          instrument_code: newTest.instrument_code,
+          applied_on: newTest.applied_on,
+          is_validated: newTest.is_validated,
+          status: newTest.is_validated ? "Concluído" : "Pendente",
+        });
+      }
+      setEvaluation({
+        ...evaluation,
+        tests: [...evaluation.tests, ...newTests],
+      });
+      closeAddTestModal();
+      setPageNotice({
+        type: "success",
+        text:
+          newTests.length === 1
+            ? "Teste adicionado com sucesso."
+            : `${newTests.length} testes adicionados com sucesso.`,
+      });
+    } catch (err: any) {
+      console.error("Erro ao adicionar testes:", err);
+      setInstrumentFilterError(err?.message || "Erro ao adicionar testes.");
+    } finally {
+      setAddingTest(false);
+    }
+  }
+
   if (showAddTestModal) {
     const availableTests = getTestesDisponiveis();
+    const selectedCount = selectedInstrumentIds.length;
     return (
       <div className="min-h-screen bg-slate-300 p-6 md:p-10">
         <div className="mx-auto max-w-7xl rounded-[36px] bg-[#f3f0e4] p-5 shadow-2xl ring-1 ring-black/5 md:p-7">
           <div className="rounded-[28px] bg-gradient-to-r from-[#f6f4ed] via-[#f2efe4] to-[#efe7bf] p-5 md:p-6">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-medium">Adicionar Teste</h1>
-              <Button variant="ghost" size="icon" onClick={() => setShowAddTestModal(false)}>
+              <Button variant="ghost" size="icon" onClick={closeAddTestModal}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
             
-            <p className="text-zinc-600 mb-4">Selecione um teste para adicionar a esta avaliação:</p>
+            <p className="text-zinc-600 mb-4">Selecione os testes que deseja adicionar e confirme o envio em lote.</p>
             <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
               Idade do paciente: <span className="font-semibold text-slate-900">{getPatientAge(evaluation.patient_birth_date, resolveReferenceDate())}</span>
             </div>
@@ -911,25 +969,47 @@ export default function EvaluationDetailPage() {
                 <p>Todos os testes disponíveis já foram adicionados.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <>
+                <div className="mb-4 rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-slate-700">
+                  <span className="font-semibold text-slate-900">{selectedCount}</span> teste(s) selecionado(s)
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {availableTests.map((test) => {
                   const ageRestriction = test.ageRestriction
+                  const isSelected = selectedInstrumentIds.includes(test.id)
                   return (
                     <button
                       key={test.id}
-                      onClick={() => addTest(test.id)}
+                      type="button"
+                      onClick={() => !ageRestriction && toggleInstrumentSelection(test.id)}
                       disabled={addingTest || !!ageRestriction}
-                      className={`p-4 text-left rounded-xl border transition disabled:opacity-60 ${ageRestriction ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"}`}
+                      className={`p-4 text-left rounded-xl border transition disabled:opacity-60 ${ageRestriction ? "border-rose-200 bg-rose-50" : isSelected ? "border-primary bg-primary/5" : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"}`}
                     >
-                      <p className="font-medium">{test.name}</p>
-                      <p className="text-sm text-zinc-500">{test.code}</p>
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{test.name}</p>
+                          <p className="text-sm text-zinc-500">{test.code}</p>
+                        </div>
+                        <div className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded border ${isSelected ? "border-primary bg-primary text-white" : "border-slate-300 bg-white"}`}>
+                          {isSelected ? "✓" : ""}
+                        </div>
+                      </div>
                       <p className="mt-2 text-xs text-slate-500">Faixa etária: {getInstrumentAgeRangeLabel(test.code)}</p>
                       {ageRestriction && <p className="mt-2 text-xs text-rose-700">{ageRestriction}</p>}
                     </button>
                   )
                 })}
-              </div>
+                </div>
+              </>
             )}
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="ghost" className="font-bold text-slate-400" onClick={closeAddTestModal}>
+                Cancelar
+              </Button>
+              <Button className="font-bold px-8 shadow-spike border-none" disabled={addingTest || selectedCount === 0} onClick={addSelectedTests}>
+                {addingTest ? "Adicionando..." : `Adicionar selecionados${selectedCount > 0 ? ` (${selectedCount})` : ""}`}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -1601,26 +1681,17 @@ export default function EvaluationDetailPage() {
              <div className="p-8 border-b border-slate-50 bg-slate-50/50">
                <div className="flex justify-between items-center">
                   <h3 className="text-xl font-bold text-slate-900">Aplicar Instrumento</h3>
-                  <button onClick={() => setShowAddTestModal(false)} className="p-2 rounded-full hover:bg-white text-slate-400 hover:text-slate-600 transition-all"><X className="h-5 w-5" /></button>
-               </div>
-               <p className="mt-1 text-sm text-slate-500">Selecione o teste psicométrico para compor o inventário.</p>
-             </div>
-             
-             <div className="p-8 space-y-6">
-               <div className="space-y-2">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Buscar Teste</label>
-                 <select 
-                  className="w-full h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  onChange={(e) => {
-                    const inst = instruments.find(i => i.id.toString() === e.target.value);
-                    if (inst) addTest(inst.id);
-                  }}
-                 >
-                   <option value="">Selecione um instrumento...</option>
-                   {instruments.map(i => <option key={i.id} value={i.id}>{i.name} ({i.code})</option>)}
-                 </select>
-                 {instrumentFilterError && <p className="text-xs font-bold text-rose-500 mt-2">{instrumentFilterError}</p>}
-               </div>
+                  <button onClick={closeAddTestModal} className="p-2 rounded-full hover:bg-white text-slate-400 hover:text-slate-600 transition-all"><X className="h-5 w-5" /></button>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">Selecione o teste psicométrico para compor o inventário.</p>
+              </div>
+              
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Selecione os testes</label>
+                  <p className="text-sm text-slate-500">Use a grade acima para marcar os instrumentos e confirme no botão final.</p>
+                  {instrumentFilterError && <p className="text-xs font-bold text-rose-500 mt-2">{instrumentFilterError}</p>}
+                </div>
 
                <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
@@ -1634,13 +1705,13 @@ export default function EvaluationDetailPage() {
                </div>
              </div>
 
-             <div className="p-8 pt-4 bg-slate-50/50 flex justify-end gap-3">
-                <Button variant="ghost" className="font-bold text-slate-400" onClick={() => setShowAddTestModal(false)}>Cancelar</Button>
-                <Button className="font-bold px-8 shadow-spike border-none" disabled={addingTest}>
-                   {addingTest ? "Adicionando..." : "Proceder"}
-                </Button>
-             </div>
-          </div>
+              <div className="p-8 pt-4 bg-slate-50/50 flex justify-end gap-3">
+                 <Button variant="ghost" className="font-bold text-slate-400" onClick={closeAddTestModal}>Cancelar</Button>
+                 <Button className="font-bold px-8 shadow-spike border-none" disabled={addingTest || selectedInstrumentIds.length === 0} onClick={addSelectedTests}>
+                    {addingTest ? "Adicionando..." : `Adicionar selecionados${selectedInstrumentIds.length > 0 ? ` (${selectedInstrumentIds.length})` : ""}`}
+                 </Button>
+              </div>
+           </div>
         </div>
       )}
     </PageContainer>

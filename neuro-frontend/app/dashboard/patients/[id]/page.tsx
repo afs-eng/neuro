@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { PageContainer, PageHeader, SectionCard, InfoCard, EmptyState } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,9 @@ import {
   Stethoscope,
   Sparkles,
   ArrowLeft,
-  School
+  School,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +46,35 @@ interface Patient {
   father_name?: string;
   responsible_name?: string;
   responsible_phone?: string;
+}
+
+interface Evaluation {
+  id: number;
+  code: string;
+  title: string;
+  status_display: string;
+  priority_display: string;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+}
+
+interface TestApplication {
+  id: number;
+  instrument_name: string;
+  instrument_code: string;
+  applied_on: string | null;
+  is_validated: boolean;
+  status: string;
+}
+
+interface Report {
+  id: number;
+  evaluation_code: string;
+  evaluation_title: string;
+  author_name: string;
+  status: string;
+  created_at: string;
 }
 
 function calculateAge(birthDate: string | undefined | null): string {
@@ -71,24 +102,113 @@ function formatDate(dateStr: string | null | undefined): string {
   }
 }
 
+function formatDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr).toLocaleDateString("pt-BR");
+  } catch {
+    return "—";
+  }
+}
+
 export default function PatientDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [tests, setTests] = useState<TestApplication[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteEvaluationId, setDeleteEvaluationId] = useState<number | null>(null);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deletingEvaluation, setDeletingEvaluation] = useState(false);
 
   useEffect(() => {
-    fetchPatient();
+    fetchPatientData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
-  async function fetchPatient() {
+  async function fetchPatientData() {
     try {
       setLoading(true);
-      const data = await api.get<Patient>(`/api/patients/${params.id}`);
-      setPatient(data);
+
+      // Fetch patient
+      const patientData = await api.get<Patient>(`/api/patients/${params.id}`);
+      setPatient(patientData);
+
+      // Fetch evaluations for this patient
+      const evaluationsData = await api.get<Evaluation[]>(`/api/evaluations/?patient_id=${params.id}`);
+      setEvaluations(evaluationsData);
+
+      // Collect all tests and reports from evaluations
+      const allTests: TestApplication[] = [];
+      const allReports: Report[] = [];
+
+      for (const evaluation of evaluationsData) {
+        // Fetch evaluation details (includes tests)
+        try {
+          const detailData = await api.get<any>(`/api/evaluations/${evaluation.id}`);
+          if (detailData.tests && detailData.tests.length > 0) {
+            allTests.push(...detailData.tests.map((t: any) => ({
+              ...t,
+              evaluation_code: evaluation.code,
+              evaluation_title: evaluation.title,
+            })));
+          }
+        } catch (err) {
+          console.error(`Erro ao buscar detalhes da avaliação ${evaluation.id}:`, err);
+        }
+
+        // Fetch reports for this evaluation
+        try {
+          const reportsData = await api.get<Report[]>(`/api/reports/?evaluation_id=${evaluation.id}`);
+          if (reportsData && reportsData.length > 0) {
+            allReports.push(...reportsData);
+          }
+        } catch (err) {
+          console.error(`Erro ao buscar laudos da avaliação ${evaluation.id}:`, err);
+        }
+      }
+
+      setTests(allTests);
+      setReports(allReports);
     } catch (err) {
-      console.error("Erro ao buscar paciente:", err);
+      console.error("Erro ao buscar dados do paciente:", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleOpenDeleteDialog(evaluationId: number) {
+    setDeleteEvaluationId(evaluationId);
+    setDeleteConfirmationOpen(true);
+  }
+
+  function handleCloseDeleteDialog() {
+    setDeleteEvaluationId(null);
+    setDeleteConfirmationOpen(false);
+  }
+
+  async function handleDeleteEvaluation() {
+    if (!deleteEvaluationId) return;
+
+    try {
+      setDeletingEvaluation(true);
+      await api.delete(`/api/evaluations/${deleteEvaluationId}`);
+
+      // Remove from local state
+      setEvaluations(prev => prev.filter(e => e.id !== deleteEvaluationId));
+      setTests(prev => prev.filter(t => !("evaluation_code" in t) || t.evaluation_code !== evaluations.find(e => e.id === deleteEvaluationId)?.code));
+
+      handleCloseDeleteDialog();
+
+      // Refresh data
+      fetchPatientData();
+    } catch (err) {
+      console.error("Erro ao excluir avaliação:", err);
+      alert("Não foi possível excluir a avaliação. Tente novamente.");
+    } finally {
+      setDeletingEvaluation(false);
     }
   }
 
@@ -108,8 +228,8 @@ export default function PatientDetailPage() {
   if (!patient) {
     return (
       <PageContainer>
-        <EmptyState 
-          title="Paciente não encontrado" 
+        <EmptyState
+          title="Paciente não encontrado"
           description="O prontuário solicitado não existe ou foi removido."
           icon={<User className="h-12 w-12 text-slate-200" />}
           action={
@@ -203,32 +323,173 @@ export default function PatientDetailPage() {
               </TabsContent>
 
               <TabsContent value="avaliacoes" className="mt-0 animate-in fade-in duration-500">
-                <EmptyState
-                  title="Nenhuma avaliação registrada"
-                  description="Ainda não foram iniciados processos clínicos para este paciente."
-                  icon={<ClipboardList className="h-10 w-10 text-slate-200" />}
-                  action={
-                    <Link href={`/dashboard/evaluations/new?patient_id=${patient.id}`}>
-                      <Button className="font-bold shadow-sm">Iniciar Primeira Avaliação</Button>
-                    </Link>
-                  }
-                />
+                {evaluations.length === 0 ? (
+                  <EmptyState
+                    title="Nenhuma avaliação registrada"
+                    description="Ainda não foram iniciados processos clínicos para este paciente."
+                    icon={<ClipboardList className="h-10 w-10 text-slate-200" />}
+                    action={
+                      <Link href={`/dashboard/evaluations/new?patient_id=${patient.id}`}>
+                        <Button className="font-bold shadow-sm">Iniciar Primeira Avaliação</Button>
+                      </Link>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    {evaluations.map((evaluation) => (
+                      <div
+                        key={evaluation.id}
+                        className="group flex items-start justify-between gap-4 rounded-xl border border-slate-100 p-4 transition-all hover:border-primary/30 hover:bg-slate-50"
+                      >
+                        <Link
+                          href={`/dashboard/evaluations/${evaluation.id}/overview`}
+                          className="flex flex-1 items-start gap-4"
+                        >
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-primary">{evaluation.code}</span>
+                              <span className="h-1 w-1 rounded-full bg-slate-300" />
+                              <span className="text-sm font-bold text-slate-900">{evaluation.title || "Sem título"}</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                              <span className="font-semibold">{evaluation.status_display}</span>
+                              <span className="h-1 w-1 rounded-full bg-slate-300" />
+                              <span>{evaluation.priority_display}</span>
+                              {evaluation.start_date && (
+                                <>
+                                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                  <span>Início: {formatDate(evaluation.start_date)}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/dashboard/evaluations/${evaluation.id}/overview`}
+                            className="shrink-0"
+                          >
+                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/5">
+                              <ChevronRight className="h-5 w-5" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:bg-red-50 hover:text-red-600"
+                            onClick={() => handleOpenDeleteDialog(evaluation.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="testes" className="mt-0 animate-in fade-in duration-500">
-                <EmptyState
-                  title="Histórico de testes vazio"
-                  description="Os testes aparecerão aqui após a aplicação em uma avaliação."
-                  icon={<FlaskConical className="h-10 w-10 text-slate-200" />}
-                />
+                {tests.length === 0 ? (
+                  <EmptyState
+                    title="Histórico de testes vazio"
+                    description="Os testes aparecerão aqui após a aplicação em uma avaliação."
+                    icon={<FlaskConical className="h-10 w-10 text-slate-200" />}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    {tests.map((test) => {
+                      // Montar a URL do resultado do teste
+                      const testCodeNormalized = test.instrument_code.replace(/-/g, '_').toLowerCase();
+                      const resultUrl = `/dashboard/tests/${testCodeNormalized}/${test.id}/result`;
+
+                      return (
+                        <div
+                          key={test.id}
+                          className="group p-4 rounded-xl border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-all"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-1 flex-1">
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={resultUrl}
+                                  className="text-sm font-bold text-slate-900 transition-colors hover:text-primary"
+                                >
+                                  {test.instrument_name}
+                                </Link>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black tracking-[0.1em] uppercase border ${
+                                  test.is_validated
+                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                    : "bg-amber-50 text-amber-600 border-amber-100"
+                                }`}>
+                                  {test.is_validated ? "Validado" : "Pendente"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-slate-500">
+                                <span>Código: {test.instrument_code}</span>
+                                {test.applied_on && (
+                                  <>
+                                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                    <span>Aplicado em: {formatDate(test.applied_on)}</span>
+                                  </>
+                                )}
+                                {"evaluation_code" in test && test.evaluation_code && (
+                                  <>
+                                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                    <span className="text-primary font-semibold">{test.evaluation_code}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Link href={resultUrl}>
+                              <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="laudos" className="mt-0 animate-in fade-in duration-500">
-                <EmptyState
-                  title="Nenhum laudo emitido"
-                  description="Os laudos finalizados serão listados aqui para download."
-                  icon={<FileText className="h-10 w-10 text-slate-200" />}
-                />
+                {reports.length === 0 ? (
+                  <EmptyState
+                    title="Nenhum laudo emitido"
+                    description="Os laudos finalizados serão listados aqui para download."
+                    icon={<FileText className="h-10 w-10 text-slate-200" />}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    {reports.map((report) => (
+                      <Link
+                        key={report.id}
+                        href={`/dashboard/evaluations/${report.evaluation_id}/report`}
+                        className="block p-4 rounded-xl border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-all group"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-bold text-slate-900">{report.evaluation_title || report.evaluation_code}</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                              <span>Autor: {report.author_name}</span>
+                              <span className="h-1 w-1 rounded-full bg-slate-300" />
+                              <span>Criado em: {formatDateTime(report.created_at)}</span>
+                              <span className="h-1 w-1 rounded-full bg-slate-300" />
+                              <span className={`font-semibold ${
+                                report.status === "finalized" ? "text-emerald-600" : "text-amber-600"
+                              }`}>
+                                {report.status === "finalized" ? "Finalizado" : "Em andamento"}
+                              </span>
+                            </div>
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
             </div>
           </Tabs>
@@ -244,15 +505,34 @@ export default function PatientDetailPage() {
             </div>
           </SectionCard>
 
+          <SectionCard title="Resumo Clínico">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Avaliações</span>
+                <span className="text-lg font-black text-primary">{evaluations.length}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Testes Aplicados</span>
+                <span className="text-lg font-black text-primary">{tests.length}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Laudos</span>
+                <span className="text-lg font-black text-primary">{reports.length}</span>
+              </div>
+            </div>
+          </SectionCard>
+
           <SectionCard title="Ações Rápidas">
             <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-between gap-3 border-slate-100 font-bold hover:bg-slate-50 group">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span>Agendar Consulta</span>
-                </div>
-                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
-              </Button>
+              <Link href={`/dashboard/evaluations/new?patient_id=${patient.id}`} className="block">
+                <Button variant="outline" className="w-full justify-between gap-3 border-slate-100 font-bold hover:bg-slate-50 group">
+                  <div className="flex items-center gap-3">
+                    <ClipboardList className="h-4 w-4 text-primary" />
+                    <span>Nova Avaliação</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
+                </Button>
+              </Link>
               <Button variant="outline" className="w-full justify-between gap-3 border-slate-100 font-bold hover:bg-slate-50 group">
                 <div className="flex items-center gap-3">
                   <Stethoscope className="h-4 w-4 text-emerald-500" />
@@ -278,6 +558,61 @@ export default function PatientDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Evaluation Confirmation Dialog */}
+      {deleteConfirmationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <h3 className="text-lg font-bold text-slate-900">Excluir Avaliação?</h3>
+                <p className="text-sm text-slate-600">
+                  Esta ação irá remover permanentemente a avaliação e todos os dados vinculados:
+                </p>
+                <ul className="ml-4 list-disc space-y-1 text-xs text-slate-500">
+                  <li>Testes aplicados e resultados</li>
+                  <li>Evoluções clínicas</li>
+                  <li>Documentos anexados</li>
+                  <li>Anamneses vinculadas</li>
+                  <li>Laudos gerados</li>
+                </ul>
+                <p className="text-sm font-bold text-red-600">Esta ação não pode ser desfeita.</p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                className="font-bold"
+                onClick={handleCloseDeleteDialog}
+                disabled={deletingEvaluation}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="font-bold"
+                onClick={handleDeleteEvaluation}
+                disabled={deletingEvaluation}
+              >
+                {deletingEvaluation ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Sim, Excluir
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

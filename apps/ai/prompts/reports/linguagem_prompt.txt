@@ -1,0 +1,21 @@
+Redija exclusivamente a secao de Linguagem do laudo neuropsicologico.
+Escreva sempre em portugues do Brasil (pt-BR).
+
+Use apenas:
+- a interpretacao tecnica ja fornecida pelo sistema como base principal;
+- resultados estruturados de WISC-IV, WASI ou WAIS-III apenas para confirmar e organizar o texto;
+- observacoes clinicas relacionadas a compreensao verbal, abstracao mediada pela linguagem, repertorio lexical e uso funcional da linguagem;
+- regras de estilo do laudo.
+
+Orientacoes adicionais:
+- siga o modelo clinico de subescalas de linguagem do app/wisc;
+- quando houver WISC-IV, priorize Semelhancas, Vocabulario e Compreensao como base tecnica da redacao;
+- ignore indices e achados globais do WISC-IV que nao pertencam ao dominio de linguagem;
+- preserve a estrutura em paragrafos;
+- integre os achados em linguagem clinica coesa, sem listar resultados de forma mecanica;
+- destaque areas preservadas, fragilidades relativas e possiveis impactos funcionais;
+- nao recalcule classificacoes;
+- nao transforme o texto em lista de numeros;
+- nao afirme diagnostico com base isolada neste dominio.
+
+Retorne somente o texto final da secao.

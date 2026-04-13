@@ -24,6 +24,46 @@ import {
 
 export function AppHeader({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
   const router = useRouter();
+  const [user, setUser] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (e) {
+          console.error("Error parsing user data");
+        }
+      }
+    }
+  }, []);
+
+  const getUserInitials = () => {
+    if (!user) return "DR";
+    const fullName = user.full_name || user.username || "";
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return "DR";
+  };
+
+  const getDisplayName = () => {
+    if (!user) return "Profissional";
+    return user.full_name || user.username || "Profissional";
+  };
+
+  const getRole = () => {
+    if (!user) return "";
+    return user.role || user.specialty || "Neuropsicólogo";
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.clear();
+    router.push("/login");
+  };
 
   return (
     <header
@@ -71,11 +111,11 @@ export function AppHeader({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
             <DropdownMenuTrigger asChild>
               <button className="group flex items-center gap-3 rounded-xl p-1 pr-2 transition-all hover:bg-slate-50">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-primary text-xs font-bold shadow-sm transition-all group-hover:border-primary/20">
-                  DR
+                  {getUserInitials()}
                 </div>
                 <div className="text-left hidden lg:block">
-                  <p className="text-sm font-bold text-slate-900 leading-tight">Dr. André</p>
-                  <p className="text-[10px] font-semibold text-primary uppercase tracking-widest opacity-80">Admin</p>
+                  <p className="text-sm font-bold text-slate-900 leading-tight">{getDisplayName()}</p>
+                  <p className="text-[10px] font-semibold text-primary uppercase tracking-widest opacity-80">{getRole()}</p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-slate-400 group-hover:text-primary transition-colors" />
               </button>
@@ -92,7 +132,7 @@ export function AppHeader({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
                 <span>Configurações</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600 cursor-pointer focus:bg-red-50 focus:text-red-600">
+              <DropdownMenuItem className="text-red-600 cursor-pointer focus:bg-red-50 focus:text-red-600" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sair</span>
               </DropdownMenuItem>

@@ -147,10 +147,18 @@ export default function DashboardPage() {
                         <td className="py-4 text-sm font-bold text-slate-900">#{eval_.id.toString().padStart(4, '0')}</td>
                         <td className="py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 text-primary text-[10px] font-black">
+                            <Link
+                              href={`/dashboard/patients/${eval_.patient_id}`}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 text-primary text-[10px] font-black transition-colors hover:bg-primary/10"
+                            >
                               {eval_.patient_name?.charAt(0) || 'P'}
-                            </div>
-                            <span className="text-sm font-bold text-slate-700">{eval_.patient_name}</span>
+                            </Link>
+                            <Link
+                              href={`/dashboard/patients/${eval_.patient_id}`}
+                              className="text-sm font-bold text-slate-700 transition-colors hover:text-primary"
+                            >
+                              {eval_.patient_name}
+                            </Link>
                           </div>
                         </td>
                         <td className="py-4"><StatusBadge>{eval_.status}</StatusBadge></td>

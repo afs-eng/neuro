@@ -1,15 +1,19 @@
 function normalizeApiBaseUrl() {
+  // Prioridade: variável de ambiente NEXT_PUBLIC_API_BASE_URL
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (envUrl) return envUrl.replace(/\/+$/, ''); // remove trailing slash
+
   const isBrowser = typeof window !== 'undefined';
   const isLocalHost = isBrowser && (
-    window.location.hostname === 'localhost' || 
+    window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1'
   );
 
   // Se estiver local, usa o back-end local
   if (isLocalHost) return 'http://127.0.0.1:8000';
 
-  // EXTREMO: Endereço do Render fixo para evitar erros de cache do Vercel
-  return 'https://neuro-k06p.onrender.com';
+  // Fallback para produção (deve ser configurado via NEXT_PUBLIC_API_BASE_URL)
+  return '';
 }
 
 const API_URL = normalizeApiBaseUrl();

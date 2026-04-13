@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { PageContainer, PageHeader, SectionCard, StatCard, EmptyState, InfoCard } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,9 @@ import {
   MapPin,
   Sparkles,
   ClipboardList,
-  FileText
+  FileText,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -57,9 +60,13 @@ function calculateAge(birthDate: string | null): string {
 }
 
 export default function PatientsPage() {
+  const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [deletePatientId, setDeletePatientId] = useState<number | null>(null);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deletingPatient, setDeletingPatient] = useState(false);
 
   useEffect(() => {
     fetchPatients();
@@ -74,6 +81,35 @@ export default function PatientsPage() {
       console.error("Erro ao buscar pacientes:", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleOpenDeleteDialog(patientId: number) {
+    setDeletePatientId(patientId);
+    setDeleteConfirmationOpen(true);
+  }
+
+  function handleCloseDeleteDialog() {
+    setDeletePatientId(null);
+    setDeleteConfirmationOpen(false);
+  }
+
+  async function handleDeletePatient() {
+    if (!deletePatientId) return;
+
+    try {
+      setDeletingPatient(true);
+      await api.delete(`/api/patients/${deletePatientId}`);
+
+      // Remove from local state
+      setPatients(prev => prev.filter(p => p.id !== deletePatientId));
+
+      handleCloseDeleteDialog();
+    } catch (err) {
+      console.error("Erro ao excluir paciente:", err);
+      alert("Não foi possível excluir o paciente. Tente novamente.");
+    } finally {
+      setDeletingPatient(false);
     }
   }
 
@@ -164,15 +200,15 @@ export default function PatientsPage() {
                   {filteredPatients.map((patient) => (
                     <TableRow key={patient.id} className="group hover:bg-slate-50/50 transition-colors">
                       <TableCell>
-                        <div className="flex items-center gap-4">
+                        <Link href={`/dashboard/patients/${patient.id}`} className="flex items-center gap-4 group/name">
                           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary text-xs font-black shadow-sm transition-all group-hover:bg-primary group-hover:text-white">
                             {patient.full_name?.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-slate-900 truncate">{patient.full_name}</p>
+                            <p className="font-bold text-slate-900 truncate transition-colors group-hover/name:text-primary">{patient.full_name}</p>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">#{String(patient.id).padStart(4, '0')}</p>
                           </div>
-                        </div>
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -182,10 +218,10 @@ export default function PatientsPage() {
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                          patient.sex === "M" 
-                          ? "bg-blue-50 text-blue-600 border-blue-100" 
-                          : patient.sex === "F" 
-                          ? "bg-pink-50 text-pink-600 border-pink-100" 
+                          patient.sex === "M"
+                          ? "bg-blue-50 text-blue-600 border-blue-100"
+                          : patient.sex === "F"
+                          ? "bg-pink-50 text-pink-600 border-pink-100"
                           : "bg-slate-50 text-slate-500 border-slate-100"
                         }`}>
                           {patient.sex === "M" ? "Masc" : patient.sex === "F" ? "Fem" : "N/I"}
@@ -203,11 +239,21 @@ export default function PatientsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/dashboard/patients/${patient.id}`}>
-                          <Button variant="ghost" size="sm" className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/5">
-                            <ChevronRight className="h-5 w-5" />
+                        <div className="flex items-center gap-1 justify-end">
+                          <Link href={`/dashboard/patients/${patient.id}`}>
+                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/5">
+                              <ChevronRight className="h-5 w-5" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:bg-red-50 hover:text-red-600"
+                            onClick={() => handleOpenDeleteDialog(patient.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -217,6 +263,62 @@ export default function PatientsPage() {
           )}
         </SectionCard>
       </div>
+
+      {/* Delete Patient Confirmation Dialog */}
+      {deleteConfirmationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <h3 className="text-lg font-bold text-slate-900">Excluir Paciente?</h3>
+                <p className="text-sm text-slate-600">
+                  Esta ação irá remover permanentemente o paciente e todos os dados vinculados:
+                </p>
+                <ul className="ml-4 list-disc space-y-1 text-xs text-slate-500">
+                  <li>Avaliações neuropsicológicas</li>
+                  <li>Testes aplicados e resultados</li>
+                  <li>Evoluções clínicas</li>
+                  <li>Documentos anexados</li>
+                  <li>Anamneses vinculadas</li>
+                  <li>Laudos gerados</li>
+                </ul>
+                <p className="text-sm font-bold text-red-600">Esta ação não pode ser desfeita.</p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                className="font-bold"
+                onClick={handleCloseDeleteDialog}
+                disabled={deletingPatient}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="font-bold"
+                onClick={handleDeletePatient}
+                disabled={deletingPatient}
+              >
+                {deletingPatient ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Sim, Excluir
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

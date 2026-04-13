@@ -8,7 +8,7 @@ from apps.patients.selectors import (
     get_patients,
     search_patients,
 )
-from apps.patients.services import create_patient, update_patient
+from apps.patients.services import create_patient, update_patient, delete_patient
 
 from .schemas import PatientOut, PatientCreateIn, PatientUpdateIn, MessageOut
 
@@ -138,4 +138,26 @@ def update_patient_endpoint(request, patient_id: int, payload: PatientUpdateIn):
 
     patient = update_patient(patient, **payload.dict(exclude_unset=True))
     return 200, serialize_patient(patient)
+
+
+@router.delete(
+    "/{patient_id}",
+    response={200: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def delete_patient_endpoint(request, patient_id: int) -> tuple[int, dict]:
+    user = request.auth
+
+    if not can_edit_patients(user):
+        return 403, {"message": "Você não tem permissão para excluir pacientes."}
+
+    patient = get_patient_by_id(patient_id)
+    if not patient:
+        return 404, {"message": "Paciente não encontrado."}
+
+    if not can_access_patient(user, patient):
+        return 403, {"message": "Você não tem permissão para excluir este paciente."}
+
+    delete_patient(patient)
+    return 200, {"message": "Paciente excluído com sucesso."}
 

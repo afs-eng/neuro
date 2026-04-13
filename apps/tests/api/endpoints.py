@@ -149,7 +149,7 @@ def serialize_test_application(application):
     }
 
 
-@router.get("/instruments/", response=list[InstrumentOut], auth=bearer_auth)
+@router.get("/instruments", response=list[InstrumentOut], auth=bearer_auth)
 def list_instruments(request) -> list[dict]:
     # Auto-seed essencial após reset de banco
     required = [
@@ -213,7 +213,7 @@ def update_instrument_endpoint(
     return 200, serialize_instrument(instrument)
 
 
-@router.get("/applications/", response=list[TestApplicationOut], auth=bearer_auth)
+@router.get("/applications", response=list[TestApplicationOut], auth=bearer_auth)
 def list_test_applications(
     request, evaluation_id: int | None = Query(default=None)
 ) -> list[dict]:
@@ -249,7 +249,7 @@ def get_test_application_endpoint(request, application_id: int) -> tuple[int, di
 
 
 @router.post(
-    "/applications/",
+    "/applications",
     response={
         201: TestApplicationOut,
         400: MessageOut,

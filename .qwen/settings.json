@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir *)",
+      "Bash(rmdir *)",
+      "Bash(true)",
+      "Bash(rm *)",
+      "Bash(uv *)",
+      "Bash(python3 *)",
+      "Bash(source *)",
+      "Bash(python *)",
+      "Bash(curl *)",
+      "Bash(xargs *)",
+      "Bash(sleep *)",
+      "Bash(/home/andre/.local/bin/uv *)",
+      "Bash(npm run *)",
+      "Bash(pkill *)",
+      "Bash(lsof *)",
+      "Bash(docker-compose *)",
+      "Bash(docker compose down)",
+      "Bash(docker compose up *)",
+      "Bash(docker compose exec *)",
+      "Bash(docker compose config)",
+      "Bash(ls *)",
+      "Bash(docker compose logs *)",
+      "Bash(find *)",
+      "Bash(du *)",
+      "Bash(git ls-files *)",
+      "Bash(diff *)",
+      "Bash(git status *)",
+      "Bash(git rm *)",
+      "Bash(npx *)",
+      "Bash(kill *)",
+      "Bash(grep *)"
+    ]
+  },
+  "$version": 3
+}

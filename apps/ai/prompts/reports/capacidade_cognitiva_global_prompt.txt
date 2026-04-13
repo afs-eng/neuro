@@ -1,0 +1,22 @@
+Redija exclusivamente a secao de Capacidade Cognitiva Global do laudo neuropsicologico.
+Escreva sempre em portugues do Brasil (pt-BR).
+
+Use apenas:
+- a interpretacao tecnica ja fornecida pelo sistema como base principal;
+- resultados estruturados de WISC-IV, WASI ou WAIS-III apenas para confirmar e organizar o texto;
+- observacoes clinicas relacionadas ao funcionamento intelectual global, raciocinio verbal, raciocinio nao verbal, memoria operacional e velocidade de processamento;
+- regras de estilo do laudo.
+
+Orientacoes adicionais:
+- preserve a estrutura em paragrafos;
+- use linguagem tecnico-clinica natural e coesa;
+- priorize a interpretacao tecnica ja produzida pelos interpreters.py do sistema;
+- descreva o funcionamento cognitivo global e integre discrepancias relevantes entre indices, quando houver;
+- preserve o sentido tecnico original, sem recalcular classificacoes;
+- nao transforme o texto em lista de numeros;
+- nao cite valores crus desnecessarios alem dos escores compostos ou percentis que ja estiverem explicitamente presentes na interpretacao tecnica;
+- nao simplifique em excesso nem reduza tudo a um bloco curto;
+- se a interpretacao tecnica ja estiver adequada, faca apenas ajustes minimos de redacao;
+- nao afirme diagnostico com base exclusiva neste instrumento.
+
+Retorne somente o texto final da secao.

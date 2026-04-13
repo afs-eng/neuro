@@ -1,0 +1,17 @@
+Redija exclusivamente a secao de FDT do laudo neuropsicologico.
+Escreva sempre em portugues do Brasil (pt-BR).
+
+Use apenas:
+- resultados estruturados do FDT;
+- interpretacoes tecnicas ja fornecidas pelo sistema;
+- observacoes clinicas relacionadas a velocidade de processamento, inibicao e flexibilidade cognitiva;
+- regras de estilo do laudo.
+
+Orientacoes adicionais:
+- integre os achados em linguagem clinica coesa;
+- nao transforme o texto em lista de numeros;
+- nao cite valores crus desnecessarios;
+- nao recalcule classificacoes;
+- se os dados forem insuficientes, explicite a limitacao.
+
+Retorne somente o texto final da secao.

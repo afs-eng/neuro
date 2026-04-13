@@ -4,29 +4,40 @@ import { useRouter } from "next/navigation";
 import { PageContainer, PageHeader, SectionCard, EmptyState } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FlaskConical, Play, Settings, Search, Filter, Info, BookOpen } from "lucide-react";
-import { useState } from "react";
+import { FlaskConical, Play, Settings, Search, Filter, Info, BookOpen, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
-const TESTS_AVAILABLE = [
-  { code: "srs2", name: "SRS-2", category: "Autismo", description: "Escala de Responsividade Social (2ª Edição).", is_active: true },
-  { code: "scared", name: "SCARED", category: "Ansiedade", description: "Screen for Child Anxiety Related Emotional Disorders.", is_active: true },
-  { code: "fdt", name: "FDT", category: "Funções Executivas", description: "Avaliação de controle inibitório e atenção alternada (Cinco Dígitos).", is_active: true },
-  { code: "wisc4", name: "WISC-IV", category: "Inteligência Infantil", description: "Escala Wechsler de Inteligência para Crianças (Cognição Geral).", is_active: true  },
-  { code: "bpa2", name: "BPA-2", category: "Atenção", description: "Bateria Psicológica para Avaliação da Atenção (Sustentada, Alternada).", is_active: true  },
-  { code: "ebadep-a", name: "EBADEP-A", category: "Depressão em Adultos", description: "Escala Baptista de Depressão (Versão Adulto).", is_active: true  },
-  { code: "ebadep-ij", name: "EBADEP-IJ", category: "Depressão Infantojuvenil", description: "Escala Baptista de Depressão (Versão Infantil e Juvenil).", is_active: true  },
-  { code: "epq-j", name: "EPQ-J", category: "Personalidade", description: "Questionário de Personalidade de Eysenck para Jovens.", is_active: true  },
-  { code: "etdah-ad", name: "ETDAH-AD", category: "TDAH em Adultos", description: "Escala de Transtorno do Déficit de Atenção/Hiperatividade.", is_active: true  },
-  { code: "etdah-pais", name: "ETDAH-PAIS", category: "TDAH Infantojuvenil", description: "Escala de Transtorno do Déficit de Atenção/Hiperatividade (Versão para Pais).", is_active: true  },
-  { code: "ravlt", name: "RAVLT", category: "Memória", description: "Teste de Aprendizado Auditivo-Verbal de Rey.", is_active: true  },
-];
+interface Instrument {
+  code: string;
+  name: string;
+  category: string;
+  description?: string;
+  is_active: boolean;
+}
 
 export default function TestsPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const [instruments, setInstruments] = useState<Instrument[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredTests = TESTS_AVAILABLE.filter(t => 
-    t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  useEffect(() => {
+    async function fetchInstruments() {
+      try {
+        const data = await api.get<Instrument[]>("/api/tests/instruments");
+        setInstruments(data);
+      } catch (error) {
+        console.error("Erro ao buscar instrumentos:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchInstruments();
+  }, []);
+
+  const filteredTests = instruments.filter((t) =>
+    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -58,7 +69,12 @@ export default function TestsPage() {
         }
       />
 
-      {filteredTests.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-sm font-medium text-slate-500">Carregando instrumentos...</span>
+        </div>
+      ) : filteredTests.length === 0 ? (
         <EmptyState 
           title="Nenhum teste encontrado" 
           description="Ajuste sua busca ou limpe os filtros para ver todos os instrumentos." 

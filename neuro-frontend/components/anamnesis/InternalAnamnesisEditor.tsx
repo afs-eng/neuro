@@ -48,7 +48,7 @@ export function InternalAnamnesisEditor({ evaluationId, patientId, responseId, t
           submitted_by_relation: answers.submitted_by_relation || "",
         })
       } else {
-        const created = await api.post<{ id: number }>(`/api/anamnesis/responses/`, {
+        const created = await api.post<{ id: number }>(`/api/anamnesis/responses`, {
           evaluation_id: evaluationId,
           patient_id: patientId,
           template_id: templateId,

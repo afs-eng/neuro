@@ -91,7 +91,7 @@ class ReportGenerationService:
             elif key == "epq_j":
                 enabled = cls._has_test(context, "epq_j")
             elif key == "ebadep":
-                enabled = cls._has_test(context, "ebadep_a", "ebaped_ij")
+                enabled = cls._has_test(context, "ebadep_a", "ebadep_ij", "ebaped_ij")
             elif key == "aspectos_emocionais_comportamentais":
                 enabled = (
                     cls._has_test(
@@ -102,6 +102,7 @@ class ReportGenerationService:
                         "srs2",
                         "epq_j",
                         "ebadep_a",
+                        "ebadep_ij",
                         "ebaped_ij",
                     )
                     or is_adolescent
@@ -736,7 +737,7 @@ class ReportGenerationService:
             tests = [
                 test
                 for test in context.get("validated_tests") or []
-                if test.get("instrument_code") in {"ebadep_a", "ebaped_ij"}
+                if test.get("instrument_code") in {"ebadep_a", "ebadep_ij", "ebaped_ij"}
             ]
             return "\n".join(
                 [

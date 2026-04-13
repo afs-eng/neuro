@@ -12,10 +12,10 @@ CLINICAL_REPORT_RULES = """
 # apps/reports/prompts/sections.py
 PROMPTS_BY_SECTION = {
     "identificacao": "Dados demográficos do paciente.",
-    "demanda": "Motivo do encaminhamento e descrição da queixa principal.",
-    "anamnese": "Resumo sintético da história pessoal, desenvolvimento e contexto familiar relevante.",
-    "eficiencia_cognitiva": "Análise do QI (se disponível), raciocínio lógico e funcionamento cognitivo global.",
-    "atencao_memoria": "Interpretação detalhada dos testes de atenção (BPA, etc) e memória (RAVLT, etc).",
-    "conclusao_clinica": "Síntese dos achados. Relacionar dados observados com os resultados dos testes.",
-    "conduta_sugestoes": "Recomendações terapêuticas, adaptações escolares e encaminhamentos médicos.",
+    "descricao_demanda": "Motivo do encaminhamento e descrição da queixa principal.",
+    "historia_pessoal": "Resumo sintético da história pessoal, desenvolvimento e contexto familiar relevante.",
+    "capacidade_cognitiva_global": "Análise do QI (se disponível), raciocínio lógico e funcionamento cognitivo global.",
+    "memoria_aprendizagem": "Interpretação detalhada dos testes de memória e aprendizagem disponíveis.",
+    "conclusao": "Síntese dos achados. Relacionar dados observados com os resultados dos testes.",
+    "sugestoes_conduta": "Recomendações terapêuticas, adaptações escolares e encaminhamentos médicos.",
 }

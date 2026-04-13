@@ -56,6 +56,7 @@ class Report(models.Model):
     generated_text = models.TextField("texto gerado pela IA", blank=True)
     edited_text = models.TextField("texto editado", blank=True)
     final_text = models.TextField("texto finalizado", blank=True)
+    ai_metadata = models.JSONField("metadados de IA", default=dict, blank=True)
 
     created_at = models.DateTimeField("criado em", auto_now_add=True)
     updated_at = models.DateTimeField("atualizado em", auto_now=True)
@@ -84,6 +85,10 @@ class ReportSection(models.Model):
 
     content_generated = models.TextField("conteúdo IA", blank=True)
     content_edited = models.TextField("conteúdo editado", blank=True)
+    generation_metadata = models.JSONField(
+        "metadados da geracao", default=dict, blank=True
+    )
+    warnings_payload = models.JSONField("avisos da geracao", default=list, blank=True)
 
     is_locked = models.BooleanField("bloqueado para edição", default=False)
     updated_at = models.DateTimeField(auto_now=True)

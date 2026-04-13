@@ -1,9 +1,30 @@
+SECTION_ALIASES = {
+    "demanda": "descricao_demanda",
+    "historia_pessoal_anamnese": "historia_pessoal",
+    "anamnese": "historia_pessoal",
+    "eficiencia_cognitiva": "capacidade_cognitiva_global",
+    "epqj": "epq_j",
+    "etdah": "atencao",
+    "encaminhamentos": "sugestoes_conduta",
+    "conduta_sugestoes": "sugestoes_conduta",
+}
+
+TEST_CODES_BY_SECTION = {
+    "bpa2": {"bpa2"},
+    "fdt": {"fdt"},
+    "ravlt": {"ravlt"},
+    "epq_j": {"epq_j"},
+    "etdah_pais": {"etdah_pais"},
+    "etdah_ad": {"etdah_ad"},
+    "ebadep": {"ebadep_a", "ebadep_ij", "ebaped_ij"},
+}
+
 DEFAULT_REPORT_SECTIONS = [
     ("identificacao", "Identificacao"),
     ("descricao_demanda", "Descricao da demanda"),
     ("procedimentos", "Procedimentos"),
-    ("historia_pessoal_anamnese", "Historia pessoal / anamnese"),
-    ("eficiencia_cognitiva", "Eficiencia cognitiva"),
+    ("historia_pessoal", "Historia pessoal / anamnese"),
+    ("capacidade_cognitiva_global", "Capacidade cognitiva global"),
     ("funcoes_executivas", "Funcoes executivas"),
     ("linguagem", "Linguagem"),
     ("gnosias_praxias", "Gnosias e praxias"),
@@ -11,27 +32,29 @@ DEFAULT_REPORT_SECTIONS = [
     ("bpa2", "BPA-2"),
     ("fdt", "FDT"),
     ("ravlt", "RAVLT"),
-    ("epqj", "EPQ-J"),
+    ("epq_j", "EPQ-J"),
+    ("etdah_pais", "E-TDAH-PAIS"),
+    ("etdah_ad", "E-TDAH-AD"),
     ("ebadep", "EBADEP"),
-    ("etdah", "ETDAH"),
     ("conclusao", "Conclusao"),
-    ("encaminhamentos", "Encaminhamentos"),
+    ("sugestoes_conduta", "Sugestoes de conduta"),
 ]
 
 
+def normalize_section_key(section_key: str) -> str:
+    return SECTION_ALIASES.get(section_key, section_key)
+
+
 def build_section_source_payload(section_key: str, snapshot_payload: dict) -> dict:
+    section_key = normalize_section_key(section_key)
     tests = snapshot_payload.get("validated_tests", [])
     anamnesis = snapshot_payload.get("anamnesis", {})
-    if section_key in {"bpa2", "fdt", "epqj", "etdah"}:
-        return {
-            "tests": [item for item in tests if item["instrument_code"] == section_key]
-        }
-    if section_key == "ebadep":
+    if section_key in TEST_CODES_BY_SECTION:
         return {
             "tests": [
                 item
                 for item in tests
-                if item["instrument_code"] in {"ebadep_a", "ebadep_ij"}
+                if item["instrument_code"] in TEST_CODES_BY_SECTION[section_key]
             ]
         }
     if section_key == "procedimentos":
@@ -40,7 +63,7 @@ def build_section_source_payload(section_key: str, snapshot_payload: dict) -> di
             "documents": snapshot_payload.get("documents", []),
             "progress_entries": snapshot_payload.get("progress_entries", []),
         }
-    if section_key == "historia_pessoal_anamnese":
+    if section_key == "historia_pessoal":
         return {
             "anamnesis": anamnesis,
             "progress_entries": snapshot_payload.get("progress_entries", []),
@@ -51,6 +74,7 @@ def build_section_source_payload(section_key: str, snapshot_payload: dict) -> di
 def build_section_text(
     section_key: str, snapshot_payload: dict, source_payload: dict
 ) -> str:
+    section_key = normalize_section_key(section_key)
     patient = snapshot_payload.get("patient", {})
     evaluation = snapshot_payload.get("evaluation", {})
 
@@ -76,7 +100,7 @@ def build_section_text(
         if not parts:
             return "Sem procedimentos estruturados suficientes no momento."
         return ". ".join(parts) + "."
-    if section_key == "historia_pessoal_anamnese":
+    if section_key == "historia_pessoal":
         anamnesis = source_payload.get("anamnesis", {})
         current = anamnesis.get("current_response") or {}
         summary = current.get("summary_payload") or {}
@@ -104,7 +128,7 @@ def build_section_text(
         if risk_flags:
             text += "\n\nAlertas clínicos: " + ", ".join(risk_flags)
         return text or "Sem anamnese estruturada revisada para compor esta secao."
-    if section_key in {"bpa2", "fdt", "epqj", "etdah", "ebadep"}:
+    if section_key in TEST_CODES_BY_SECTION:
         items = source_payload.get("tests", [])
         if not items:
             return "Teste nao aplicado ou ainda nao validado."
@@ -118,6 +142,6 @@ def build_section_text(
         )
     if section_key == "conclusao":
         return "Secao pronta para conclusao clinica integrada pelo profissional responsavel."
-    if section_key == "encaminhamentos":
+    if section_key == "sugestoes_conduta":
         return "Secao pronta para orientacoes e encaminhamentos finais."
     return "Secao preparada para preenchimento estruturado."

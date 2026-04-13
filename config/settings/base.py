@@ -34,6 +34,10 @@ SECRET_KEY = _SECRET_KEY_ENV
 
 DEBUG = env_bool("DEBUG", True)
 
+# Desabilita redirecionamento automático de barra final para evitar conflitos
+# entre rotas do Django Ninja com/sem trailing slash (causa erros 405)
+APPEND_SLASH = False
+
 ALLOWED_HOSTS = env_list(
     "ALLOWED_HOSTS",
     ["127.0.0.1", "localhost"],
@@ -181,6 +185,9 @@ EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL_TEXT = os.getenv("OPENAI_MODEL_TEXT", "gpt-4o")
 OPENAI_MODEL_REASONING = os.getenv("OPENAI_MODEL_REASONING", "gpt-4o")
+AI_PROVIDER = os.getenv("AI_PROVIDER", "ollama")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024

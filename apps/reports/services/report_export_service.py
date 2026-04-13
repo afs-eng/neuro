@@ -756,7 +756,11 @@ class ReportExportService:
             add_chart("Perfil social no SRS-2", cls._srs2_chart(tests.get("srs2")))
             add_table(
                 "Resultados da EBADEP",
-                cls._ebadep_rows(tests.get("ebadep_a") or tests.get("ebaped_ij")),
+                cls._ebadep_rows(
+                    tests.get("ebadep_a")
+                    or tests.get("ebadep_ij")
+                    or tests.get("ebaped_ij")
+                ),
                 "scale_summary",
             )
 

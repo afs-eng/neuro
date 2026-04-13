@@ -1,67 +1,11 @@
-INTERPRETATIONS: dict[str, dict[str, str]] = {
-    "Muito Inferior": {
-        "ac": "Desempenho muito abaixo do esperado em atenção concentrada, indicando dificuldades significativas em manter foco em tarefas que exigem concentração. O resultado sugere comprometimento acentuado na capacidade de selecionar uma única fonte de informação diante de estímulos distratores, o que pode impactar o desempenho em atividades acadêmicas e cotidianas que demandam atenção sustentada.",
-        "ad": "Desempenho muito abaixo do esperado em atenção dividida, com grande dificuldade em gerenciar múltiplas demandas simultaneamente. O resultado indica comprometimento significativo na capacidade de monitorar duas ou mais fontes de informação ao mesmo tempo, mesmo na presença de distratores.",
-        "aa": "Desempenho muito abaixo do esperado em atenção alternada, indicando prejuízo significativo na alternância entre tarefas. O resultado sugere dificuldade acentuada em mudar o foco atencional entre diferentes estímulos ou critérios, o que pode afetar atividades que exigem flexibilidade cognitiva.",
-        "ag": "O funcionamento atencional geral está muito abaixo do esperado, indicando comprometimento global da atenção. Este resultado sugere necessidade de investigação aprofundada e possível intervenção para fortalecer os recursos atencionais.",
-    },
-    "Inferior": {
-        "ac": "Desempenho abaixo do esperado em atenção concentrada, com dificuldades moderadas em manter foco. O resultado sugere que a capacidade de selecionar uma única fonte de informação diante de estímulos distratores encontra-se comprometida, podendo interferir em atividades que exigem concentração prolongada.",
-        "ad": "Desempenho abaixo do esperado em atenção dividida, apresentando dificuldades em tarefas simultâneas. O resultado indica que a capacidade de monitorar múltiplas fontes de informação ao mesmo tempo encontra-se reduzida.",
-        "aa": "Desempenho abaixo do esperado em atenção alternada, com dificuldades na troca entre atividades. O resultado sugere que a flexibilidade cognitiva e a capacidade de alternar o foco atencional encontram-se comprometidas.",
-        "ag": "O funcionamento atencional geral está abaixo do esperado para a faixa etária, sugerindo dificuldades atencionais que podem impactar o desempenho em diversos contextos.",
-    },
-    "Média Inferior": {
-        "ac": "Desempenho na faixa inferior da média em atenção concentrada. Embora não indique comprometimento significativo, o resultado sugere que a capacidade de manter foco seletivo pode ser menos eficiente quando comparada a pares da mesma faixa etária.",
-        "ad": "Desempenho na faixa inferior da média em atenção dividida. O resultado indica que a capacidade de gerenciar múltiplas tarefas simultaneamente encontra-se em um nível funcional, porém com possível necessidade de estratégias adicionais.",
-        "aa": "Desempenho na faixa inferior da média em atenção alternada. O resultado sugere que a alternância entre tarefas pode ser realizada, porém com possível lentidão ou necessidade de maior esforço cognitivo.",
-        "ag": "O funcionamento atencional geral encontra-se na faixa inferior da média, representando um desempenho funcional, porém com possível necessidade de monitoramento e suporte em contextos que demandem alta exigência atencional.",
-    },
-    "Média": {
-        "ac": "Desempenho dentro do esperado em atenção concentrada para a faixa etária. O resultado indica que a capacidade de selecionar uma única fonte de informação diante de estímulos distratores encontra-se adequada, permitindo o bom funcionamento em atividades que exigem foco seletivo e manutenção da concentração.",
-        "ad": "Desempenho dentro do esperado em atenção dividida para a faixa etária. O resultado sugere que a capacidade de buscar dois ou mais estímulos simultaneamente encontra-se adequada, possibilitando o bom desempenho em situações que exigem monitoramento de múltiplas fontes de informação.",
-        "aa": "Desempenho dentro do esperado em atenção alternada para a faixa etária. O resultado indica que a capacidade de mudar o foco atencional entre diferentes estímulos ou critérios encontra-se adequada, favorecendo atividades que demandam flexibilidade cognitiva.",
-        "ag": "O funcionamento atencional geral encontra-se dentro dos parâmetros esperados para a faixa etária, indicando que os recursos atencionais do avaliado são suficientes para o bom desempenho em atividades cotidianas e acadêmicas.",
-    },
-    "Média Superior": {
-        "ac": "Bom desempenho em atenção concentrada, acima da média esperada. O resultado indica boa capacidade de selecionar uma única fonte de informação diante de estímulos distratores, favorecendo o desempenho em atividades que exigem foco prolongado e concentração.",
-        "ad": "Bom desempenho em atenção dividida, acima da média esperada. O resultado sugere boa capacidade de gerenciar múltiplas demandas simultaneamente, possibilitando desempenho eficiente em situações complexas.",
-        "aa": "Bom desempenho em atenção alternada, acima da média esperada. O resultado indica boa capacidade de mudar o foco atencional entre diferentes estímulos, favorecendo atividades que demandam flexibilidade cognitiva.",
-        "ag": "O funcionamento atencional geral está acima da média esperada, indicando bons recursos atencionais que favorecem o desempenho em diversos contextos.",
-    },
-    "Superior": {
-        "ac": "Excelente desempenho em atenção concentrada, muito acima da média. O resultado reflete alta capacidade de manter foco seletivo, mesmo em presença de múltiplos distratores, favorecendo desempenho excepcional em tarefas que exigem concentração prolongada.",
-        "ad": "Excelente desempenho em atenção dividida, muito acima da média. O resultado indica alta capacidade de monitorar múltiplas fontes de informação simultaneamente, possibilitando desempenho eficiente em situações de alta demanda.",
-        "aa": "Excelente desempenho em atenção alternada, muito acima da média. O resultado reflete alta capacidade de flexibilidade cognitiva, favorecendo o desempenho em atividades complexas que exigem alternância rápida de foco.",
-        "ag": "O funcionamento atencional geral é excelente, muito acima da média, indicando recursos atencionais elevados que favorecem desempenho excepcional em múltiplos contextos.",
-    },
-    "Muito Superior": {
-        "ac": "Desempenho excepcional em atenção concentrada, significativamente acima da média. O resultado indica capacidade notável de manter foco seletivo em condições de alta exigência, representando um recurso cognitivo diferenciado.",
-        "ad": "Desempenho excepcional em atenção dividida, significativamente acima da média. O resultado reflete capacidade notável de gerenciar múltiplas demandas simultaneamente, representando um recurso cognitivo diferenciado.",
-        "aa": "Desempenho excepcional em atenção alternada, significativamente acima da média. O resultado indica capacidade notável de flexibilidade cognitiva, representando um recurso diferenciado para atividades complexas.",
-        "ag": "O funcionamento atencional geral é excepcional, significativamente acima da média, representando um perfil atencional diferenciado e altamente eficiente.",
-    },
-}
-
-INTERPRETATION_LEVELS: dict[str, str] = {
-    "Muito Inferior": "significativamente comprometido",
-    "Inferior": "abaixo do esperado",
-    "Média Inferior": "na faixa inferior da média",
-    "Média": "adequado",
-    "Média Superior": "acima da média",
-    "Superior": "muito acima da média",
-    "Muito Superior": "excepcional",
-}
-
-SYNTHESIS_LEVELS: dict[str, str] = {
-    "Muito Inferior": "comprometido",
-    "Inferior": "abaixo do esperado",
-    "Média Inferior": "na faixa inferior da média",
-    "Média": "compatível com a faixa etária",
-    "Média Superior": "acima da média",
-    "Superior": "muito acima da média",
-    "Muito Superior": "excepcional",
-}
+INTRO_TEMPLATE = (
+    "Interpretação e Observações Clínicas: A avaliação da atenção de {name} foi "
+    "realizada por meio da Bateria Psicológica para Avaliação da Atenção – BPA-2, "
+    "instrumento destinado à investigação dos principais componentes do "
+    "funcionamento atencional, incluindo atenção concentrada, dividida, alternada e "
+    "atenção geral, domínios associados à sustentação do foco, à distribuição dos "
+    "recursos atencionais e ao controle executivo."
+)
 
 NOMES_SUBTESTES = {
     "ac": "Atenção Concentrada",
@@ -70,66 +14,141 @@ NOMES_SUBTESTES = {
     "ag": "Atenção Geral",
 }
 
+SECTION_TITLES = {
+    "ac": "Atenção Concentrada (AC)",
+    "ad": "Atenção Dividida (AD)",
+    "aa": "Atenção Alternada (AA)",
+    "ag": "Atenção Geral (AG)",
+}
 
-def interpret_subtest(code: str, classificacao: str) -> str:
-    type_interps = INTERPRETATIONS.get(classificacao, {})
-    return type_interps.get(code, "Interpretação não disponível.")
+SUBTEST_OPENINGS = {
+    "ac": {
+        "opening": "Avalia a capacidade de selecionar estímulos relevantes e manter o foco atencional diante de estímulos distratores.",
+        "Muito Inferior": "{name} apresentou desempenho classificado como muito inferior (percentil {percentil}), indicando comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo. Esse resultado sugere dificuldade importante para sustentar a atenção, manter constância do foco e inibir interferências distratoras durante tarefas contínuas.",
+        "Inferior": "{name} apresentou desempenho classificado como inferior (percentil {percentil}), sugerindo comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo. Esse resultado sugere dificuldade importante para sustentar a atenção, manter constância do foco e inibir interferências distratoras durante tarefas contínuas.",
+        "Média Inferior": "{name} apresentou desempenho classificado como média inferior (percentil {percentil}), indicando rebaixamento leve nesse domínio, com sinais de menor eficiência atencional quando comparado ao esperado para a faixa etária. Esse resultado sugere maior suscetibilidade a oscilações do foco atencional em tarefas que exigem concentração prolongada.",
+        "Média": "{name} apresentou desempenho classificado como médio (percentil {percentil}), indicando funcionamento atencional dentro dos limites esperados para sua faixa etária, sem evidências de prejuízo significativo nesse domínio. Esse resultado sugere capacidade adequada de concentração sustentada e manutenção do foco diante de demandas contínuas.",
+        "Média Superior": "{name} apresentou desempenho classificado como média superior (percentil {percentil}), sugerindo funcionamento atencional acima do esperado, com boa eficiência nesse domínio. Esse resultado sugere boa sustentação do foco e adequada resistência à interferência de estímulos distratores.",
+        "Superior": "{name} apresentou desempenho classificado como superior (percentil {percentil}), indicando habilidade muito desenvolvida nesse domínio, com eficiência acima do esperado para sua faixa etária. Esse resultado sugere excelente capacidade de sustentação do foco, elevada resistência à distração e boa constância atencional em tarefas prolongadas.",
+        "Muito Superior": "{name} apresentou desempenho classificado como muito superior (percentil {percentil}), indicando desempenho excepcional na capacidade de sustentar a atenção de forma contínua e direcionada, com elevada estabilidade do foco mesmo em contextos de alta exigência.",
+    },
+    "ad": {
+        "opening": "Refere-se à habilidade de distribuir os recursos atencionais entre múltiplos estímulos ou demandas simultâneas.",
+        "Muito Inferior": "O desempenho de {name} foi classificado como muito inferior (percentil {percentil}), sugerindo comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo. Esse desempenho sugere prejuízo importante na habilidade de processar simultaneamente mais de uma demanda, com possível impacto em situações que exigem monitoramento concorrente de informações.",
+        "Inferior": "O desempenho de {name} foi classificado como inferior (percentil {percentil}), sugerindo comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo. Esse desempenho sugere prejuízo importante na habilidade de processar simultaneamente mais de uma demanda, com possível impacto em situações que exigem monitoramento concorrente de informações.",
+        "Média Inferior": "O desempenho de {name} foi classificado como média inferior (percentil {percentil}), indicando rebaixamento leve nesse domínio, com sinais de menor eficiência atencional quando comparado ao esperado para a faixa etária. Esse desempenho sugere dificuldade discreta a moderada na distribuição dos recursos atencionais entre múltiplas demandas, podendo reduzir a eficiência em situações complexas.",
+        "Média": "O desempenho de {name} foi classificado como médio (percentil {percentil}), indicando funcionamento atencional dentro dos limites esperados para sua faixa etária, sem evidências de prejuízo significativo nesse domínio. Esse desempenho indica capacidade preservada para dividir a atenção entre diferentes estímulos ou tarefas simultâneas.",
+        "Média Superior": "O desempenho de {name} foi classificado como média superior (percentil {percentil}), sugerindo funcionamento atencional acima do esperado, com boa eficiência nesse domínio. Esse desempenho sugere boa distribuição dos recursos atencionais entre estímulos múltiplos, sem prejuízos relevantes.",
+        "Superior": "O desempenho de {name} foi classificado como superior (percentil {percentil}), indicando habilidade muito desenvolvida nesse domínio, com eficiência acima do esperado para sua faixa etária. Esse desempenho evidencia notável capacidade de acompanhar simultaneamente diferentes estímulos e lidar com múltiplas demandas cognitivas com eficiência.",
+        "Muito Superior": "O desempenho de {name} foi classificado como muito superior (percentil {percentil}), sugerindo capacidade excepcional para distribuir os recursos atencionais entre estímulos múltiplos, com funcionamento diferenciado em situações de alta complexidade.",
+    },
+    "aa": {
+        "opening": "Mede a capacidade de alternar o foco atencional entre tarefas ou estímulos distintos, exigindo flexibilidade cognitiva e monitoramento contínuo.",
+        "Muito Inferior": "{name} apresentou desempenho na faixa muito inferior (percentil {percentil}), sugerindo comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo. Esse resultado indica comprometimento importante da alternância atencional, com dificuldade para ajustar o foco mental diante de mudanças de tarefa, regra ou estímulo.",
+        "Inferior": "{name} apresentou desempenho na faixa inferior (percentil {percentil}), sugerindo comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo. Esse resultado indica comprometimento importante da alternância atencional, com dificuldade para ajustar o foco mental diante de mudanças de tarefa, regra ou estímulo.",
+        "Média Inferior": "{name} apresentou desempenho na faixa média inferior (percentil {percentil}), indicando rebaixamento leve nesse domínio, com sinais de menor eficiência atencional quando comparado ao esperado para a faixa etária. Esse resultado indica redução na flexibilidade atencional e menor eficiência para mudar o foco entre diferentes demandas cognitivas.",
+        "Média": "{name} apresentou desempenho na faixa média (percentil {percentil}), indicando funcionamento atencional dentro dos limites esperados para sua faixa etária, sem evidências de prejuízo significativo nesse domínio. Esse resultado indica capacidade preservada para alternar o foco atencional entre diferentes demandas, sem prejuízos significativos.",
+        "Média Superior": "{name} apresentou desempenho na faixa média superior (percentil {percentil}), sugerindo funcionamento atencional acima do esperado, com boa eficiência nesse domínio. Esse resultado sugere boa flexibilidade cognitiva e eficiência na alternância do foco entre tarefas ou estímulos distintos.",
+        "Superior": "{name} apresentou desempenho na faixa superior (percentil {percentil}), indicando habilidade muito desenvolvida nesse domínio, com eficiência acima do esperado para sua faixa etária. Esse resultado evidencia elevada flexibilidade atencional, com boa capacidade de ajustar-se rapidamente a mudanças de regras, estímulos ou exigências da tarefa.",
+        "Muito Superior": "{name} apresentou desempenho na faixa muito superior (percentil {percentil}), indicando flexibilidade atencional excepcional e elevada eficiência para mudar rapidamente o foco entre diferentes demandas cognitivas.",
+    },
+    "ag": {
+        "opening": "Representa a integração global dos componentes atencionais avaliados, sintetizando o funcionamento geral da atenção.",
+        "Muito Inferior": "O desempenho foi classificado como muito inferior (percentil {percentil}), sugerindo comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo. De forma global, observa-se comprometimento do funcionamento atencional, com impacto conjunto sobre a sustentação, distribuição e alternância do foco atencional.",
+        "Inferior": "O desempenho foi classificado como inferior (percentil {percentil}), sugerindo comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo. De forma global, observa-se comprometimento do funcionamento atencional, com impacto conjunto sobre a sustentação, distribuição e alternância do foco atencional.",
+        "Média Inferior": "O desempenho foi classificado como média inferior (percentil {percentil}), indicando rebaixamento leve nesse domínio, com sinais de menor eficiência atencional quando comparado ao esperado para a faixa etária. De forma global, observa-se funcionamento atencional discretamente rebaixado, sugerindo fragilidade na integração entre os diferentes componentes da atenção.",
+        "Média": "O desempenho foi classificado como médio (percentil {percentil}), indicando funcionamento atencional dentro dos limites esperados para sua faixa etária, sem evidências de prejuízo significativo nesse domínio. De forma global, o funcionamento atencional encontra-se preservado, com integração adequada entre os diferentes componentes avaliados.",
+        "Média Superior": "O desempenho foi classificado como média superior (percentil {percentil}), sugerindo funcionamento atencional acima do esperado, com boa eficiência nesse domínio. De forma global, o funcionamento atencional mostra-se acima do esperado, com boa integração entre os diferentes componentes da atenção.",
+        "Superior": "O desempenho foi classificado como superior (percentil {percentil}), indicando habilidade muito desenvolvida nesse domínio, com eficiência acima do esperado para sua faixa etária. De forma global, o funcionamento atencional mostra-se muito bem desenvolvido, com integração eficiente entre os diferentes componentes avaliados.",
+        "Muito Superior": "O desempenho foi classificado como muito superior (percentil {percentil}), sugerindo funcionamento atencional global excepcional, com integração diferenciada entre os diversos componentes avaliados.",
+    },
+}
 
 
-def get_interpretation_level(classificacao: str) -> str:
-    return INTERPRETATION_LEVELS.get(classificacao, "dentro dos parâmetros esperados")
-
-
-def interpret_global(classificacao: str) -> str:
-    if "Muito Inferior" in classificacao or "Inferior" in classificacao:
-        return "O perfil atencional global indica comprometimento significativo. Recomenda-se investigação aprofundada e intervenção."
-    elif "Média Inferior" in classificacao:
-        return "O perfil atencional global está na faixa inferior da média, podendo apresentar dificuldades em contextos que exigem atenção sustentada."
-    elif "Média" in classificacao and "Superior" not in classificacao:
-        return "O perfil atencional global encontra-se dentro dos parâmetros esperados para a faixa etária."
-    elif "Média Superior" in classificacao:
-        return "O perfil atencional global está acima da média, indicando bom funcionamento atencional."
-    else:
-        return "O perfil atencional global está muito acima da média, indicando excelente funcionamento atencional."
-
-
-def get_synthesis(classificacao: str) -> str:
-    return SYNTHESIS_LEVELS.get(classificacao, "compatível com a faixa etária")
+def build_report_intro(name: str) -> str:
+    return INTRO_TEMPLATE.format(name=name)
 
 
 def get_report_interpretation(code: str, classificacao: str, nome: str) -> str:
-    level = get_interpretation_level(classificacao)
+    return build_subtest_paragraph(code, classificacao, 0, nome.split(" ", 1)[0])
 
-    if code == "ac":
+
+def get_synthesis(classificacao: str) -> str:
+    if classificacao in {"Muito Inferior", "Inferior", "Média Inferior"}:
         return (
-            f"{nome} apresentou desempenho em Atenção Concentrada classificado como "
-            f"{classificacao}, indicando sua capacidade de selecionar uma única fonte de "
-            f"informação diante de vários estímulos distratores em um tempo determinado. Esse resultado sugere "
-            f"um nível de eficiência atencional {level} para tarefas que exigem foco seletivo e manutenção "
-            f"da concentração sobre um único alvo."
+            "Perfil atencional global rebaixado, com prejuízo clinicamente relevante."
         )
-    elif code == "ad":
+    if classificacao == "Média":
+        return "Perfil atencional global compatível com o esperado para a faixa etária."
+    return "Perfil atencional global acima do esperado, com recursos atencionais preservados."
+
+
+def build_subtest_paragraph(
+    code: str, classificacao: str, percentil: int | float, name: str
+) -> str:
+    descriptions = SUBTEST_OPENINGS.get(code, {})
+    opening = descriptions.get("opening")
+    description = descriptions.get(classificacao)
+    title = SECTION_TITLES.get(code)
+    if not title or not opening or not description:
+        return "Interpretação não disponível."
+    return f"{title}\n{opening} {description.format(name=name, percentil=percentil)}"
+
+
+def build_clinical_summary(subtests: list[dict], name: str) -> str:
+    by_code = {item.get("codigo"): item for item in subtests}
+    ag_classificacao = (by_code.get("ag") or {}).get("classificacao", "")
+    ac = (by_code.get("ac") or {}).get("classificacao", "")
+    ad = (by_code.get("ad") or {}).get("classificacao", "")
+    aa = (by_code.get("aa") or {}).get("classificacao", "")
+
+    preserved = {"Média", "Média Superior", "Superior"}
+    lowered = {"Média Inferior", "Inferior", "Muito Inferior"}
+    specific = [ac, ad, aa]
+    lowered_count = sum(1 for item in specific if item in lowered)
+    preserved_count = sum(1 for item in specific if item in preserved)
+
+    if ag_classificacao in preserved and preserved_count == 3:
         return (
-            f"No domínio da Atenção Dividida, {nome} obteve classificação "
-            f"{classificacao}, o que evidencia sua capacidade de procurar dois ou mais "
-            f"estímulos simultaneamente em um tempo predeterminado, mesmo na presença de distratores. "
-            f"O resultado indica desempenho {level} em situações que exigem monitoramento simultâneo "
-            f"de múltiplas fontes de informação."
-        )
-    elif code == "aa":
-        return (
-            f"Quanto à Atenção Alternada, {nome} apresentou classificação "
-            f"{classificacao}, refletindo sua capacidade de mudar o foco atencional "
-            f"entre diferentes estímulos ou critérios ao longo da tarefa. Esse resultado sugere "
-            f"funcionamento {level} em atividades que demandam flexibilidade cognitiva e alternância "
-            f"do foco mental."
-        )
-    elif code == "ag":
-        return (
-            f"Considerando a Atenção Geral, {nome} obteve classificação "
-            f"{classificacao}. Esse resultado indica desempenho global {level} "
-            f"no funcionamento atencional, representando uma estimativa integrada da eficiência "
-            f"do avaliado nos diferentes domínios atencionais investigados pelo instrumento."
+            f"Em análise clínica, o perfil atencional de {name} revela funcionamento global dentro ou acima do esperado para a faixa etária, "
+            "com adequada integração entre sustentação do foco, divisão dos recursos atencionais e alternância entre estímulos. "
+            "Os achados não indicam prejuízo atencional clinicamente relevante no momento da avaliação."
         )
 
-    return "Interpretação não disponível."
+    if ag_classificacao in {"Média", "Média Superior"} and lowered_count >= 1:
+        return (
+            f"Em análise clínica, o perfil atencional de {name} revela funcionamento global preservado, embora com fragilidades pontuais em componentes específicos da atenção. "
+            "Esse padrão sugere que, apesar da integração global mostrar-se adequada, determinadas exigências cognitivas podem ser realizadas com maior esforço, especialmente em contextos de maior complexidade ou sobrecarga ambiental."
+        )
+
+    if ag_classificacao in {"Média Inferior", "Inferior"} and preserved_count >= 1:
+        return (
+            f"Em análise clínica, o perfil atencional de {name} revela que, embora alguns componentes específicos tenham se mantido dentro da faixa esperada, a integração global desses recursos mostrou-se menos eficiente. "
+            "Esse padrão sugere fragilidade no funcionamento atencional como um todo, com possível oscilação no desempenho diante de tarefas prolongadas, múltiplas demandas ou necessidade de adaptação rápida."
+        )
+
+    if ag_classificacao == "Média Inferior" and lowered_count >= 2:
+        return (
+            f"Em análise clínica, o perfil atencional de {name} revela funcionamento global discretamente rebaixado, com fragilidades mais abrangentes nos mecanismos de sustentação, distribuição e alternância do foco atencional. "
+            "Os achados sugerem menor eficiência para lidar com tarefas contínuas, múltiplos estímulos e situações que exigem ajuste mental frequente."
+        )
+
+    if ag_classificacao == "Inferior" and lowered_count >= 2:
+        return (
+            f"Em análise clínica, o perfil atencional de {name} revela funcionamento global rebaixado, com prejuízo clinicamente relevante nos mecanismos de sustentação do foco, distribuição dos recursos atencionais e alternância entre estímulos. "
+            "Em contexto funcional, esse padrão pode se associar a dificuldades para manter a concentração em tarefas prolongadas, acompanhar comandos com múltiplas etapas, alternar entre atividades e sustentar desempenho consistente diante de demandas cognitivas contínuas."
+        )
+
+    if (
+        ag_classificacao in {"Superior", "Média Superior"}
+        and sum(1 for item in specific if item in {"Superior", "Média Superior"}) >= 2
+    ):
+        return (
+            f"Em análise clínica, o perfil atencional de {name} revela funcionamento global eficiente, com bom controle do foco atencional, adequada distribuição dos recursos cognitivos e flexibilidade para alternar entre diferentes demandas. "
+            "Os achados sugerem recursos atencionais bem desenvolvidos e funcionalmente adaptativos."
+        )
+
+    return (
+        f"Em análise clínica, o perfil atencional de {name} deve ser interpretado de forma integrada, considerando o peso maior da atenção geral e a variação observada nos componentes específicos. "
+        "Os achados sugerem que o funcionamento atencional pode oscilar conforme a complexidade da tarefa, a necessidade de sustentar o foco e a exigência de adaptação entre diferentes demandas cognitivas."
+    )

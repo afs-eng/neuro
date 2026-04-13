@@ -1,0 +1,173 @@
+{
+  "skill_name": "interpretacao_bpa2_laudo_neuropsicologico_v2",
+  "version": "2.0",
+  "language": "pt-BR",
+  "objective": "Gerar interpretação clínica, técnica e descritiva dos resultados do BPA-2 para laudos neuropsicológicos, mantendo estilo narrativo profissional, com variação automática conforme classificação dos domínios AC, AD, AA e AG.",
+  "input_schema": {
+    "patient_name": "string",
+    "results": {
+      "ac": {
+        "points": "number",
+        "percentile": "number",
+        "classification": "string"
+      },
+      "ad": {
+        "points": "number",
+        "percentile": "number",
+        "classification": "string"
+      },
+      "aa": {
+        "points": "number",
+        "percentile": "number",
+        "classification": "string"
+      },
+      "ag": {
+        "points": "number",
+        "percentile": "number",
+        "classification": "string"
+      }
+    }
+  },
+  "accepted_classifications": [
+    "Superior",
+    "Média Superior",
+    "Média",
+    "Média Inferior",
+    "Inferior"
+  ],
+  "global_writing_rules": {
+    "use_only_first_name_in_body": true,
+    "tone": "tecnico_clinico_descritivo",
+    "avoid_tables": true,
+    "avoid_bullets": true,
+    "avoid_long_dash": true,
+    "avoid_overusing_openings": [
+      "No teste",
+      "Na avaliação",
+      "O paciente apresentou",
+      "A paciente apresentou"
+    ],
+    "required_sections": [
+      "Interpretação e Observações Clínicas",
+      "Atenção Concentrada (AC)",
+      "Atenção Dividida (AD)",
+      "Atenção Alternada (AA)",
+      "Atenção Geral (AG)",
+      "Parágrafo integrativo final"
+    ],
+    "final_paragraph_must_start_with": "Em análise clínica",
+    "style_rules": [
+      "O texto deve soar natural, técnico e compatível com laudo neuropsicológico real.",
+      "Cada domínio deve conter definição breve da habilidade avaliada, classificação, percentil e interpretação funcional.",
+      "Atenção Geral deve ter maior peso na síntese final.",
+      "Evitar exagero diagnóstico quando os resultados estiverem dentro da média.",
+      "Quando houver rebaixamento, descrever impacto funcional potencial sem afirmar diagnóstico isoladamente.",
+      "Não utilizar linguagem mecanizada ou repetitiva."
+    ]
+  },
+  "intro_template": "A avaliação da atenção de {patient_name} foi realizada por meio da Bateria Psicológica para Avaliação da Atenção – BPA-2, instrumento destinado à investigação dos principais componentes do funcionamento atencional, incluindo atenção concentrada, dividida, alternada e atenção geral, domínios associados à sustentação do foco, à distribuição dos recursos atencionais e ao controle executivo.",
+  "domain_definitions": {
+    "ac": "Avalia a capacidade de selecionar estímulos relevantes e manter o foco atencional diante de estímulos distratores.",
+    "ad": "Refere-se à habilidade de distribuir os recursos atencionais entre múltiplos estímulos ou demandas simultâneas.",
+    "aa": "Mede a capacidade de alternar o foco atencional entre tarefas ou estímulos distintos, exigindo flexibilidade cognitiva e monitoramento contínuo.",
+    "ag": "Representa a integração global dos componentes atencionais avaliados, sintetizando o funcionamento geral da atenção."
+  },
+  "classification_texts": {
+    "Superior": {
+      "base": "apresentou desempenho classificado como superior (percentil {percentile}), indicando habilidade muito desenvolvida nesse domínio, com eficiência acima do esperado para sua faixa etária.",
+      "ac": "Esse resultado sugere excelente capacidade de sustentação do foco, elevada resistência à distração e boa constância atencional em tarefas prolongadas.",
+      "ad": "Esse desempenho evidencia notável capacidade de acompanhar simultaneamente diferentes estímulos e lidar com múltiplas demandas cognitivas com eficiência.",
+      "aa": "Esse resultado evidencia elevada flexibilidade atencional, com boa capacidade de ajustar-se rapidamente a mudanças de regras, estímulos ou exigências da tarefa.",
+      "ag": "De forma global, o funcionamento atencional mostra-se muito bem desenvolvido, com integração eficiente entre os diferentes componentes avaliados."
+    },
+    "Média Superior": {
+      "base": "apresentou desempenho classificado como média superior (percentil {percentile}), sugerindo funcionamento atencional acima do esperado, com boa eficiência nesse domínio.",
+      "ac": "Esse resultado sugere boa sustentação do foco e adequada resistência à interferência de estímulos distratores.",
+      "ad": "Esse desempenho sugere boa distribuição dos recursos atencionais entre estímulos múltiplos, sem prejuízos relevantes.",
+      "aa": "Esse resultado sugere boa flexibilidade cognitiva e eficiência na alternância do foco entre tarefas ou estímulos distintos.",
+      "ag": "De forma global, o funcionamento atencional mostra-se acima do esperado, com boa integração entre os diferentes componentes da atenção."
+    },
+    "Média": {
+      "base": "apresentou desempenho classificado como médio (percentil {percentile}), indicando funcionamento atencional dentro dos limites esperados para sua faixa etária, sem evidências de prejuízo significativo nesse domínio.",
+      "ac": "Esse resultado sugere capacidade adequada de concentração sustentada e manutenção do foco diante de demandas contínuas.",
+      "ad": "Esse desempenho indica capacidade preservada para dividir a atenção entre diferentes estímulos ou tarefas simultâneas.",
+      "aa": "Esse resultado indica capacidade preservada para alternar o foco atencional entre diferentes demandas, sem prejuízos significativos.",
+      "ag": "De forma global, o funcionamento atencional encontra-se preservado, com integração adequada entre os diferentes componentes avaliados."
+    },
+    "Média Inferior": {
+      "base": "apresentou desempenho classificado como média inferior (percentil {percentile}), indicando rebaixamento leve nesse domínio, com sinais de menor eficiência atencional quando comparado ao esperado para a faixa etária.",
+      "ac": "Esse resultado sugere maior suscetibilidade a oscilações do foco atencional em tarefas que exigem concentração prolongada.",
+      "ad": "Esse desempenho sugere dificuldade discreta a moderada na distribuição dos recursos atencionais entre múltiplas demandas, podendo reduzir a eficiência em situações complexas.",
+      "aa": "Esse resultado indica redução na flexibilidade atencional e menor eficiência para mudar o foco entre diferentes demandas cognitivas.",
+      "ag": "De forma global, observa-se funcionamento atencional discretamente rebaixado, sugerindo fragilidade na integração entre os diferentes componentes da atenção."
+    },
+    "Inferior": {
+      "base": "apresentou desempenho classificado como inferior (percentil {percentile}), sugerindo comprometimento relevante nesse domínio, com prejuízo atencional clinicamente significativo.",
+      "ac": "Esse resultado sugere dificuldade importante para sustentar a atenção, manter constância do foco e inibir interferências distratoras durante tarefas contínuas.",
+      "ad": "Esse desempenho sugere prejuízo importante na habilidade de processar simultaneamente mais de uma demanda, com possível impacto em situações que exigem monitoramento concorrente de informações.",
+      "aa": "Esse resultado indica comprometimento importante da alternância atencional, com dificuldade para ajustar o foco mental diante de mudanças de tarefa, regra ou estímulo.",
+      "ag": "De forma global, observa-se comprometimento do funcionamento atencional, com impacto conjunto sobre a sustentação, distribuição e alternância do foco atencional."
+    }
+  },
+  "section_template": {
+    "title": "{section_title}",
+    "body": "{definition} {base_text} {specific_text}"
+  },
+  "interpretive_modulators": {
+    "profile_patterns": [
+      {
+        "name": "globalmente_preservado",
+        "condition": "ag in ['Média', 'Média Superior', 'Superior'] and ac in ['Média', 'Média Superior', 'Superior'] and ad in ['Média', 'Média Superior', 'Superior'] and aa in ['Média', 'Média Superior', 'Superior']",
+        "closing": "Em análise clínica, o perfil atencional de {patient_name} revela funcionamento global dentro ou acima do esperado para a faixa etária, com adequada integração entre sustentação do foco, divisão dos recursos atencionais e alternância entre estímulos. Os achados não indicam prejuízo atencional clinicamente relevante no momento da avaliação."
+      },
+      {
+        "name": "fragilidades_pontuais_com_ag_preservada",
+        "condition": "ag in ['Média', 'Média Superior'] and any(ac,ad,aa in ['Média Inferior','Inferior'])",
+        "closing": "Em análise clínica, o perfil atencional de {patient_name} revela funcionamento global preservado, embora com fragilidades pontuais em componentes específicos da atenção. Esse padrão sugere que, apesar da integração global mostrar-se adequada, determinadas exigências cognitivas podem ser realizadas com maior esforço, especialmente em contextos de maior complexidade ou sobrecarga ambiental."
+      },
+      {
+        "name": "ag_rebaixada_com_dominios_especificos_mistos",
+        "condition": "ag in ['Média Inferior','Inferior'] and any(ac,ad,aa in ['Média','Média Superior','Superior'])",
+        "closing": "Em análise clínica, o perfil atencional de {patient_name} revela que, embora alguns componentes específicos tenham se mantido dentro da faixa esperada, a integração global desses recursos mostrou-se menos eficiente. Esse padrão sugere fragilidade no funcionamento atencional como um todo, com possível oscilação no desempenho diante de tarefas prolongadas, múltiplas demandas ou necessidade de adaptação rápida."
+      },
+      {
+        "name": "rebaixamento_homogeneo_leve",
+        "condition": "ag == 'Média Inferior' and at_least_two(ac,ad,aa in ['Média Inferior','Inferior'])",
+        "closing": "Em análise clínica, o perfil atencional de {patient_name} revela funcionamento global discretamente rebaixado, com fragilidades mais abrangentes nos mecanismos de sustentação, distribuição e alternância do foco atencional. Os achados sugerem menor eficiência para lidar com tarefas contínuas, múltiplos estímulos e situações que exigem ajuste mental frequente."
+      },
+      {
+        "name": "rebaixamento_global_importante",
+        "condition": "ag == 'Inferior' and at_least_two(ac,ad,aa in ['Média Inferior','Inferior'])",
+        "closing": "Em análise clínica, o perfil atencional de {patient_name} revela funcionamento global rebaixado, com prejuízo clinicamente relevante nos mecanismos de sustentação do foco, distribuição dos recursos atencionais e alternância entre estímulos. Em contexto funcional, esse padrão pode se associar a dificuldades para manter a concentração em tarefas prolongadas, acompanhar comandos com múltiplas etapas, alternar entre atividades e sustentar desempenho consistente diante de demandas cognitivas contínuas."
+      },
+      {
+        "name": "alto_desempenho_global",
+        "condition": "ag in ['Superior','Média Superior'] and at_least_two(ac,ad,aa in ['Superior','Média Superior'])",
+        "closing": "Em análise clínica, o perfil atencional de {patient_name} revela funcionamento global eficiente, com bom controle do foco atencional, adequada distribuição dos recursos cognitivos e flexibilidade para alternar entre diferentes demandas. Os achados sugerem recursos atencionais bem desenvolvidos e funcionalmente adaptativos."
+      }
+    ]
+  },
+  "decision_rules": [
+    "A Atenção Geral deve definir o eixo principal do fechamento.",
+    "Se AG estiver em Média ou acima, evitar expressões como 'comprometimento global' ou 'prejuízo clinicamente relevante'.",
+    "Se AG estiver em Média Inferior, utilizar expressões como 'funcionamento discretamente rebaixado', 'fragilidade global' ou 'menor eficiência atencional'.",
+    "Se AG estiver em Inferior, utilizar expressões como 'funcionamento global rebaixado' e 'prejuízo atencional clinicamente relevante'.",
+    "Se AC, AD e AA estiverem todos em Média ou acima, o fechamento deve ser claramente preservado, mesmo que AG esteja em Média.",
+    "Se apenas um domínio específico estiver rebaixado, descrevê-lo como fragilidade pontual.",
+    "Se dois ou mais domínios específicos estiverem rebaixados, descrever como fragilidade mais abrangente.",
+    "Se AG estiver pior que os domínios específicos, enfatizar que a integração global dos componentes atencionais foi menos eficiente que o desempenho isolado.",
+    "Se AG estiver melhor que algum domínio específico, reconhecer as fragilidades pontuais sem descaracterizar o funcionamento global.",
+    "Nunca afirmar diagnóstico apenas com base no BPA-2."
+  ],
+  "output_order": [
+    "title",
+    "intro",
+    "section_ac",
+    "section_ad",
+    "section_aa",
+    "section_ag",
+    "integrated_closing"
+  ],
+  "title": "Interpretação e Observações Clínicas",
+  "system_prompt_for_model": "Você é um neuropsicólogo redator de laudos. Gere a interpretação do BPA-2 em linguagem técnica, natural e clínica, mantendo estrutura fixa com introdução, quatro domínios e fechamento integrativo. Use o primeiro nome do paciente. Respeite rigorosamente as classificações informadas. Faça o texto parecer humano, elegante e compatível com laudo neuropsicológico real. Nunca use travessão longo. Nunca transforme resultado médio em déficit. Nunca afirme diagnóstico com base exclusiva no BPA-2. O peso principal da síntese final deve ser dado à Atenção Geral."
+}

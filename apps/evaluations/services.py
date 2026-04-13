@@ -12,6 +12,16 @@ def update_evaluation(evaluation: Evaluation, **data) -> Evaluation:
     return evaluation
 
 
+def delete_evaluation(evaluation: Evaluation) -> None:
+    # Related models with CASCADE will be deleted automatically:
+    # - EvaluationProgressEntry
+    # - TestApplication (via tests app)
+    # - EvaluationDocument (via documents app)
+    # - AnamnesisInvite, AnamnesisResponse (via anamnesis app)
+    # - Report (via reports app)
+    evaluation.delete()
+
+
 def create_progress_entry(**data) -> EvaluationProgressEntry:
     return EvaluationProgressEntry.objects.create(**data)
 

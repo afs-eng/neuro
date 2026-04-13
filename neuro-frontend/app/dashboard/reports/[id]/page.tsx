@@ -9,6 +9,27 @@ import { resolveApiUrl } from "@/lib/api";
 import { reportService } from "@/services/reportService";
 import { ArrowLeft, Calendar, CheckCircle2, Download, FileText, Loader2, RotateCcw, Save, User } from "lucide-react";
 
+const WISC_SUBSCALE_KEYS = new Set([
+  "funcoes_executivas",
+  "linguagem",
+  "gnosias_praxias",
+  "memoria_aprendizagem",
+]);
+
+const WISC_SUBSCALE_ORDER = [
+  "funcoes_executivas",
+  "linguagem",
+  "gnosias_praxias",
+  "memoria_aprendizagem",
+];
+
+function formatTimestamp(value?: string | null) {
+  if (!value) return "Nao informado";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("pt-BR");
+}
+
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
   const reportId = params.id;
@@ -24,6 +45,11 @@ export default function ReportDetailPage() {
     () => report?.sections?.find((section: any) => section.id === activeSectionId) || null,
     [activeSectionId, report]
   );
+  const wiscSubscaleSections = useMemo(
+    () => (report?.sections || []).filter((section: any) => WISC_SUBSCALE_KEYS.has(section.key)),
+    [report]
+  );
+  const isWiscSubscaleActive = Boolean(activeSection && WISC_SUBSCALE_KEYS.has(activeSection.key));
 
   const loadReport = useCallback(async () => {
     try {
@@ -92,6 +118,42 @@ export default function ReportDetailPage() {
       await loadReport();
     } catch (err: any) {
       setError(err?.message || "Nao foi possivel regenerar a secao.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRegenerateWiscSubscales() {
+    if (!report || wiscSubscaleSections.length === 0) return;
+    setSaving(true);
+    setNotice("");
+    try {
+      const updatedSections: Record<string, any> = {};
+      for (const key of WISC_SUBSCALE_ORDER) {
+        const section = wiscSubscaleSections.find((item: any) => item.key === key);
+        if (!section) continue;
+        updatedSections[key] = await reportService.regenerateSection(report.id, key);
+      }
+
+      setReport((current: any) => ({
+        ...current,
+        sections: current.sections.map((section: any) =>
+          updatedSections[section.key] ? { ...section, ...updatedSections[section.key] } : section
+        ),
+      }));
+
+      const preferredSection = wiscSubscaleSections.find((section: any) => section.id === activeSectionId)
+        || wiscSubscaleSections[0];
+      if (preferredSection && updatedSections[preferredSection.key]) {
+        const updated = updatedSections[preferredSection.key];
+        setActiveSectionId(updated.id ?? preferredSection.id);
+        setEditedText(updated.edited_text || updated.generated_text || "");
+      }
+
+      setNotice("Subscalas-Wisc regeneradas com sucesso.");
+      await loadReport();
+    } catch (err: any) {
+      setError(err?.message || "Nao foi possivel regenerar as Subscalas-Wisc.");
     } finally {
       setSaving(false);
     }
@@ -182,6 +244,12 @@ export default function ReportDetailPage() {
   }
 
   const isFinalized = report.status === "finalized";
+  const generationMetadata = activeSection?.generation_metadata || {};
+  const warnings = activeSection?.warnings_payload || [];
+  const generatedText = activeSection?.generated_text || "";
+  const hasManualEdits = Boolean(activeSection && (activeSection.edited_text || "") !== generatedText);
+  const generationTimestamp = generationMetadata.generated_at || activeSection?.updated_at;
+  const sidebarSections = report.sections?.filter((section: any) => !WISC_SUBSCALE_KEYS.has(section.key)) || [];
 
   return (
     <PageContainer>
@@ -214,7 +282,25 @@ export default function ReportDetailPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="space-y-2">
-            {report.sections?.map((section: any) => (
+            {wiscSubscaleSections.length > 0 && (
+              <button
+                type="button"
+                onClick={handleRegenerateWiscSubscales}
+                disabled={saving}
+                className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition ${
+                  isWiscSubscaleActive
+                    ? "border-indigo-600 bg-indigo-600 text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
+                }`}
+              >
+                <div className="font-medium">Subscalas-Wisc</div>
+                <div className={`mt-1 text-xs ${isWiscSubscaleActive ? "text-indigo-100" : "text-slate-400"}`}>
+                  Regenera Funções Executivas, Linguagem, Gnosias e Praxias, Memória e Aprendizagem
+                </div>
+              </button>
+            )}
+
+            {sidebarSections.map((section: any) => (
               <button
                 key={section.id}
                 type="button"
@@ -256,15 +342,15 @@ export default function ReportDetailPage() {
         <main className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">{activeSection?.title || "Selecione uma secao"}</h2>
+              <h2 className="text-lg font-semibold text-slate-900">{isWiscSubscaleActive ? "Subscalas-Wisc" : activeSection?.title || "Selecione uma secao"}</h2>
               <p className="text-sm text-slate-500">Edite o rascunho gerado e regenere a secao quando necessario.</p>
             </div>
             <div className="flex gap-2">
               {!isFinalized && (
                 <>
-                  <Button variant="outline" className="gap-2" disabled={saving || !activeSection} onClick={handleRegenerate}>
+                  <Button variant="outline" className="gap-2" disabled={saving || !activeSection} onClick={isWiscSubscaleActive ? handleRegenerateWiscSubscales : handleRegenerate}>
                     <RotateCcw className="h-4 w-4" />
-                    Regenerar secao
+                    {isWiscSubscaleActive ? "Regenerar Subscalas-Wisc" : "Regenerar secao"}
                   </Button>
                   <Button className="gap-2" disabled={saving || !activeSection} onClick={handleSave}>
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -277,6 +363,72 @@ export default function ReportDetailPage() {
               </Button>
             </div>
           </div>
+
+          {activeSection && (
+            <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-4">
+              {isWiscSubscaleActive && wiscSubscaleSections.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {wiscSubscaleSections.map((section: any) => (
+                    <button
+                      key={section.id}
+                      type="button"
+                      onClick={() => setActiveSectionId(section.id)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                        activeSectionId === section.id
+                          ? "border-indigo-600 bg-indigo-600 text-white"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      {section.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Provider</div>
+                  <div className="mt-1 font-medium text-slate-800">{generationMetadata.provider || "Nao informado"}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Modelo</div>
+                  <div className="mt-1 font-medium text-slate-800">{generationMetadata.model || "Nao informado"}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Ultima geracao</div>
+                  <div className="mt-1 font-medium text-slate-800">{formatTimestamp(generationTimestamp)}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Status do texto</div>
+                  <div className="mt-1 font-medium text-slate-800">{hasManualEdits ? "Editado manualmente" : "Igual ao gerado pela IA"}</div>
+                </div>
+              </div>
+
+              {warnings.length > 0 && (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <div className="font-medium">Avisos da geracao</div>
+                  <ul className="mt-2 list-disc pl-5">
+                    {warnings.map((warning: string, index: number) => (
+                      <li key={`${index}-${warning}`}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {hasManualEdits && generatedText && (
+                <div className="mt-3 grid gap-3 xl:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white">
+                    <div className="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-800">Texto gerado pela IA</div>
+                    <pre className="max-h-72 overflow-auto whitespace-pre-wrap px-4 py-3 text-sm leading-7 text-slate-600">{generatedText}</pre>
+                  </div>
+                  <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-900">
+                    <div className="font-medium">Texto atual em edicao</div>
+                    <p className="mt-2 leading-6">O editor abaixo mostra o texto editado por voce. O painel ao lado preserva a ultima versao gerada pela IA para comparacao.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <textarea
             value={editedText}

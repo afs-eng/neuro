@@ -1,5 +1,7 @@
 from collections.abc import Iterable
 
+from apps.tests.base.types import TestContext
+from apps.tests.registry import get_test_module
 from apps.tests.selectors import get_validated_test_applications_by_evaluation
 
 
@@ -236,19 +238,41 @@ def build_validated_tests_snapshot(evaluation) -> list[dict]:
     snapshots: list[dict] = []
 
     for item in tests:
+        warnings = []
+        structured_results = item.classified_payload or item.computed_payload or {}
         clinical_interpretation = (item.interpretation_text or "").strip()
+
+        module = get_test_module(item.instrument.code)
+        if module:
+            try:
+                context = TestContext(
+                    patient_name=item.evaluation.patient.full_name,
+                    evaluation_id=item.evaluation_id,
+                    instrument_code=item.instrument.code,
+                    raw_scores=item.raw_payload or {},
+                )
+                merged_data = {
+                    **(item.computed_payload or {}),
+                    **(item.classified_payload or {}),
+                }
+                recalculated = (module.interpret(context, merged_data) or "").strip()
+                if recalculated:
+                    clinical_interpretation = recalculated
+            except Exception:
+                warnings.append(
+                    "Nao foi possivel recalcular a interpretacao tecnica atual; usando texto persistido."
+                )
+
         summary = (
             clinical_interpretation.split(". ")[0].strip()
             if clinical_interpretation
             else ""
         )
-        warnings = []
         if not clinical_interpretation:
             warnings.append(
                 "Interpretacao clinica ausente; usando apenas payload estruturado."
             )
 
-        structured_results = item.classified_payload or item.computed_payload or {}
         result_rows = build_result_rows(item.instrument.code, structured_results)
 
         snapshots.append(

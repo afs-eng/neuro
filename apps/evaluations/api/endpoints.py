@@ -16,6 +16,7 @@ from apps.evaluations.selectors import (
 from apps.evaluations.services import (
     create_evaluation,
     update_evaluation,
+    delete_evaluation,
     create_progress_entry,
     update_progress_entry,
     delete_progress_entry,
@@ -304,6 +305,28 @@ def update_evaluation_endpoint(
     return 200, serialize_evaluation(evaluation)
 
 
+@router.delete(
+    "/{evaluation_id}",
+    response={200: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def delete_evaluation_endpoint(request, evaluation_id: int) -> tuple[int, dict]:
+    user = request.auth
+
+    if not can_edit_evaluations(user):
+        return 403, {"message": "Você não tem permissão para excluir avaliações."}
+
+    evaluation = get_evaluation_by_id(evaluation_id)
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    if not can_access_evaluation(user, evaluation):
+        return 403, {"message": "Você não tem permissão para excluir esta avaliação."}
+
+    delete_evaluation(evaluation)
+    return 200, {"message": "Avaliação excluída com sucesso."}
+
+
 @router.get(
     "/{evaluation_id}/progress-entries",
     response=list[ProgressEntryOut],
@@ -322,7 +345,7 @@ def list_progress_entries_endpoint(request, evaluation_id: int) -> list[dict]:
 
 
 @router.post(
-    "/progress-entries/",
+    "/progress-entries",
     response={201: ProgressEntryOut, 403: MessageOut, 404: MessageOut, 400: MessageOut},
     auth=bearer_auth,
 )
@@ -369,7 +392,7 @@ def create_progress_entry_endpoint(
 
 
 @router.patch(
-    "/progress-entries/{entry_id}/",
+    "/progress-entries/{entry_id}",
     response={200: ProgressEntryOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )
@@ -400,7 +423,7 @@ def update_progress_entry_endpoint(
 
 
 @router.delete(
-    "/progress-entries/{entry_id}/",
+    "/progress-entries/{entry_id}",
     response={200: MessageOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )

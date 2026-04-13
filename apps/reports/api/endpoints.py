@@ -12,6 +12,7 @@ from apps.reports.selectors import (
     list_reports,
 )
 from apps.reports.services.report_export_service import ReportExportService
+from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.report_generation_service import ReportGenerationService
 from apps.reports.services.report_section_service import ReportSectionService
 from apps.reports.services.report_validation_service import ReportValidationService
@@ -60,7 +61,10 @@ def serialize_section(section) -> dict:
         "source_payload": {},
         "generated_text": section.content_generated or "",
         "edited_text": section.content_edited or "",
+        "generation_metadata": section.generation_metadata or {},
+        "warnings_payload": section.warnings_payload or [],
         "is_locked": section.is_locked,
+        "updated_at": section.updated_at.isoformat() if section.updated_at else None,
     }
 
 
@@ -83,6 +87,7 @@ def serialize_report(report, include_sections=False, include_versions=False) -> 
         "generated_text": report.generated_text or "",
         "edited_text": report.edited_text or "",
         "final_text": report.final_text or "",
+        "ai_metadata": report.ai_metadata or {},
         "created_at": report.created_at.isoformat() if report.created_at else None,
         "updated_at": report.updated_at.isoformat() if report.updated_at else None,
         "generated_at": report.generated_at.isoformat()
@@ -116,16 +121,6 @@ def list_reports_endpoint(request, evaluation_id: int | None = None):
 )
 def get_reports_by_evaluation_endpoint(request, evaluation_id: int):
     return [serialize_report(item) for item in get_reports_by_evaluation(evaluation_id)]
-
-
-@router.get(
-    "/{report_id}/", response={200: ReportDetailOut, 404: MessageOut}, auth=bearer_auth
-)
-def get_report(request, report_id: int):
-    report, error = _get_report_or_404(report_id)
-    if error:
-        return error
-    return 200, serialize_report(report, include_sections=True, include_versions=True)
 
 
 @router.post(
@@ -233,7 +228,7 @@ def regenerate_report(request, report_id: int):
 
 @router.post(
     "/{report_id}/regenerate-section/{section_key}",
-    response={200: ReportSectionOut, 403: MessageOut, 404: MessageOut},
+    response={200: ReportSectionOut, 400: MessageOut, 403: MessageOut, 404: MessageOut},
     auth=bearer_auth,
 )
 def regenerate_section(request, report_id: int, section_key: str):
@@ -242,84 +237,15 @@ def regenerate_section(request, report_id: int, section_key: str):
     report, error = _get_report_or_404(report_id)
     if error:
         return error
-    section = ReportSectionService.regenerate_section(
-        report, section_key, user=request.auth
-    )
+    try:
+        section = ReportSectionService.regenerate_section(
+            report, section_key, user=request.auth
+        )
+    except ValueError as exc:
+        return 400, {"message": str(exc)}
     if not section:
         return 404, {"message": "Seção inexistente ou bloqueada."}
     return 200, serialize_section(section)
-
-
-@router.patch(
-    "/sections/{section_id}",
-    response={200: ReportSectionOut, 403: MessageOut, 404: MessageOut},
-    auth=bearer_auth,
-)
-def update_section(request, section_id: int, payload: ReportSectionUpdateIn):
-    if not can_edit_reports(request.auth):
-        return 403, {"message": "Permissão negada."}
-
-    section = (
-        ReportSection.objects.select_related("report").filter(id=section_id).first()
-    )
-    if not section:
-        return 404, {"message": "Seção inexistente."}
-    if section.is_locked:
-        return 403, {"message": "Seção bloqueada para edição."}
-
-    if payload.edited_text is not None:
-        ReportSectionService.update_manual_content(section, payload.edited_text)
-    if payload.is_locked is not None:
-        section.is_locked = payload.is_locked
-        section.save(update_fields=["is_locked", "updated_at"])
-
-    ReportVersionService.create_version(section.report, user=request.auth)
-    return 200, serialize_section(section)
-
-
-@router.patch(
-    "/{report_id}/sections/{section_key}",
-    response={200: ReportSectionOut, 403: MessageOut, 404: MessageOut},
-    auth=bearer_auth,
-)
-def update_section_by_key(
-    request, report_id: int, section_key: str, payload: ReportSectionUpdateIn
-):
-    report, error = _get_report_or_404(report_id)
-    if error:
-        return error
-    section = report.sections.filter(key=section_key).first()
-    if not section:
-        return 404, {"message": "Seção inexistente."}
-    return update_section(request, section.id, payload)
-
-
-@router.put(
-    "/{report_id}",
-    response={200: ReportOut, 403: MessageOut, 404: MessageOut},
-    auth=bearer_auth,
-)
-def update_report(request, report_id: int, payload: ReportUpdateIn):
-    if not can_edit_reports(request.auth):
-        return 403, {"message": "Permissão negada."}
-
-    report, error = _get_report_or_404(report_id)
-    if error:
-        return error
-
-    if payload.title is not None:
-        report.title = payload.title
-    if payload.interested_party is not None:
-        report.interested_party = payload.interested_party
-    if payload.purpose is not None:
-        report.purpose = payload.purpose
-    if payload.status is not None:
-        report.status = payload.status
-    if payload.final_text is not None:
-        report.final_text = payload.final_text
-    report.save()
-    ReportVersionService.create_version(report, user=request.auth)
-    return 200, serialize_report(report)
 
 
 @router.post(
@@ -373,3 +299,89 @@ def export_report_docx(request, report_id: int):
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+@router.get(
+    "/{report_id}", response={200: ReportDetailOut, 404: MessageOut}, auth=bearer_auth
+)
+def get_report(request, report_id: int):
+    report, error = _get_report_or_404(report_id)
+    if error:
+        return error
+    latest_context = ReportContextService.build_context(report.evaluation)
+    if latest_context != (report.context_payload or {}):
+        report.context_payload = latest_context
+        report.save(update_fields=["context_payload", "updated_at"])
+    return 200, serialize_report(report, include_sections=True, include_versions=True)
+
+
+@router.put(
+    "/{report_id}",
+    response={200: ReportOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def update_report(request, report_id: int, payload: ReportUpdateIn):
+    if not can_edit_reports(request.auth):
+        return 403, {"message": "Permissão negada."}
+
+    report, error = _get_report_or_404(report_id)
+    if error:
+        return error
+
+    if payload.title is not None:
+        report.title = payload.title
+    if payload.interested_party is not None:
+        report.interested_party = payload.interested_party
+    if payload.purpose is not None:
+        report.purpose = payload.purpose
+    if payload.status is not None:
+        report.status = payload.status
+    if payload.final_text is not None:
+        report.final_text = payload.final_text
+    report.save()
+    ReportVersionService.create_version(report, user=request.auth)
+    return 200, serialize_report(report)
+
+
+@router.patch(
+    "/sections/{section_id}",
+    response={200: ReportSectionOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def update_section(request, section_id: int, payload: ReportSectionUpdateIn):
+    if not can_edit_reports(request.auth):
+        return 403, {"message": "Permissão negada."}
+
+    section = (
+        ReportSection.objects.select_related("report").filter(id=section_id).first()
+    )
+    if not section:
+        return 404, {"message": "Seção inexistente."}
+    if section.is_locked:
+        return 403, {"message": "Seção bloqueada para edição."}
+
+    if payload.edited_text is not None:
+        ReportSectionService.update_manual_content(section, payload.edited_text)
+    if payload.is_locked is not None:
+        section.is_locked = payload.is_locked
+        section.save(update_fields=["is_locked", "updated_at"])
+
+    ReportVersionService.create_version(section.report, user=request.auth)
+    return 200, serialize_section(section)
+
+
+@router.patch(
+    "/{report_id}/sections/{section_key}",
+    response={200: ReportSectionOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def update_section_by_key(
+    request, report_id: int, section_key: str, payload: ReportSectionUpdateIn
+):
+    report, error = _get_report_or_404(report_id)
+    if error:
+        return error
+    section = report.sections.filter(key=section_key).first()
+    if not section:
+        return 404, {"message": "Seção inexistente."}
+    return update_section(request, section.id, payload)

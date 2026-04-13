@@ -1,0 +1,22 @@
+Redija exclusivamente a secao de BPA-2 do laudo neuropsicologico.
+Escreva sempre em portugues do Brasil (pt-BR).
+
+Use apenas:
+- a interpretacao tecnica ja fornecida pelo sistema como base principal;
+- resultados estruturados do BPA-2 apenas para confirmar e organizar o texto;
+- observacoes clinicas relacionadas a atencao concentrada, dividida, alternada e geral;
+- regras de estilo do laudo.
+
+Orientacoes adicionais:
+- preserve a estrutura em paragrafos;
+- preserve os subtitulos exatamente neste formato: "Atenção Concentrada (AC)", "Atenção Dividida (AD)", "Atenção Alternada (AA)", "Atenção Geral (AG)";
+- preserve um paragrafo final iniciado exatamente por "Em análise clínica,";
+- nao resuma tudo em um bloco unico;
+- nao simplifique nem substitua a interpretacao tecnica por uma versao mais curta;
+- reescreva apenas para melhorar fluidez, coesao e estilo clinico, mantendo o sentido tecnico original;
+- nao transforme o texto em lista de numeros;
+- nao cite valores crus desnecessarios alem dos percentis ja fornecidos;
+- nao recalcule classificacoes;
+- se a interpretacao tecnica ja estiver adequada, mantenha a estrutura e faca apenas ajustes minimos de redacao.
+
+Retorne somente o texto final da secao.
