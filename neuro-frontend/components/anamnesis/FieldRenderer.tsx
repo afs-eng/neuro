@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { RepeaterField } from "./RepeaterField"
 import { AnamnesisField } from "./types"
 
@@ -6,42 +7,68 @@ function normalizeOptions(options?: Array<{ label: string; value: string }> | st
   return options.map((option) => typeof option === "string" ? { label: option, value: option } : option)
 }
 
-function DateField({ value, onChange, className }: { value: string | undefined; onChange: (value: string) => void; className: string }) {
-  const [year = "", month = "", day = ""] = (value || "").split("-")
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: currentYear - 1899 }, (_, index) => String(currentYear - index))
-  const months = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"))
-  const maxDays = year && month ? new Date(Number(year), Number(month), 0).getDate() : 31
-  const days = Array.from({ length: maxDays }, (_, index) => String(index + 1).padStart(2, "0"))
+function formatDateForDisplay(value: string | undefined) {
+  if (!value) return ""
+  const [year = "", month = "", day = ""] = value.split("-")
+  if (!year || !month || !day) return ""
+  return `${day}/${month}/${year}`
+}
 
-  function updateDate(next: { year?: string; month?: string; day?: string }) {
-    const nextYear = next.year ?? year
-    const nextMonth = next.month ?? month
-    const nextDay = next.day ?? day
+function parseDisplayDate(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8)
+  const day = digits.slice(0, 2)
+  const month = digits.slice(2, 4)
+  const year = digits.slice(4, 8)
 
-    if (!nextYear || !nextMonth || !nextDay) {
-      onChange("")
-      return
-    }
+  const formatted = [day, month, year].filter(Boolean).join("/")
 
-    const safeDay = Math.min(Number(nextDay), new Date(Number(nextYear), Number(nextMonth), 0).getDate())
-    onChange(`${nextYear}-${nextMonth}-${String(safeDay).padStart(2, "0")}`)
+  if (digits.length < 8) {
+    return { formatted, iso: "" }
   }
 
+  const parsedDay = Number(day)
+  const parsedMonth = Number(month)
+  const parsedYear = Number(year)
+
+  if (!parsedDay || !parsedMonth || !parsedYear || parsedMonth > 12) {
+    return { formatted, iso: "" }
+  }
+
+  const maxDays = new Date(parsedYear, parsedMonth, 0).getDate()
+  if (parsedDay > maxDays) {
+    return { formatted, iso: "" }
+  }
+
+  return { formatted, iso: `${year}-${month}-${day}` }
+}
+
+function DateField({ value, onChange, className }: { value: string | undefined; onChange: (value: string) => void; className: string }) {
+  const [mobileValue, setMobileValue] = useState(formatDateForDisplay(value))
+
+  useEffect(() => {
+    setMobileValue(formatDateForDisplay(value))
+  }, [value])
+
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <select value={day} onChange={(e) => updateDate({ day: e.target.value })} className={className}>
-        <option value="">Dia</option>
-        {days.map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
-      <select value={month} onChange={(e) => updateDate({ month: e.target.value })} className={className}>
-        <option value="">Mês</option>
-        {months.map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
-      <select value={year} onChange={(e) => updateDate({ year: e.target.value })} className={className}>
-        <option value="">Ano</option>
-        {years.map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
+    <div>
+      <input
+        type="date"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${className} hidden md:block`}
+      />
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="DD/MM/AAAA"
+        value={mobileValue}
+        onChange={(e) => {
+          const { formatted, iso } = parseDisplayDate(e.target.value)
+          setMobileValue(formatted)
+          onChange(iso)
+        }}
+        className={`${className} md:hidden`}
+      />
     </div>
   )
 }
