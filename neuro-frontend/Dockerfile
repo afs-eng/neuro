@@ -12,10 +12,10 @@ WORKDIR /app
 # --------------------------------------------------------
 FROM base AS dev
 
-COPY neuro-frontend/package.json neuro-frontend/package-lock.json* ./
+COPY package.json package-lock.json* ./
 RUN npm install
 
-COPY neuro-frontend/ .
+COPY . .
 
 EXPOSE 3000
 ENV PORT 3000
@@ -28,7 +28,7 @@ CMD ["npm", "run", "dev"]
 # --------------------------------------------------------
 FROM base AS deps
 
-COPY neuro-frontend/package.json neuro-frontend/package-lock.json* ./
+COPY package.json package-lock.json* ./
 RUN \
   if [ -f package-lock.json ]; then npm ci; \
   else npm install; \
@@ -41,7 +41,7 @@ FROM base AS builder
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY neuro-frontend/ .
+COPY . .
 
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
