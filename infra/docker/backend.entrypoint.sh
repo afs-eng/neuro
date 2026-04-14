@@ -1,29 +1,35 @@
 #!/usr/bin/env bash
+# ============================================================
+# NeuroAvalia — Backend Entrypoint (Docker)
+# Aguarda o DB, roda migrations e inicia o servidor.
+# ============================================================
 set -e
 
-echo "[backend.entrypoint.sh] Iniciando verificacao do ambiente..."
+echo "🔄 [entrypoint] Iniciando verificacao do ambiente..."
 
-# Espera inteligente usando o proprio gerenciador do Django para nao depender de variaveis divididas no sh
+# Espera o banco ficar disponivel
 retries=30
 while ! python manage.py check --database default > /dev/null 2>&1; do
     echo "⏳ Aguardando conexao com o banco de dados..."
     sleep 2
-    retries=$((retries-1))
+    retries=$((retries - 1))
     if [ $retries -eq 0 ]; then
-        echo "❌ Erro: Timeout ao aguardar inicializacao do banco de dados (Possivel configuracao incorreta das senhas DB)."
+        echo "❌ Erro: Timeout ao aguardar banco de dados."
         exit 1
     fi
 done
 
 echo "✅ Banco de dados disponivel."
 
-echo "🛠️ Rodando as Migrations do Django..."
+# Aplica migrations
+echo "🛠️ Rodando migrations..."
 python manage.py migrate --noinput
 
-if [ "$DJANGO_ENV" = "production" ] || [ "$DJANGO_ENV" = "staging" ]; then
-    echo "📦 Modo producao detectado: Correndo o collectstatic..."
+# Collectstatic apenas em producao
+if [ "$DJANGO_ENV" = "production" ]; then
+    echo "📦 collectstatic..."
     python manage.py collectstatic --noinput
 fi
 
-echo "🚀 Iniciando o comando base do container..."
+echo "🚀 Iniciando servidor..."
 exec "$@"

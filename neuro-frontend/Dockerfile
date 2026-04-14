@@ -1,60 +1,74 @@
+# ============================================================
+# NeuroAvalia — Frontend Dockerfile (Multi-stage: dev + prod)
+# ============================================================
+
 FROM node:20-alpine AS base
 
-# Dependências nativas caso necessário por lib de imagem
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Stage: Install dependencies
+# --------------------------------------------------------
+# Stage 1: Dev (hot-reload)
+# --------------------------------------------------------
+FROM base AS dev
+
+COPY neuro-frontend/package.json neuro-frontend/package-lock.json* ./
+RUN npm install
+
+COPY neuro-frontend/ .
+
+EXPOSE 3000
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["npm", "run", "dev"]
+
+# --------------------------------------------------------
+# Stage 2: Deps (instalacao de dependencias)
+# --------------------------------------------------------
 FROM base AS deps
-COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
+
+COPY neuro-frontend/package.json neuro-frontend/package-lock.json* ./
 RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
+  if [ -f package-lock.json ]; then npm ci; \
   else npm install; \
   fi
 
-# Stage: Builder (Para Produção)
+# --------------------------------------------------------
+# Stage 3: Builder (build de producao)
+# --------------------------------------------------------
 FROM base AS builder
+
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY neuro-frontend/ .
 
-# Argumento e env que podem ser passados no compose de prod
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-
-# Next.js exige o .env durante a build time para inserir as vars NEXT_PUBLIC nas páginas exportadas estáticas (se houver)
 ENV BUILD_STANDALONE=true
-RUN \
-  if [ -f yarn.lock ]; then yarn build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-  else npm run build; \
-  fi
 
-# Stage final (Produção Enxuta)
-FROM base AS runner
+RUN npm run build
+
+# --------------------------------------------------------
+# Stage 4: Prod (standalone otimizado)
+# --------------------------------------------------------
+FROM base AS prod
+
 WORKDIR /app
 
 ENV NODE_ENV production
-# Suprime telemetria do Next.js
 ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
-
-# Configura standalone mode para não travar a build de imagens gigantes.
-# NOTA: Garanta que "output: 'standalone'" está configurado no next.config.js
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
 EXPOSE 3000
-
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
