@@ -37,7 +37,8 @@
       "Bash(hostname *)",
       "Bash(ip *)",
       "Bash(docker port *)",
-      "Bash(docker exec *)"
+      "Bash(docker exec *)",
+      "Read(//home/andre/.qwen/**)"
     ]
   },
   "$version": 3
