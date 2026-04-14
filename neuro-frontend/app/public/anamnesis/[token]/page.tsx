@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
-import { FormStepRenderer } from "@/components/anamnesis/FormStepRenderer";
+import { FormStepRenderer, isVisible } from "@/components/anamnesis/FormStepRenderer";
 import { ProgressHeader } from "@/components/anamnesis/ProgressHeader";
 import { ReviewSummary } from "@/components/anamnesis/ReviewSummary";
 import { AnamnesisStep } from "@/components/anamnesis/types";
@@ -34,6 +34,8 @@ export default function PublicAnamnesisPage() {
   const [currentSection, setCurrentSection] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [invalidFieldIds, setInvalidFieldIds] = useState<string[]>([]);
+  const [pendingFocusFieldId, setPendingFocusFieldId] = useState<string | null>(null);
 
   const sections = useMemo(() => data?.schema_payload?.steps || [], [data]);
 
@@ -52,22 +54,86 @@ export default function PublicAnamnesisPage() {
     if (token) load();
   }, [token]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentSection]);
+
+  useEffect(() => {
+    if (!pendingFocusFieldId) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const fieldElement = document.getElementById(`anamnesis-field-${pendingFocusFieldId}`);
+      const inputElement = document.getElementById(`anamnesis-input-${pendingFocusFieldId}`) as HTMLElement | null;
+
+      fieldElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+      inputElement?.focus();
+    });
+
+    setPendingFocusFieldId(null);
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentSection, pendingFocusFieldId]);
+
   const current = sections[currentSection];
+
+  function isEmptyValue(value: any) {
+    return value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
+  }
 
   function setFieldValue(key: string, value: any) {
     setAnswers((prev) => ({ ...prev, [key]: value }));
+    if (!isEmptyValue(value)) {
+      setInvalidFieldIds((prev) => prev.filter((fieldId) => fieldId !== key));
+    }
   }
 
   function validateRequiredFields() {
-    const missing: string[] = [];
-    for (const section of sections) {
+    const missing: Array<{ fieldId: string; label: string; sectionIndex: number }> = [];
+    for (const [sectionIndex, section] of sections.entries()) {
       for (const field of section.fields || []) {
+        if (!isVisible(field, answers)) continue;
         const value = answers[field.id];
-        const empty = value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
-        if (field.required && empty) missing.push(field.label);
+        if (field.required && isEmptyValue(value)) {
+          missing.push({ fieldId: field.id, label: field.label, sectionIndex });
+        }
       }
     }
     return missing;
+  }
+
+  function validateCurrentSection() {
+    const section = sections[currentSection];
+    if (!section) return [] as Array<{ fieldId: string; label: string; sectionIndex: number }>;
+
+    const missing: Array<{ fieldId: string; label: string; sectionIndex: number }> = [];
+
+    for (const field of section.fields || []) {
+      if (!isVisible(field, answers)) continue;
+      const value = answers[field.id];
+      if (field.required && isEmptyValue(value)) {
+        missing.push({ fieldId: field.id, label: field.label, sectionIndex: currentSection });
+      }
+    }
+
+    return missing;
+  }
+
+  function goToField(fieldId: string, sectionIndex: number) {
+    setCurrentSection(sectionIndex);
+    setPendingFocusFieldId(fieldId);
+  }
+
+  function goToNextSection() {
+    const missing = validateCurrentSection();
+
+    if (missing.length > 0) {
+      setInvalidFieldIds((prev) => Array.from(new Set([...prev, ...missing.map((field) => field.fieldId)])));
+      setNotice({ type: "error", text: `Preencha os campos obrigatórios desta etapa: ${missing.map((field) => field.label).join(", ")}` });
+      goToField(missing[0].fieldId, missing[0].sectionIndex);
+      return;
+    }
+
+    setNotice(null);
+    setCurrentSection((prev) => Math.min(prev + 1, sections.length));
   }
 
   async function saveDraft() {
@@ -92,9 +158,13 @@ export default function PublicAnamnesisPage() {
     if (!data) return;
     const missing = validateRequiredFields();
     if (missing.length > 0) {
-      setNotice({ type: "error", text: `Preencha os campos obrigatórios: ${missing.join(", ")}` });
+      setInvalidFieldIds(missing.map((field) => field.fieldId));
+      setNotice({ type: "error", text: `Preencha os campos obrigatórios: ${missing.map((field) => field.label).join(", ")}` });
+      goToField(missing[0].fieldId, missing[0].sectionIndex);
       return;
     }
+
+    setInvalidFieldIds([]);
     setSubmitting(true);
     try {
       const response = await api.post<PublicAnamnesisData>(`/api/public/anamnesis/${token}/submit`, {
@@ -147,7 +217,7 @@ export default function PublicAnamnesisPage() {
 
         {current && currentSection < sections.length && (
           <div className="space-y-5">
-            <FormStepRenderer step={current} answers={answers} onChange={setFieldValue} />
+            <FormStepRenderer step={current} answers={answers} onChange={setFieldValue} invalidFieldIds={invalidFieldIds} />
           </div>
         )}
 
@@ -156,7 +226,7 @@ export default function PublicAnamnesisPage() {
         <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-6 md:flex-row md:items-center md:justify-between">
           <div className="flex gap-2">
             <button onClick={() => setCurrentSection((prev) => Math.max(prev - 1, 0))} disabled={currentSection === 0} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm disabled:opacity-50">Anterior</button>
-            <button onClick={() => setCurrentSection((prev) => Math.min(prev + 1, sections.length))} disabled={currentSection === sections.length} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm disabled:opacity-50">Próxima</button>
+            <button onClick={goToNextSection} disabled={currentSection === sections.length} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm disabled:opacity-50">Próxima</button>
           </div>
           <div className="flex gap-2">
             <button onClick={saveDraft} disabled={saving} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm">{saving ? "Salvando..." : "Salvar rascunho"}</button>

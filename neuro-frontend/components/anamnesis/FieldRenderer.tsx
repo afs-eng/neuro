@@ -42,7 +42,7 @@ function parseDisplayDate(value: string) {
   return { formatted, iso: `${year}-${month}-${day}` }
 }
 
-function DateField({ value, onChange, className }: { value: string | undefined; onChange: (value: string) => void; className: string }) {
+function DateField({ value, onChange, className, inputId }: { value: string | undefined; onChange: (value: string) => void; className: string; inputId: string }) {
   const [mobileValue, setMobileValue] = useState(formatDateForDisplay(value))
 
   useEffect(() => {
@@ -52,12 +52,14 @@ function DateField({ value, onChange, className }: { value: string | undefined; 
   return (
     <div>
       <input
+        id={inputId}
         type="date"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         className={`${className} hidden md:block`}
       />
       <input
+        id={inputId}
         type="text"
         inputMode="numeric"
         placeholder="DD/MM/AAAA"
@@ -73,9 +75,10 @@ function DateField({ value, onChange, className }: { value: string | undefined; 
   )
 }
 
-export function FieldRenderer({ field, value, onChange }: { field: AnamnesisField; value: any; onChange: (value: any) => void }) {
-  const commonClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+export function FieldRenderer({ field, value, onChange, invalid = false, inputId }: { field: AnamnesisField; value: any; onChange: (value: any) => void; invalid?: boolean; inputId?: string }) {
+  const commonClass = `w-full rounded-xl border bg-white px-3 py-2 text-sm text-slate-700 ${invalid ? "border-rose-400 focus:border-rose-500 focus:outline-none" : "border-slate-200"}`
   const options = normalizeOptions(field.options)
+  const resolvedInputId = inputId || `anamnesis-input-${field.id}`
 
   if (field.type === "repeater") {
     return <RepeaterField field={field} value={Array.isArray(value) ? value : []} onChange={onChange} />
@@ -83,14 +86,14 @@ export function FieldRenderer({ field, value, onChange }: { field: AnamnesisFiel
 
   switch (field.type) {
     case "textarea":
-      return <textarea value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={`${commonClass} min-h-[110px]`} placeholder={field.placeholder} />
+      return <textarea id={resolvedInputId} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={`${commonClass} min-h-[110px]`} placeholder={field.placeholder} />
     case "number":
-      return <input type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass} placeholder={field.placeholder} />
+      return <input id={resolvedInputId} type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass} placeholder={field.placeholder} />
     case "date":
-      return <DateField value={typeof value === "string" ? value : ""} onChange={onChange} className={commonClass} />
+      return <DateField value={typeof value === "string" ? value : ""} onChange={onChange} className={commonClass} inputId={resolvedInputId} />
     case "select":
       return (
-        <select value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass}>
+        <select id={resolvedInputId} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass}>
           <option value="">Selecione...</option>
           {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
@@ -102,7 +105,7 @@ export function FieldRenderer({ field, value, onChange }: { field: AnamnesisFiel
         <div className="flex flex-col gap-2">
           {radioOptions.map((option) => (
             <label key={option.value} className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="radio" checked={String(value) === option.value} onChange={() => onChange(field.type === "yes_no" ? option.value === "true" : option.value)} />
+              <input id={resolvedInputId} type="radio" checked={String(value) === option.value} onChange={() => onChange(field.type === "yes_no" ? option.value === "true" : option.value)} />
               {option.label}
             </label>
           ))}
@@ -110,7 +113,7 @@ export function FieldRenderer({ field, value, onChange }: { field: AnamnesisFiel
       )
     }
     case "checkbox":
-      return <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} /> Marcar</label>
+      return <label className="flex items-center gap-2 text-sm text-slate-700"><input id={resolvedInputId} type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} /> Marcar</label>
     case "multiselect":
       return (
         <div className="flex flex-col gap-2">
@@ -133,10 +136,10 @@ export function FieldRenderer({ field, value, onChange }: { field: AnamnesisFiel
         </div>
       )
     case "email":
-      return <input type="email" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass} placeholder={field.placeholder} />
+      return <input id={resolvedInputId} type="email" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass} placeholder={field.placeholder} />
     case "phone":
-      return <input type="tel" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass} placeholder={field.placeholder || "(00) 00000-0000"} />
+      return <input id={resolvedInputId} type="tel" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass} placeholder={field.placeholder || "(00) 00000-0000"} />
     default:
-      return <input type="text" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass} placeholder={field.placeholder} />
+      return <input id={resolvedInputId} type="text" value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={commonClass} placeholder={field.placeholder} />
   }
 }
