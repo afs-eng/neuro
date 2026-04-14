@@ -88,7 +88,8 @@ export default function PublicAnamnesisPage() {
 
   function validateRequiredFields() {
     const missing: Array<{ fieldId: string; label: string; sectionIndex: number }> = [];
-    for (const [sectionIndex, section] of sections.entries()) {
+    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex += 1) {
+      const section = sections[sectionIndex];
       for (const field of section.fields || []) {
         if (!isVisible(field, answers)) continue;
         const value = answers[field.id];
