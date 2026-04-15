@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Brain, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,7 +14,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [challengeToken, setChallengeToken] = useState("");
-  const [challengeSecret, setChallengeSecret] = useState("");
   const [challengeOtpauthUrl, setChallengeOtpauthUrl] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [challengeSetupRequired, setChallengeSetupRequired] = useState(false);
@@ -55,7 +55,6 @@ export default function LoginPage() {
       if (response.two_factor_required && response.challenge_token) {
         setChallengeToken(response.challenge_token);
         setChallengeSetupRequired(Boolean(response.two_factor_setup_required));
-        setChallengeSecret(response.secret || "");
         setChallengeOtpauthUrl(response.otpauth_url || "");
         setBackupCodes(response.backup_codes || []);
         setAwaitingTwoFactor(true);
@@ -191,10 +190,11 @@ export default function LoginPage() {
               {challengeSetupRequired && (
                 <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 space-y-2">
                   <p className="font-medium">Configuração inicial de 2FA</p>
-                  <p>Adicione esta conta ao seu autenticador usando o segredo abaixo.</p>
-                  <div className="break-all rounded-md bg-white px-3 py-2 font-mono text-xs border border-indigo-100">{challengeSecret}</div>
+                  <p>Escaneie o QR code abaixo com seu autenticador.</p>
                   {challengeOtpauthUrl && (
-                    <div className="break-all rounded-md bg-white px-3 py-2 font-mono text-xs border border-indigo-100">{challengeOtpauthUrl}</div>
+                    <div className="flex justify-center rounded-md bg-white p-3 border border-indigo-100">
+                      <QRCodeSVG value={challengeOtpauthUrl} size={160} />
+                    </div>
                   )}
                 </div>
               )}
