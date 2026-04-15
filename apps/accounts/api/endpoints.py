@@ -1,7 +1,9 @@
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from django.conf import settings
+import logging
 from django.contrib.auth.tokens import default_token_generator
+from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -9,13 +11,23 @@ from ninja import Router
 from ninja.errors import HttpError
 from ninja.security import django_auth
 from apps.api.auth import bearer_auth
+from apps.common.security import rate_limit
+from apps.audit.services import AuditService
 
 
 from apps.accounts.models import User
 from apps.accounts.permissions import can_manage_users, can_view_users
 from apps.accounts.selectors import get_active_users
-from apps.accounts.services import create_user, update_user
-from apps.accounts.services import regenerate_api_token
+from apps.accounts.services import (
+    create_user,
+    update_user,
+    issue_api_token,
+    regenerate_api_token,
+    generate_two_factor_secret,
+    build_two_factor_uri,
+    confirm_two_factor_setup,
+    verify_two_factor_login,
+)
 
 from .schemas import (
     ApiTokenOut,
@@ -30,15 +42,38 @@ from .schemas import (
     ResetPasswordConfirmIn,
     RegisterIn,
     RegisterOut,
+    TwoFactorVerifyIn,
 )
 
 
 router = Router(tags=["accounts"])
+logger = logging.getLogger(__name__)
 
 
-@router.post("/login", response=LoginOut)
+def _make_2fa_challenge(user, mode: str) -> str:
+    return signing.dumps(
+        {"user_id": user.id, "mode": mode},
+        salt="neuroavalia-2fa-login",
+    )
+
+
+def _read_2fa_challenge(token: str) -> dict | None:
+    try:
+        data = signing.loads(
+            token,
+            salt="neuroavalia-2fa-login",
+            max_age=600,
+        )
+    except signing.BadSignature:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+@router.post("/login", response={200: LoginOut, 429: MessageOut})
 def login(request, payload: LoginIn):
     try:
+        rate_limit(request, "accounts-login", limit=5, window_seconds=900)
+
         email = payload.email
         if not email:
             raise HttpError(400, "Informe o email")
@@ -54,11 +89,77 @@ def login(request, payload: LoginIn):
             user = None
 
         if not user:
+            AuditService.log(
+                request, "login_failed", "account", metadata={"email": email}
+            )
             raise HttpError(401, "Credenciais inválidas")
         if not user.is_active:
+            AuditService.log(
+                request, "login_blocked", "account", resource_id=str(user.id)
+            )
             raise HttpError(403, "Usuário inativo")
+        if not user.two_factor_enabled or not user.two_factor_secret:
+            if not user.two_factor_secret:
+                user.two_factor_secret = generate_two_factor_secret()
+                user.save(update_fields=["two_factor_secret"])
+
+            challenge_token = _make_2fa_challenge(user, "setup")
+            return {
+                "two_factor_required": True,
+                "two_factor_setup_required": True,
+                "challenge_token": challenge_token,
+                "otpauth_url": build_two_factor_uri(user, user.two_factor_secret),
+                "secret": user.two_factor_secret,
+                "backup_codes": [],
+            }
+
+        challenge_token = _make_2fa_challenge(user, "verify")
+        AuditService.log(
+            request, "login_2fa_required", "account", resource_id=str(user.id)
+        )
         return {
-            "access": user.api_token,
+            "two_factor_required": True,
+            "two_factor_setup_required": False,
+            "challenge_token": challenge_token,
+        }
+
+    except Exception as e:
+        logger.exception("Erro crítico no login")
+        raise e
+
+
+@router.post(
+    "/login/2fa",
+    response={200: LoginOut, 400: MessageOut, 401: MessageOut, 429: MessageOut},
+)
+def login_two_factor(request, payload: TwoFactorVerifyIn):
+    rate_limit(request, "accounts-login-2fa", limit=10, window_seconds=900)
+
+    challenge = _read_2fa_challenge(payload.challenge_token)
+    if not challenge:
+        return 401, {"message": "Desafio de autenticação inválido ou expirado."}
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    user = User.objects.filter(id=challenge.get("user_id"), is_active=True).first()
+    if not user:
+        return 401, {"message": "Usuário inválido."}
+
+    if challenge.get("mode") == "setup":
+        ok, backup_codes = confirm_two_factor_setup(
+            user, user.two_factor_secret, payload.code
+        )
+        if not ok:
+            AuditService.log(
+                request, "login_2fa_failed", "account", resource_id=str(user.id)
+            )
+            return 401, {"message": "Código 2FA inválido."}
+
+        access = issue_api_token(user)
+        AuditService.log(request, "login", "account", resource_id=str(user.id))
+        return {
+            "access": access,
             "user": {
                 "id": user.id,
                 "username": user.username,
@@ -68,19 +169,45 @@ def login(request, payload: LoginIn):
                 "role": user.role,
                 "sex": user.sex,
                 "specialty": user.specialty,
+                "two_factor_enabled": user.two_factor_enabled,
             },
+            "backup_codes": backup_codes,
         }
 
-    except Exception as e:
-        import traceback
+    if not verify_two_factor_login(user, payload.code):
+        AuditService.log(
+            request, "login_2fa_failed", "account", resource_id=str(user.id)
+        )
+        return 401, {"message": "Código 2FA inválido."}
 
-        print(f"🔥 Erro crítico no login: {str(e)}")
-        print(traceback.format_exc())
-        raise e
+    access = issue_api_token(user)
+    AuditService.log(request, "login", "account", resource_id=str(user.id))
+    return {
+        "access": access,
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name or user.get_full_name() or user.username,
+            "display_name": user.display_name,
+            "role": user.role,
+            "sex": user.sex,
+            "specialty": user.specialty,
+            "two_factor_enabled": user.two_factor_enabled,
+        },
+    }
 
 
-@router.post("/register", response={201: RegisterOut, 400: MessageOut})
+@router.post(
+    "/register",
+    response={201: RegisterOut, 400: MessageOut, 403: MessageOut, 429: MessageOut},
+)
 def register(request, payload: RegisterIn):
+    rate_limit(request, "accounts-register", limit=3, window_seconds=900)
+
+    if not settings.ENABLE_PUBLIC_REGISTRATION:
+        return 403, {"message": "Cadastro público desativado."}
+
     if User.objects.filter(email=payload.email).exists():
         return 400, {"message": "Email já cadastrado."}
     if User.objects.filter(username=payload.username).exists():
@@ -90,6 +217,12 @@ def register(request, payload: RegisterIn):
         return 400, {"message": "CRP já vinculado a outro profissional."}
 
     user = create_user(**payload.dict())
+    AuditService.track_create(
+        request,
+        "account",
+        str(user.id),
+        {"username": user.username, "role": user.role},
+    )
 
     return 201, {
         "success": True,
@@ -105,15 +238,21 @@ def register(request, payload: RegisterIn):
             "specialty": user.specialty,
             "is_active": user.is_active,
             "is_active_clinical": user.is_active_clinical,
+            "two_factor_enabled": user.two_factor_enabled,
         },
     }
 
 
-@router.post("/forgot-password", response=MessageOut)
+@router.post("/forgot-password", response={200: MessageOut, 429: MessageOut})
 def forgot_password(request, payload: ForgotPasswordIn):
+    rate_limit(request, "accounts-forgot-password", limit=5, window_seconds=900)
+
     user = User.objects.filter(email=payload.email, is_active=True).first()
 
     if user:
+        AuditService.log(
+            request, "password_reset_requested", "account", resource_id=str(user.id)
+        )
         from django.core.mail import send_mail
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -156,6 +295,9 @@ def reset_password_confirm(request, payload: ResetPasswordConfirmIn):
 
     user.set_password(payload.password)
     user.save(update_fields=["password"])
+    AuditService.log(
+        request, "password_reset_confirmed", "account", resource_id=str(user.id)
+    )
 
     return {"message": "Senha redefinida com sucesso."}
 
@@ -193,6 +335,7 @@ def list_users(request):
             "specialty": user.specialty,
             "is_active": user.is_active,
             "is_active_clinical": user.is_active_clinical,
+            "two_factor_enabled": user.two_factor_enabled,
         }
         for user in users
     ]
@@ -204,6 +347,12 @@ def create_user_endpoint(request, payload: CreateUserIn):
         return 403, {"message": "Você não tem permissão para criar usuários."}
 
     user = create_user(**payload.dict())
+    AuditService.track_create(
+        request,
+        "account",
+        str(user.id),
+        {"username": user.username, "role": user.role},
+    )
 
     return 201, {
         "id": user.id,
@@ -216,6 +365,7 @@ def create_user_endpoint(request, payload: CreateUserIn):
         "specialty": user.specialty,
         "is_active": user.is_active,
         "is_active_clinical": user.is_active_clinical,
+        "two_factor_enabled": user.two_factor_enabled,
     }
 
 
@@ -229,6 +379,13 @@ def update_user_endpoint(request, user_id: int, payload: UpdateUserIn):
     user = get_object_or_404(User, id=user_id)
     cleaned_data = payload.dict(exclude_unset=True)
     user = update_user(user, **cleaned_data)
+    AuditService.track_update(
+        request,
+        "account",
+        str(user.id),
+        {},
+        cleaned_data,
+    )
 
     return 200, {
         "id": user.id,
@@ -241,15 +398,21 @@ def update_user_endpoint(request, user_id: int, payload: UpdateUserIn):
         "specialty": user.specialty,
         "is_active": user.is_active,
         "is_active_clinical": user.is_active_clinical,
+        "two_factor_enabled": user.two_factor_enabled,
     }
 
 
-@router.get("/token", response=ApiTokenOut, auth=bearer_auth)
+@router.get("/token", response={410: MessageOut}, auth=bearer_auth)
 def get_api_token(request):
-    return {"api_token": request.auth.api_token}
+    return 410, {"message": "Token não é recuperável. Use login ou gere um novo token."}
 
 
 @router.post("/token/regenerate", response=ApiTokenOut, auth=bearer_auth)
 def regenerate_token_endpoint(request):
-    user = regenerate_api_token(request.auth)
-    return {"api_token": user.api_token}
+    rate_limit(request, "accounts-token-regenerate", limit=10, window_seconds=900)
+
+    token = regenerate_api_token(request.auth)
+    AuditService.log(
+        request, "token_regenerated", "account", resource_id=str(request.auth.id)
+    )
+    return {"api_token": token}

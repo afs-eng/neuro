@@ -18,6 +18,7 @@ class UserOut(Schema):
     specialty: str
     is_active: bool
     is_active_clinical: bool
+    two_factor_enabled: bool = False
 
 
 class MeOut(Schema):
@@ -29,6 +30,7 @@ class MeOut(Schema):
     is_superuser: bool
     is_staff: bool
     is_active: bool
+    two_factor_enabled: bool = False
 
 
 class CreateUserIn(Schema):
@@ -66,8 +68,26 @@ class LoginIn(Schema):
 
 
 class LoginOut(Schema):
-    access: str
-    user: dict
+    access: Optional[str] = None
+    user: Optional[dict] = None
+    two_factor_required: bool = False
+    two_factor_setup_required: bool = False
+    challenge_token: Optional[str] = None
+    otpauth_url: Optional[str] = None
+    secret: Optional[str] = None
+    backup_codes: Optional[list[str]] = None
+
+
+class TwoFactorVerifyIn(Schema):
+    challenge_token: str
+    code: str
+
+
+class TwoFactorSetupOut(Schema):
+    challenge_token: str
+    otpauth_url: str
+    secret: str
+    backup_codes: list[str]
 
 
 class ForgotPasswordIn(Schema):

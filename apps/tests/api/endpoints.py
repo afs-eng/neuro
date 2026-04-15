@@ -11,6 +11,7 @@ from apps.tests.api.schemas import (
     RAVLTSubmitIn,
     SRS2SubmitIn,
     SCAREDSubmitIn,
+    BAISubmitIn,
 )
 from apps.tests.selectors import (
     get_instrument_by_id,
@@ -24,6 +25,7 @@ from apps.tests.services import (
     update_test_application,
     TestScoringService,
 )
+from apps.audit.services import AuditService
 from datetime import date as date_cls
 from dateutil.relativedelta import relativedelta
 
@@ -164,6 +166,11 @@ def list_instruments(request) -> list[dict]:
             "name": "SRS-2 - Escala de Responsividade Social",
             "category": "Social / Autismo",
         },
+        {
+            "code": "bai",
+            "name": "BAI - Inventário de Ansiedade de Beck",
+            "category": "Ansiedade",
+        },
     ]
     for item in required:
         Instrument.objects.get_or_create(
@@ -289,6 +296,12 @@ def create_test_application_endpoint(
         interpretation_text=payload.interpretation_text or "",
         is_validated=payload.is_validated,
     )
+    AuditService.track_create(
+        request,
+        "test_application",
+        str(application.pk),
+        {"evaluation_id": evaluation.id, "instrument": instrument.code},
+    )
     return 201, serialize_test_application(application)
 
 
@@ -331,6 +344,13 @@ def update_test_application_endpoint(
         del data["instrument_id"]
 
     application = update_test_application(application, **data)
+    AuditService.track_update(
+        request,
+        "test_application",
+        str(application.pk),
+        {},
+        data,
+    )
     return 200, serialize_test_application(application)
 
 
@@ -349,6 +369,15 @@ def delete_test_application_endpoint(request, application_id: int) -> tuple[int,
     if not application:
         return 404, {"message": "Aplicação de teste não encontrada."}
 
+    AuditService.track_delete(
+        request,
+        "test_application",
+        str(application.pk),
+        {
+            "evaluation_id": application.evaluation_id,
+            "instrument": application.instrument.code,
+        },
+    )
     application.delete()
     return 200, {"message": "Teste removido com sucesso."}
 
@@ -378,6 +407,13 @@ def process_test_application_endpoint(request, application_id: int) -> tuple[int
         return 400, {"message": "; ".join(result["errors"])}
 
     application.refresh_from_db()
+    AuditService.log(
+        request,
+        "process",
+        "test_application",
+        resource_id=str(application.pk),
+        metadata={"instrument": application.instrument.code},
+    )
     return 200, serialize_test_application(application)
 
 
@@ -1635,6 +1671,117 @@ def scared_result(request, application_id: int) -> tuple[int, dict]:
         "patient_name": application.evaluation.patient.full_name,
         "applied_on": application.applied_on,
         "results": classified,
+        "interpretation": application.interpretation_text or "",
+        "raw_payload": application.raw_payload or {},
+        "computed_payload": application.computed_payload or {},
+        "classified_payload": application.classified_payload or {},
+    }
+
+
+# --- BAI ---
+
+
+@router.post(
+    "/bai/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def bai_submit(request, payload: BAISubmitIn) -> tuple[int, dict]:
+    from apps.tests.bai import BAIModule
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.applications import TestApplication
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    raw_scores = {}
+    for i in range(1, 22):
+        key = f"item_{i:02d}"
+        raw_scores[key] = getattr(payload, key, 0)
+
+    module = BAIModule()
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="bai",
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    instrument = Instrument.objects.filter(code="bai", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento BAI não encontrado."}
+
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    classificacao = classified.get("classificacao") or {
+        "raw": classified.get("classificacao_raw"),
+        "t_score": classified.get("classificacao_t"),
+        "label": classified.get("faixa_normativa", ""),
+        "interpretation": classified.get("interpretacao_faixa", ""),
+    }
+
+    return 200, {
+        "application_id": application.pk,
+        "escore_total": classified.get("escore_total", 0),
+        "classificacao": classificacao,
+        "interpretation": interpretation,
+    }
+
+
+@router.get(
+    "/bai/result/{application_id}",
+    response={200: dict, 404: MessageOut},
+    auth=bearer_auth,
+)
+def bai_result(request, application_id: int) -> tuple[int, dict]:
+    application = get_test_application_by_id(application_id)
+    if not application:
+        return 404, {"message": "Aplicação de teste não encontrada."}
+
+    if application.instrument.code != "bai":
+        return 404, {"message": "Aplicação não é do tipo BAI."}
+
+    classified = application.classified_payload or {}
+    classificacao = classified.get("classificacao") or {
+        "raw": classified.get("classificacao_raw"),
+        "t_score": classified.get("classificacao_t"),
+        "label": classified.get("faixa_normativa", ""),
+        "interpretation": classified.get("interpretacao_faixa", ""),
+    }
+
+    return 200, {
+        "application_id": application.pk,
+        "evaluation_id": application.evaluation_id,
+        "patient_name": application.evaluation.patient.full_name,
+        "applied_on": application.applied_on,
+        "escore_total": classified.get("escore_total", 0),
+        "classificacao": classificacao,
         "interpretation": application.interpretation_text or "",
         "raw_payload": application.raw_payload or {},
         "computed_payload": application.computed_payload or {},

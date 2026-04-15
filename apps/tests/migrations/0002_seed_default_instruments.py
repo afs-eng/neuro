@@ -82,6 +82,13 @@ def seed_default_instruments(apps, schema_editor):
             "version": "2.0",
             "is_active": True,
         },
+        {
+            "code": "bai",
+            "name": "BAI - Beck Anxiety Inventory",
+            "category": "Ansiedade",
+            "version": "1.0",
+            "is_active": True,
+        },
     ]
 
     for item in instruments:

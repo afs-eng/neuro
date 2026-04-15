@@ -473,3 +473,32 @@ class SCAREDSubmitIn(Schema):
     age: Optional[int] = 10
     responses: Optional[dict[str, int]] = {}
 
+
+# --- BAI ---
+
+
+class BAISubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    item_01: int = 0
+    item_02: int = 0
+    item_03: int = 0
+    item_04: int = 0
+    item_05: int = 0
+    item_06: int = 0
+    item_07: int = 0
+    item_08: int = 0
+    item_09: int = 0
+    item_10: int = 0
+    item_11: int = 0
+    item_12: int = 0
+    item_13: int = 0
+    item_14: int = 0
+    item_15: int = 0
+    item_16: int = 0
+    item_17: int = 0
+    item_18: int = 0
+    item_19: int = 0
+    item_20: int = 0
+    item_21: int = 0
+

@@ -4,6 +4,7 @@ from ninja.errors import HttpError
 
 from apps.accounts.models import UserRole
 from apps.api.auth import bearer_auth
+from apps.common.security import rate_limit
 from apps.evaluations.models import Evaluation
 from apps.patients.models import Patient
 
@@ -33,6 +34,7 @@ from apps.anamnesis.services import (
     touch_invite_open,
     update_response_draft,
 )
+from apps.audit.services import AuditService
 
 from .schemas import (
     AnamnesisInviteCreateIn,
@@ -395,6 +397,12 @@ def create_response_endpoint(request, payload: AnamnesisResponseCreateIn):
         or response.submitted_by_relation,
         summary_payload=payload.summary_payload,
     )
+    AuditService.track_create(
+        request,
+        "anamnesis_response",
+        str(response.id),
+        {"evaluation_id": evaluation.id, "template_id": template.id},
+    )
     return 201, serialize_response(response)
 
 
@@ -439,6 +447,16 @@ def update_response_endpoint(
         if payload.summary_payload is not None
         else response.summary_payload,
     )
+    AuditService.track_update(
+        request,
+        "anamnesis_response",
+        str(response.id),
+        {},
+        {
+            "submitted_by_name": response.submitted_by_name,
+            "submitted_by_relation": response.submitted_by_relation,
+        },
+    )
     return 200, serialize_response(response)
 
 
@@ -467,6 +485,13 @@ def submit_internal_response_endpoint(
         if payload.summary_payload is not None
         else response.summary_payload,
     )
+    AuditService.log(
+        request,
+        "submit",
+        "anamnesis_response",
+        resource_id=str(response.id),
+        metadata={"evaluation_id": response.evaluation_id, "source": response.source},
+    )
     return 200, serialize_response(response)
 
 
@@ -492,11 +517,20 @@ def review_response_endpoint(
         summary_payload=payload.summary_payload,
         status=payload.status or "reviewed",
     )
+    AuditService.log(
+        request,
+        "review",
+        "anamnesis_response",
+        resource_id=str(response.id),
+        metadata={"evaluation_id": response.evaluation_id, "status": response.status},
+    )
     return 200, serialize_response(response)
 
 
 @public_router.get("/{token}", response={200: PublicAnamnesisOut, 404: MessageOut})
 def public_get_anamnesis(request, token: str):
+    rate_limit(request, "public-anamnesis-get", limit=30, window_seconds=300)
+
     invite = get_invite_by_token(token)
     if not invite:
         return 404, {"message": "Convite inválido ou não encontrado."}
@@ -525,6 +559,8 @@ def public_get_anamnesis(request, token: str):
     response={200: PublicAnamnesisOut, 400: MessageOut, 404: MessageOut},
 )
 def public_save_draft(request, token: str, payload: PublicAnamnesisDraftIn):
+    rate_limit(request, "public-anamnesis-save", limit=20, window_seconds=300)
+
     invite = get_invite_by_token(token)
     if not invite:
         return 404, {"message": "Convite inválido ou não encontrado."}
@@ -537,6 +573,13 @@ def public_save_draft(request, token: str, payload: PublicAnamnesisDraftIn):
         submitted_by_name=payload.submitted_by_name or "",
         submitted_by_relation=payload.submitted_by_relation or "",
     )
+    AuditService.log(
+        request,
+        "save_draft",
+        "public_anamnesis",
+        resource_id=str(invite.id),
+        metadata={"status": invite.status},
+    )
     return public_get_anamnesis(request, token)
 
 
@@ -545,6 +588,8 @@ def public_save_draft(request, token: str, payload: PublicAnamnesisDraftIn):
     response={200: PublicAnamnesisOut, 400: MessageOut, 404: MessageOut},
 )
 def public_submit(request, token: str, payload: PublicAnamnesisSubmitIn):
+    rate_limit(request, "public-anamnesis-submit", limit=10, window_seconds=300)
+
     invite = get_invite_by_token(token)
     if not invite:
         return 404, {"message": "Convite inválido ou não encontrado."}
@@ -556,5 +601,12 @@ def public_submit(request, token: str, payload: PublicAnamnesisSubmitIn):
         answers_payload=payload.answers_payload,
         submitted_by_name=payload.submitted_by_name,
         submitted_by_relation=payload.submitted_by_relation,
+    )
+    AuditService.log(
+        request,
+        "submit",
+        "public_anamnesis",
+        resource_id=str(invite.id),
+        metadata={"status": invite.status},
     )
     return public_get_anamnesis(request, token)

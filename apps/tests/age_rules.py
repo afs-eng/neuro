@@ -14,6 +14,11 @@ INSTRUMENT_AGE_RULES = {
         "max_age": 94,
         "message": "O BPA-2 pode ser aplicado apenas entre 6 e 94 anos.",
     },
+    "bai": {
+        "min_age": 18,
+        "max_age": None,
+        "message": "O BAI pode ser aplicado apenas a partir de 18 anos.",
+    },
     "ebadep_a": {
         "min_age": 17,
         "max_age": 81,

@@ -1,4 +1,5 @@
 from ninja import NinjaAPI
+from django.conf import settings
 
 from apps.accounts.api.router import router as accounts_router
 from apps.patients.api.router import router as patients_router
@@ -16,7 +17,8 @@ from apps.api.system import router as system_router
 api = NinjaAPI(
     title="Laudos AI API",
     version="1.0.0",
-    docs_url="/docs",
+    docs_url="/docs" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
 )
 
 api.add_router("/system", system_router)

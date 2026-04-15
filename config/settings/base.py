@@ -53,6 +53,10 @@ CORS_ALLOW_CREDENTIALS = True
 
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
 BACKEND_PUBLIC_URL = os.getenv("BACKEND_PUBLIC_URL", "http://127.0.0.1:8000")
+ENABLE_PUBLIC_REGISTRATION = env_bool("ENABLE_PUBLIC_REGISTRATION", DEBUG)
+ENABLE_SYSTEM_SETUP = env_bool("ENABLE_SYSTEM_SETUP", False)
+SYSTEM_BOOTSTRAP_PASSWORD = os.getenv("SYSTEM_BOOTSTRAP_PASSWORD", "")
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -128,6 +132,21 @@ DATABASES = {
         ssl_require=env_bool("DATABASE_SSL_REQUIRE", False),
     )
 }
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "neuro-local-cache",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {

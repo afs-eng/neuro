@@ -720,6 +720,7 @@ export default function EvaluationDetailPage() {
       "fdt": "/dashboard/tests/fdt",
       "wisc4": "/dashboard/tests/wisc4",
       "bpa2": "/dashboard/tests/bpa2",
+      "bai": "/dashboard/tests/bai",
       "ebadep_a": "/dashboard/tests/ebadep-a",
       "ebadep_ij": "/dashboard/tests/ebadep-ij",
       "ebaped_ij": "/dashboard/tests/ebadep-ij",

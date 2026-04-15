@@ -1,0 +1,5 @@
+min_score,max_score,label,description
+0,10,Mínimo,Nível mínimo de ansiedade
+11,19,Leve,Nível brando de ansiedade
+20,30,Moderado,Nível moderado de ansiedade
+31,63,Grave,Nível severo de ansiedade
