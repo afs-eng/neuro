@@ -26,6 +26,8 @@ class ProviderFactory:
                 api_key=settings.OPENAI_API_KEY,
                 model=settings.OPENAI_MODEL_TEXT,
                 base_url=getattr(settings, "OPENAI_BASE_URL", "") or None,
+                referer=getattr(settings, "OPENAI_REFERER", "") or None,
+                title=getattr(settings, "OPENAI_TITLE", "") or None,
             )
         if provider == "anthropic":
             if not getattr(settings, "ANTHROPIC_API_KEY", ""):
