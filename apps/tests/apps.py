@@ -17,4 +17,5 @@ class TestsConfig(AppConfig):
         from apps.tests.etdah_pais import ETDAHPAISModule  # noqa
         from apps.tests.ravlt import RAVLTModule  # noqa
         from apps.tests.scared import SCAREDModule  # noqa
-
+        from apps.tests.cars2_hf import CARS2HFModule  # noqa
+        from apps.tests.mchat import MCHATModule  # noqa

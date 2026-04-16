@@ -42,7 +42,7 @@ export default function TestsPage() {
   );
 
   const handleApplyTest = (testCode: string) => {
-    router.push(`/dashboard/tests/${testCode}`);
+    router.push(`/dashboard/tests/${testCode.replace(/_/g, "-")}`);
   };
 
   return (

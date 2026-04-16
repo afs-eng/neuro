@@ -730,6 +730,8 @@ export default function EvaluationDetailPage() {
       "ravlt": "/dashboard/tests/ravlt",
       "srs2": "/dashboard/tests/srs2",
       "scared": "/dashboard/tests/scared",
+      "cars2_hf": "/dashboard/tests/cars2-hf",
+      "mchat": "/dashboard/tests/mchat",
     };
     
     return `${baseUrls[normalizedCode] || "/dashboard/tests"}?evaluation_id=${evaluation?.id}&application_id=${testId}`;

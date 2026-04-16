@@ -30,7 +30,7 @@ services:
       dockerfile: infra/docker/backend.Dockerfile
       target: dev
     container_name: neuro-backend
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -58,7 +58,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     container_name: neuro-frontend
-    command: npm run dev
+    command: sh -c "npm ci && npm run dev"
     restart: unless-stopped
     ports:
       - "3000:3000"

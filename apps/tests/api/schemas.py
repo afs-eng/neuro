@@ -10,6 +10,7 @@ class InstrumentOut(Schema):
     name: str
     category: str
     version: str
+    description: Optional[str] = None
     is_active: bool
     min_age: Optional[int] = None
     max_age: Optional[int] = None
@@ -195,6 +196,45 @@ class BPA2SubmitIn(Schema):
     ac: BPA2SubtestIn
     ad: BPA2SubtestIn
     aa: BPA2SubtestIn
+
+
+# --- M-CHAT ---
+
+
+class MCHATResponseItem(Schema):
+    answer: str
+
+
+class MCHATSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    patient_name: Optional[str] = None
+    evaluation_date: Optional[str] = None
+    birth_date: Optional[str] = None
+    age_months: Optional[int] = None
+    respondent_name: Optional[str] = None
+    respondent_relationship: Optional[str] = None
+    items: dict[str, MCHATResponseItem]
+
+
+# --- CARS2-HF ---
+
+
+class CARS2HFItemIn(Schema):
+    score: float = 0
+    observations: Optional[str] = ""
+
+
+class CARS2HFSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    patient_name: Optional[str] = None
+    examiner_name: Optional[str] = None
+    birth_date: Optional[str] = None
+    age_years: Optional[int] = None
+    age_months: Optional[int] = None
+    informant: Optional[str] = None
+    items: dict[str, CARS2HFItemIn]
 
 
 # --- WISC-IV ---
@@ -501,4 +541,3 @@ class BAISubmitIn(Schema):
     item_19: int = 0
     item_20: int = 0
     item_21: int = 0
-

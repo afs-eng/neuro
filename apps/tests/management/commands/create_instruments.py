@@ -63,6 +63,20 @@ class Command(BaseCommand):
                 "version": "1.0",
                 "is_active": True,
             },
+            {
+                "code": "cars2_hf",
+                "name": "CARS2-HF - Childhood Autism Rating Scale – Second Edition, High Functioning Version",
+                "category": "Social / Autismo",
+                "version": "1.0",
+                "is_active": True,
+            },
+            {
+                "code": "mchat",
+                "name": "M-CHAT - Modified Checklist for Autism in Toddlers",
+                "category": "Social / Autismo",
+                "version": "1.0",
+                "is_active": True,
+            },
         ]
 
         for inst in instrumentos:

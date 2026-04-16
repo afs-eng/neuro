@@ -12,6 +12,7 @@ from apps.tests.api.schemas import (
     SRS2SubmitIn,
     SCAREDSubmitIn,
     BAISubmitIn,
+    MCHATSubmitIn,
 )
 from apps.tests.selectors import (
     get_instrument_by_id,
@@ -84,6 +85,7 @@ from .schemas import (
     EBADEPASubmitIn,
     ETDAHADSubmitIn,
     ETDAHPAISSubmitIn,
+    CARS2HFSubmitIn,
     InstrumentOut,
     InstrumentCreateIn,
     InstrumentUpdateIn,
@@ -119,12 +121,21 @@ def can_edit_tests(user) -> bool:
 
 def serialize_instrument(instrument):
     age_rule = get_instrument_age_rule(instrument.code) or {}
+    descriptions = {
+        "scared": "Triagem de sintomas de ansiedade em crianças e adolescentes.",
+        "ravlt": "Avalia aprendizagem verbal, evocação e memória episódica.",
+        "srs2": "Mensura responsividade social e traços associados ao espectro autista.",
+        "bai": "Inventário de sintomas de ansiedade com foco em intensidade e gravidade.",
+        "cars2_hf": "Escala clínica para perfil autista em alto funcionamento, com foco em reciprocidade social, comunicação e flexibilidade.",
+        "mchat": "Triagem precoce para sinais compatíveis com TEA em crianças de 18 a 24 meses.",
+    }
     return {
         "id": instrument.id,
         "code": instrument.code,
         "name": instrument.name,
         "category": instrument.category,
         "version": instrument.version,
+        "description": descriptions.get(instrument.code, ""),
         "is_active": instrument.is_active,
         "min_age": age_rule.get("min_age"),
         "max_age": age_rule.get("max_age"),
@@ -170,6 +181,16 @@ def list_instruments(request) -> list[dict]:
             "code": "bai",
             "name": "BAI - Inventário de Ansiedade de Beck",
             "category": "Ansiedade",
+        },
+        {
+            "code": "cars2_hf",
+            "name": "CARS2-HF - Childhood Autism Rating Scale – Second Edition, High Functioning Version",
+            "category": "Social / Autismo",
+        },
+        {
+            "code": "mchat",
+            "name": "M-CHAT - Modified Checklist for Autism in Toddlers",
+            "category": "Social / Autismo",
         },
     ]
     for item in required:
@@ -1786,4 +1807,139 @@ def bai_result(request, application_id: int) -> tuple[int, dict]:
         "raw_payload": application.raw_payload or {},
         "computed_payload": application.computed_payload or {},
         "classified_payload": application.classified_payload or {},
+    }
+
+
+# --- CARS2-HF ---
+
+
+@router.post(
+    "/cars2-hf/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def cars2_hf_submit(request, payload: CARS2HFSubmitIn) -> tuple[int, dict]:
+    from apps.tests.cars2_hf import CARS2HFModule
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from apps.evaluations.models import Evaluation
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    raw_scores = payload.model_dump(exclude={"evaluation_id", "applied_on"})
+
+    module = CARS2HFModule()
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="CARS2_HF",
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    instrument = Instrument.objects.filter(code="cars2_hf", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento CARS2-HF não encontrado."}
+
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    return 200, {
+        "application_id": application.pk,
+        "computed_payload": computed,
+        "classified_payload": classified,
+        "interpretation": interpretation,
+    }
+
+
+# --- M-CHAT ---
+
+
+@router.post(
+    "/mchat/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def mchat_submit(request, payload: MCHATSubmitIn) -> tuple[int, dict]:
+    from apps.tests.base.types import TestContext
+    from apps.tests.mchat import MCHATModule
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from apps.evaluations.models import Evaluation
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    raw_scores = payload.model_dump(exclude={"evaluation_id", "applied_on"})
+
+    module = MCHATModule()
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="MCHAT",
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    instrument = Instrument.objects.filter(code="mchat", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento M-CHAT não encontrado."}
+
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    return 200, {
+        "application_id": application.pk,
+        "computed_payload": computed,
+        "classified_payload": classified,
+        "interpretation": interpretation,
     }
