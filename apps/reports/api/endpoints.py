@@ -15,6 +15,7 @@ from apps.reports.services.report_export_service import ReportExportService
 from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.report_generation_service import ReportGenerationService
 from apps.reports.services.report_section_service import ReportSectionService
+from apps.reports.services.report_review_service import ReportReviewService
 from apps.reports.services.report_validation_service import ReportValidationService
 from apps.reports.services.report_version_service import ReportVersionService
 
@@ -268,7 +269,16 @@ def finalize_report(request, report_id: int):
 
     report.final_text = "\n\n".join(full_text)
     report.status = ReportStatus.FINALIZED
-    report.save(update_fields=["final_text", "status", "updated_at"])
+    review = ReportReviewService.review(report)
+    report.ai_metadata = {
+        **(report.ai_metadata or {}),
+        "review": review,
+        "finalization": {
+            "status": review.get("status"),
+            "warnings": review.get("warnings") or [],
+        },
+    }
+    report.save(update_fields=["final_text", "status", "ai_metadata", "updated_at"])
     ReportVersionService.create_version(report, user=request.auth)
     return 200, serialize_report(report, include_sections=True, include_versions=True)
 

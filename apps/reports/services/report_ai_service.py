@@ -189,6 +189,7 @@ class ReportAIService:
                 "finish_reason": result.get("finish_reason"),
                 "usage": result.get("usage") or {},
                 "section": section_key,
+                "prompt_name": config["prompt"],
             },
         }
 

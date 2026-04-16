@@ -1,7 +1,3 @@
-from django.apps import AppConfig
+from .apps import AiConfig
 
-
-class AiConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.ai"
-    verbose_name = "Inteligência Artificial"
+__all__ = ["AiConfig"]

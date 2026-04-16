@@ -2,7 +2,9 @@ from django.utils import timezone
 
 from apps.evaluations.models import EvaluationStatus
 from apps.reports.models import Report, ReportSection, ReportStatus
+from apps.reports.services.report_ai_service import ReportAIService
 from apps.reports.services.report_context_service import ReportContextService
+from apps.reports.services.report_review_service import ReportReviewService
 from apps.reports.services.report_version_service import ReportVersionService
 
 
@@ -133,11 +135,19 @@ class ReportGenerationService:
 
         sections_config = cls._enabled_sections_config(context)
         full_markdown_text = []
+        ai_sections = []
+        fallback_sections = []
 
         report.sections.exclude(key__in=[key for key, _ in sections_config]).delete()
 
         for order, (key, title) in enumerate(sections_config):
-            generated_content = cls._generate_section_text(report, key, context)
+            generated_content, generation_metadata, warnings = (
+                cls._generate_section_payload(report, key, context)
+            )
+            if generation_metadata.get("provider") in {"ollama", "openai", "anthropic"}:
+                ai_sections.append(key)
+            else:
+                fallback_sections.append(key)
             ReportSection.objects.update_or_create(
                 report=report,
                 key=key,
@@ -146,6 +156,8 @@ class ReportGenerationService:
                     "order": order,
                     "content_generated": generated_content,
                     "content_edited": generated_content,
+                    "generation_metadata": generation_metadata,
+                    "warnings_payload": warnings,
                 },
             )
             full_markdown_text.append(f"# {title}\n\n{generated_content}")
@@ -154,6 +166,14 @@ class ReportGenerationService:
         report.edited_text = report.generated_text
         report.status = ReportStatus.IN_REVIEW
         report.generated_at = timezone.now()
+        report.ai_metadata = {
+            "mode": "hybrid"
+            if ai_sections and fallback_sections
+            else ("ai" if ai_sections else "deterministic"),
+            "ai_sections": ai_sections,
+            "fallback_sections": fallback_sections,
+        }
+        report.ai_metadata["review"] = ReportReviewService.review(report)
         report.save(
             update_fields=[
                 "context_payload",
@@ -161,6 +181,7 @@ class ReportGenerationService:
                 "purpose",
                 "generated_text",
                 "edited_text",
+                "ai_metadata",
                 "status",
                 "generated_at",
                 "updated_at",
@@ -172,6 +193,43 @@ class ReportGenerationService:
         report.evaluation.status = EvaluationStatus.WRITING_REPORT
         report.evaluation.save(update_fields=["status"])
         return report
+
+    @classmethod
+    def _generate_section_payload(cls, report: Report, key: str, context: dict):
+        if ReportAIService.supports_section(key):
+            try:
+                generation_result = ReportAIService.generate_section(
+                    report, key, context
+                )
+                content = generation_result.get("content") or ""
+                if content.strip():
+                    return (
+                        content,
+                        generation_result.get("metadata") or {},
+                        generation_result.get("warnings") or [],
+                    )
+            except Exception as exc:
+                fallback_content = cls._generate_section_text(report, key, context)
+                return (
+                    fallback_content,
+                    {
+                        "provider": "deterministic",
+                        "model": "rules-based",
+                        "section": key,
+                        "fallback_reason": str(exc),
+                    },
+                    [str(exc)],
+                )
+
+        return (
+            cls._generate_section_text(report, key, context),
+            {
+                "provider": "deterministic",
+                "model": "rules-based",
+                "section": key,
+            },
+            [],
+        )
 
     @staticmethod
     def _format_sex(value: str | None) -> str:

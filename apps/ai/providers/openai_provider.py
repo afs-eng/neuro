@@ -12,6 +12,7 @@ class OpenAIProvider(BaseAIProvider):
         response = self.client.chat.completions.create(
             model=kwargs.get("model", self.model),
             temperature=kwargs.get("temperature", 0.2),
+            max_tokens=kwargs.get("max_tokens", 2048),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
