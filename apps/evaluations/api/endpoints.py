@@ -327,23 +327,6 @@ def delete_evaluation_endpoint(request, evaluation_id: int) -> tuple[int, dict]:
     return 200, {"message": "Avaliação excluída com sucesso."}
 
 
-@router.get(
-    "/{evaluation_id}/progress-entries",
-    response=list[ProgressEntryOut],
-    auth=bearer_auth,
-)
-def list_progress_entries_endpoint(request, evaluation_id: int) -> list[dict]:
-    if not can_view_evaluations(request.auth):
-        raise HttpError(403, "Você não tem permissão para visualizar evoluções.")
-    evaluation = Evaluation.objects.filter(id=evaluation_id).first()
-    if not evaluation or not can_access_evaluation(request.auth, evaluation):
-        raise HttpError(403, "Você não tem permissão para acessar esta avaliação.")
-    return [
-        serialize_progress_entry(item)
-        for item in get_progress_entries_by_evaluation(evaluation_id)
-    ]
-
-
 @router.post(
     "/progress-entries",
     response={201: ProgressEntryOut, 403: MessageOut, 404: MessageOut, 400: MessageOut},
@@ -389,6 +372,23 @@ def create_progress_entry_endpoint(
         include_in_report=payload.include_in_report,
     )
     return 201, serialize_progress_entry(entry)
+
+
+@router.get(
+    "/{evaluation_id}/progress-entries",
+    response=list[ProgressEntryOut],
+    auth=bearer_auth,
+)
+def list_progress_entries_endpoint(request, evaluation_id: int) -> list[dict]:
+    if not can_view_evaluations(request.auth):
+        raise HttpError(403, "Você não tem permissão para visualizar evoluções.")
+    evaluation = Evaluation.objects.filter(id=evaluation_id).first()
+    if not evaluation or not can_access_evaluation(request.auth, evaluation):
+        raise HttpError(403, "Você não tem permissão para acessar esta avaliação.")
+    return [
+        serialize_progress_entry(item)
+        for item in get_progress_entries_by_evaluation(evaluation_id)
+    ]
 
 
 @router.patch(

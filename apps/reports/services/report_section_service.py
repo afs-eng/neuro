@@ -32,12 +32,25 @@ class ReportSectionService:
         warnings = []
         generation_metadata = {}
         if ReportAIService.supports_section(section_key):
-            generation_result = ReportAIService.generate_section(
-                report, section_key, context
-            )
-            new_text = generation_result["content"]
-            warnings = generation_result.get("warnings") or []
-            generation_metadata = generation_result.get("metadata") or {}
+            try:
+                generation_result = ReportAIService.generate_section(
+                    report, section_key, context
+                )
+                new_text = generation_result["content"]
+                warnings = generation_result.get("warnings") or []
+                generation_metadata = generation_result.get("metadata") or {}
+            except Exception as exc:
+                # Se a IA falhar, mantém a regeneração disponível com fallback determinístico.
+                new_text = ReportGenerationService._generate_section_text(
+                    report, section_key, context
+                )
+                generation_metadata = {
+                    "provider": "deterministic",
+                    "model": "rules-based",
+                    "section": section_key,
+                    "fallback_reason": str(exc),
+                }
+                warnings = [str(exc)]
         else:
             new_text = ReportGenerationService._generate_section_text(
                 report, section_key, context
