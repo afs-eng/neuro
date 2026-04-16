@@ -10,7 +10,7 @@ class ProviderFactory:
         provider = (provider_name or settings.AI_PROVIDER or "ollama").lower()
         config = ProviderConfig(
             provider=provider,
-            model=getattr(settings, "OLLAMA_MODEL", "qwen2.5:14b"),
+            model=getattr(settings, "OLLAMA_MODEL", "qwen3.5:9b"),
             base_url=getattr(settings, "OLLAMA_BASE_URL", None),
         )
         if provider == "ollama":
@@ -23,7 +23,9 @@ class ProviderFactory:
             from apps.ai.providers.openai_provider import OpenAIProvider
 
             return OpenAIProvider(
-                api_key=settings.OPENAI_API_KEY, model=settings.OPENAI_MODEL_TEXT
+                api_key=settings.OPENAI_API_KEY,
+                model=settings.OPENAI_MODEL_TEXT,
+                base_url=getattr(settings, "OPENAI_BASE_URL", "") or None,
             )
         if provider == "anthropic":
             if not getattr(settings, "ANTHROPIC_API_KEY", ""):

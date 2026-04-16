@@ -50,7 +50,7 @@ class GenerationResponse:
 @dataclass(slots=True)
 class ProviderConfig:
     provider: str = "ollama"
-    model: str = "qwen2.5:14b"
+    model: str = "qwen3.5:9b"
     base_url: str | None = None
     api_key: str | None = None
 
@@ -80,7 +80,7 @@ class AIProviderConfig(BaseModel):
     provider: str = Field(
         default="ollama", description="Provider: ollama, openai, anthropic"
     )
-    model: str = Field(default="qwen2.5:14b", description="Modelo a ser usado")
+    model: str = Field(default="qwen3.5:9b", description="Modelo a ser usado")
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     max_tokens: int = Field(default=2048, ge=1)
 

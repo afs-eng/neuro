@@ -9,6 +9,8 @@ from apps.reports.services.report_version_service import ReportVersionService
 
 
 class ReportGenerationService:
+    AI_FALLBACK_WARNING = "A IA nao esta disponivel no momento; o texto foi gerado pelo fallback deterministico."
+
     SECTION_GROUPS = {
         "capacidade_cognitiva_global": {"eficiencia_intelectual"},
         "linguagem": {"linguagem"},
@@ -218,7 +220,7 @@ class ReportGenerationService:
                         "section": key,
                         "fallback_reason": str(exc),
                     },
-                    [str(exc)],
+                    [cls.AI_FALLBACK_WARNING],
                 )
 
         return (

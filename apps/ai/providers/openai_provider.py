@@ -4,8 +4,11 @@ from .base import BaseAIProvider
 
 
 class OpenAIProvider(BaseAIProvider):
-    def __init__(self, api_key: str, model: str):
-        self.client = OpenAI(api_key=api_key)
+    def __init__(self, api_key: str, model: str, base_url: str | None = None):
+        client_kwargs = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+        self.client = OpenAI(**client_kwargs)
         self.model = model
 
     def generate(self, system_prompt: str, user_prompt: str, **kwargs) -> dict:

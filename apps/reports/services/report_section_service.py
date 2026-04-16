@@ -8,6 +8,8 @@ from apps.reports.services.report_version_service import ReportVersionService
 
 
 class ReportSectionService:
+    AI_FALLBACK_WARNING = "A IA nao esta disponivel no momento; a secao foi regenerada pelo fallback deterministico."
+
     @staticmethod
     def _rebuild_report_text(report: Report):
         report.edited_text = "\n\n".join(
@@ -50,7 +52,7 @@ class ReportSectionService:
                     "section": section_key,
                     "fallback_reason": str(exc),
                 }
-                warnings = [str(exc)]
+                warnings = [ReportSectionService.AI_FALLBACK_WARNING]
         else:
             new_text = ReportGenerationService._generate_section_text(
                 report, section_key, context
