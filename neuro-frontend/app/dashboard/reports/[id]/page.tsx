@@ -30,6 +30,25 @@ function formatTimestamp(value?: string | null) {
   return date.toLocaleString("pt-BR");
 }
 
+function getGenerationSource(provider?: string | null, model?: string | null) {
+  if (provider === "deterministic" || model === "rules-based") {
+    return "Fallback automatico";
+  }
+  if (["openai", "ollama", "anthropic"].includes(String(provider || "").toLowerCase())) {
+    return "IA";
+  }
+  return "Nao informado";
+}
+
+function getTextStatus(hasManualEdits: boolean, generationSource: string) {
+  if (hasManualEdits) return "Editado manualmente";
+  if (generationSource === "Fallback automatico") {
+    return "Igual ao fallback automatico";
+  }
+  if (generationSource === "IA") return "Igual ao texto gerado por IA";
+  return "Igual ao texto gerado automaticamente";
+}
+
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
   const reportId = params.id;
@@ -249,6 +268,8 @@ export default function ReportDetailPage() {
   const generatedText = activeSection?.generated_text || "";
   const hasManualEdits = Boolean(activeSection && (activeSection.edited_text || "") !== generatedText);
   const generationTimestamp = generationMetadata.generated_at || activeSection?.updated_at;
+  const generationSource = getGenerationSource(generationMetadata.provider, generationMetadata.model);
+  const textStatus = getTextStatus(hasManualEdits, generationSource);
   const sidebarSections = report.sections?.filter((section: any) => !WISC_SUBSCALE_KEYS.has(section.key)) || [];
 
   return (
@@ -385,7 +406,11 @@ export default function ReportDetailPage() {
                 </div>
               )}
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Origem</div>
+                  <div className="mt-1 font-medium text-slate-800">{generationSource}</div>
+                </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
                   <div className="text-xs uppercase tracking-wide text-slate-400">Provider</div>
                   <div className="mt-1 font-medium text-slate-800">{generationMetadata.provider || "Nao informado"}</div>
@@ -400,7 +425,7 @@ export default function ReportDetailPage() {
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
                   <div className="text-xs uppercase tracking-wide text-slate-400">Status do texto</div>
-                  <div className="mt-1 font-medium text-slate-800">{hasManualEdits ? "Editado manualmente" : "Igual ao gerado pela IA"}</div>
+                  <div className="mt-1 font-medium text-slate-800">{textStatus}</div>
                 </div>
               </div>
 
@@ -418,7 +443,9 @@ export default function ReportDetailPage() {
               {hasManualEdits && generatedText && (
                 <div className="mt-3 grid gap-3 xl:grid-cols-2">
                   <div className="rounded-xl border border-slate-200 bg-white">
-                    <div className="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-800">Texto gerado pela IA</div>
+                    <div className="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-800">
+                      {generationSource === "Fallback automatico" ? "Texto gerado pelo fallback automatico" : generationSource === "IA" ? "Texto gerado por IA" : "Texto gerado automaticamente"}
+                    </div>
                     <pre className="max-h-72 overflow-auto whitespace-pre-wrap px-4 py-3 text-sm leading-7 text-slate-600">{generatedText}</pre>
                   </div>
                   <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-900">
