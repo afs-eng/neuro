@@ -65,6 +65,25 @@ function getGenerationDetails(metadata: Record<string, any>) {
   };
 }
 
+function getCompletedTests(report: any) {
+  const tests = report?.context_payload?.validated_tests || report?.snapshot_payload?.validated_tests || [];
+  const seen = new Set<string>();
+
+  return tests
+    .map((item: any) => ({
+      code: item.instrument_code || "",
+      name: item.instrument_name || item.instrument || item.instrument_code || "Teste",
+      appliedOn: item.applied_on || null,
+    }))
+    .filter((item: any) => {
+      const key = `${item.code}:${item.name}`;
+      if (!item.code && !item.name) return false;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
   const reportId = params.id;
@@ -287,6 +306,7 @@ export default function ReportDetailPage() {
   const generationSource = getGenerationSource(generationMetadata.provider, generationMetadata.model);
   const textStatus = getTextStatus(hasManualEdits, generationSource);
   const generationDetails = getGenerationDetails(generationMetadata);
+  const completedTests = getCompletedTests(report);
   const sidebarSections = report.sections?.filter((section: any) => !WISC_SUBSCALE_KEYS.has(section.key)) || [];
 
   return (
@@ -362,6 +382,22 @@ export default function ReportDetailPage() {
             <div className="mt-2 flex items-center gap-2"><Calendar className="h-4 w-4 text-slate-400" />{report.updated_at ? new Date(report.updated_at).toLocaleString("pt-BR") : "Sem atualizacao"}</div>
             <div className="mt-2 flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-slate-400" />Status: {report.status}</div>
             <div className="mt-2 text-xs text-slate-500">Interessado: {report.interested_party || report.patient_name}</div>
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-slate-900">Testes concluidos</h3>
+            <div className="space-y-2">
+              {completedTests.length > 0 ? completedTests.map((test: any) => (
+                <div key={`${test.code}-${test.name}`} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                  <div className="font-medium text-slate-800">{test.name}</div>
+                  <div className="mt-1 uppercase tracking-wide text-slate-400">{test.code || "sem-codigo"}</div>
+                </div>
+              )) : (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                  Nenhum teste concluido disponivel neste laudo.
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
