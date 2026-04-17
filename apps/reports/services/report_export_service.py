@@ -18,6 +18,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 from docx.shared import Inches, Pt
+from docx.shared import Cm
 
 from apps.reports.models import Report
 from apps.reports.services.report_context_service import ReportContextService
@@ -29,6 +30,14 @@ class ReportExportService:
     FONT_NAME = "Times New Roman"
     BODY_SIZE = Pt(12)
     TITLE_SIZE = Pt(12)
+    CAPTION_SIZE = Pt(9)
+    BODY_LINE_SPACING = 1.5
+    IDENTIFICATION_LINE_SPACING = 1.15
+    HEADING_SPACE_BEFORE = Pt(10)
+    HEADING_SPACE_AFTER = Pt(4)
+    SUBHEADING_SPACE_BEFORE = Pt(6)
+    SUBHEADING_SPACE_AFTER = Pt(2)
+    BODY_SPACE_AFTER = Pt(0)
     IMAGE_WIDTH = Inches(6.2)
     TABLE_WIDTH = Inches(6.2)
     ACCENT_COLOR = "2F6DB3"
@@ -827,8 +836,10 @@ class ReportExportService:
     @classmethod
     def _format_body_paragraph(cls, paragraph):
         paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        paragraph.paragraph_format.space_after = Pt(6)
-        paragraph.paragraph_format.line_spacing = 1.15
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+        paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        paragraph.paragraph_format.first_line_indent = Cm(1.25)
         for run in paragraph.runs:
             run.font.name = cls.FONT_NAME
             run.font.size = cls.BODY_SIZE
@@ -836,9 +847,11 @@ class ReportExportService:
     @classmethod
     def _format_subtitle_paragraph(cls, paragraph):
         paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        paragraph.paragraph_format.space_before = Pt(10)
-        paragraph.paragraph_format.space_after = Pt(4)
+        paragraph.paragraph_format.space_before = cls.SUBHEADING_SPACE_BEFORE
+        paragraph.paragraph_format.space_after = cls.SUBHEADING_SPACE_AFTER
+        paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
         paragraph.paragraph_format.keep_with_next = True
+        paragraph.paragraph_format.first_line_indent = Pt(0)
         for run in paragraph.runs:
             run.font.name = cls.FONT_NAME
             run.font.size = cls.TITLE_SIZE
@@ -849,10 +862,11 @@ class ReportExportService:
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         paragraph.paragraph_format.space_before = Pt(4)
         paragraph.paragraph_format.space_after = Pt(3)
+        paragraph.paragraph_format.line_spacing = 1.0
         paragraph.paragraph_format.keep_with_next = True
         for run in paragraph.runs:
             run.font.name = cls.FONT_NAME
-            run.font.size = Pt(10)
+            run.font.size = cls.CAPTION_SIZE
             run.italic = True
 
     @classmethod
@@ -861,9 +875,11 @@ class ReportExportService:
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(text)
         r.font.name = cls.FONT_NAME
-        r.font.size = Pt(16)
+        r.font.size = cls.TITLE_SIZE
         r.bold = True
-        p.paragraph_format.space_after = Pt(6)
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = cls.HEADING_SPACE_AFTER
+        p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
 
     @classmethod
     def _add_center_text(cls, document, text: str):
@@ -871,28 +887,34 @@ class ReportExportService:
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(text)
         r.font.name = cls.FONT_NAME
-        r.font.size = cls.BODY_SIZE
-        p.paragraph_format.space_after = Pt(14)
+        r.font.size = cls.CAPTION_SIZE
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = 1.0
 
     @classmethod
     def _append_heading(cls, document, text: str):
         p = document.add_paragraph()
         r = p.add_run(text)
         r.font.name = cls.FONT_NAME
-        r.font.size = Pt(14)
+        r.font.size = cls.TITLE_SIZE
         r.bold = True
-        p.paragraph_format.space_before = Pt(12)
-        p.paragraph_format.space_after = Pt(6)
+        p.paragraph_format.space_before = cls.HEADING_SPACE_BEFORE
+        p.paragraph_format.space_after = cls.HEADING_SPACE_AFTER
+        p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        p.paragraph_format.first_line_indent = Pt(0)
 
     @classmethod
     def _append_subheading(cls, document, text: str):
         p = document.add_paragraph()
         r = p.add_run(text)
         r.font.name = cls.FONT_NAME
-        r.font.size = Pt(12)
+        r.font.size = cls.TITLE_SIZE
         r.bold = True
-        p.paragraph_format.space_before = Pt(8)
-        p.paragraph_format.space_after = Pt(4)
+        p.paragraph_format.space_before = cls.SUBHEADING_SPACE_BEFORE
+        p.paragraph_format.space_after = cls.SUBHEADING_SPACE_AFTER
+        p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        p.paragraph_format.first_line_indent = Pt(0)
 
     @classmethod
     def _append_paragraph(cls, document, text: str, center: bool = False):
@@ -905,8 +927,21 @@ class ReportExportService:
         r = p.add_run(text)
         r.font.name = cls.FONT_NAME
         r.font.size = cls.BODY_SIZE
-        p.paragraph_format.space_after = Pt(6)
-        p.paragraph_format.line_spacing = 1.15
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+        p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        p.paragraph_format.first_line_indent = Pt(0 if center else Cm(1.25))
+
+    @classmethod
+    def _append_identification_text(cls, document, text: str):
+        p = document.add_paragraph()
+        r = p.add_run(text)
+        r.font.name = cls.FONT_NAME
+        r.font.size = cls.BODY_SIZE
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = cls.IDENTIFICATION_LINE_SPACING
+        p.paragraph_format.first_line_indent = Pt(0)
 
     @classmethod
     def _append_label_value(cls, document, label: str, value: str):
@@ -918,7 +953,10 @@ class ReportExportService:
         b = p.add_run(str(value or "Não informado"))
         b.font.name = cls.FONT_NAME
         b.font.size = cls.BODY_SIZE
-        p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = cls.IDENTIFICATION_LINE_SPACING
+        p.paragraph_format.first_line_indent = Pt(0)
 
     @classmethod
     def _append_bullet(cls, document, text: str):
@@ -930,6 +968,11 @@ class ReportExportService:
             r = p.add_run(f"• {text}")
         r.font.name = cls.FONT_NAME
         r.font.size = cls.BODY_SIZE
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+        p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        p.paragraph_format.left_indent = Cm(0.75)
+        p.paragraph_format.first_line_indent = Cm(-0.25)
 
     @classmethod
     def _append_table_with_interpretation(
@@ -1184,7 +1227,7 @@ class ReportExportService:
                     paragraph.paragraph_format.line_spacing = 1.0
                     for run in paragraph.runs:
                         run.font.name = cls.FONT_NAME
-                        run.font.size = Pt(10)
+                        run.font.size = cls.BODY_SIZE
                         if row_index == 0:
                             run.bold = True
                 cell.vertical_alignment = None
