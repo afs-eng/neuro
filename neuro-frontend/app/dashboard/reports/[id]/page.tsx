@@ -653,6 +653,7 @@ export default function ReportDetailPage() {
                   <div className="mt-4 space-y-4">
                     {completedTests.map((test: any) => {
                       const metricRows = buildMetricRows(test);
+                      const bpa2Subtests = test.code === "bpa2" ? getBpa2Subtests(test) : [];
 
                       return (
                         <div key={`${test.code}-${test.name}`} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
@@ -670,7 +671,51 @@ export default function ReportDetailPage() {
                             </div>
                           )}
 
-                          {metricRows.length > 0 && (
+                          {test.code === "bpa2" && bpa2Subtests.length > 0 && (
+                            <div className="mt-3 space-y-3">
+                              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                <div className="grid grid-cols-[minmax(0,2fr)_120px_120px_minmax(0,1fr)] gap-3 border-b border-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                  <div>Atencao BPA</div>
+                                  <div>Pontos</div>
+                                  <div>Percentil</div>
+                                  <div>Classificacao</div>
+                                </div>
+                                <div>
+                                  {bpa2Subtests.map((item: any, index: number) => (
+                                    <div key={`${item.codigo}-${index}`} className="grid grid-cols-[minmax(0,2fr)_120px_120px_minmax(0,1fr)] gap-3 border-b border-slate-100 px-3 py-2 text-sm last:border-b-0">
+                                      <div className="font-medium text-slate-800">{getBpa2Label(item.codigo, item.subteste)}</div>
+                                      <div className="text-slate-600">{item.total ?? item.brutos ?? "-"}</div>
+                                      <div className="text-slate-600">{item.percentil ?? "-"}</div>
+                                      <div className="text-slate-600">{item.classificacao || "-"}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                <div className="text-sm font-semibold text-slate-900">BPA - Bateria Psicologica para Avaliacao da Atencao</div>
+                                <div className="mt-4 space-y-3">
+                                  {bpa2Subtests.map((item: any, index: number) => {
+                                    const percentileWidth = getPercentileWidth(item.percentil);
+                                    return (
+                                      <div key={`chart-${item.codigo}-${index}`} className="grid gap-2 md:grid-cols-[220px_minmax(0,1fr)_80px] md:items-center">
+                                        <div className="text-sm font-medium text-slate-700">{getBpa2Label(item.codigo, item.subteste)}</div>
+                                        <div className="h-3 rounded-full bg-slate-100">
+                                          <div
+                                            className="h-3 rounded-full bg-emerald-500"
+                                            style={{ width: `${percentileWidth ?? 0}%` }}
+                                          />
+                                        </div>
+                                        <div className="text-right text-sm text-slate-600">P{item.percentil ?? "-"}</div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {test.code !== "bpa2" && metricRows.length > 0 && (
                             <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
                               <div className="grid grid-cols-[minmax(0,2fr)_120px_120px_minmax(0,1fr)] gap-3 border-b border-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                                 <div>Indicador</div>
@@ -702,7 +747,7 @@ export default function ReportDetailPage() {
                             </div>
                           )}
 
-                          {(!metricRows.length && test.resultRows.length > 0) && (
+                          {(test.code !== "bpa2" && !metricRows.length && test.resultRows.length > 0) && (
                             <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
                               <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Linhas de resultado</div>
                               <ul className="mt-2 space-y-1 text-sm text-slate-700">
@@ -715,7 +760,7 @@ export default function ReportDetailPage() {
 
                           {test.clinicalInterpretation && (
                             <details className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                              <summary className="cursor-pointer font-medium text-slate-900">Ver interpretacao tecnica</summary>
+                              <summary className="cursor-pointer font-medium text-slate-900">{test.code === "bpa2" ? "Interpretação e Observações Clínicas" : "Ver interpretacao tecnica"}</summary>
                               <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{test.clinicalInterpretation}</pre>
                             </details>
                           )}
