@@ -10,7 +10,8 @@ _env_file = Path(__file__).resolve().parent / ".env"
 if _env_file.is_file():
     try:
         from dotenv import load_dotenv
-        load_dotenv(_env_file)
+
+        load_dotenv(_env_file, override=True)
     except ImportError:
         pass
 
