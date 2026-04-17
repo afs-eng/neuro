@@ -8,6 +8,10 @@ class ReportContextService:
 
     @classmethod
     def sync_report_context(cls, report, persist: bool = True) -> dict:
+        if report is None:
+            return {}
+        if getattr(report, "evaluation", None) is None:
+            return dict(report.context_payload or {})
         latest_context = cls.build_context(report.evaluation)
         if latest_context != (report.context_payload or {}):
             report.context_payload = latest_context
