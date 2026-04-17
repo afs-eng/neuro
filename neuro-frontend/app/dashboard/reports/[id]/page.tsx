@@ -118,6 +118,8 @@ function getCompletedTests(report: any) {
       clinicalInterpretation: item.clinical_interpretation || item.interpretation_text || "",
       resultRows: item.result_rows || [],
       structuredResults: item.structured_results || {},
+      classifiedPayload: item.classified_payload || {},
+      computedPayload: item.computed_payload || {},
       warnings: item.warnings || [],
     }))
     .filter((item: any) => {
@@ -169,6 +171,22 @@ function buildMetricRows(test: any) {
   }
 
   return [];
+}
+
+function getBpa2Subtests(test: any) {
+  const payload = test.classifiedPayload || test.structuredResults || test.computedPayload || {};
+  return Array.isArray(payload.subtestes) ? payload.subtestes : [];
+}
+
+function getBpa2Label(code: string, fallback?: string) {
+  const labels: Record<string, string> = {
+    ac: "Atenção Concentrada - AC",
+    ad: "Atenção Dividida - AD",
+    aa: "Atenção Alternada - AA",
+    ag: "Atenção Geral - AG",
+  };
+
+  return labels[String(code || "").toLowerCase()] || fallback || code || "Subteste";
 }
 
 function getMissingSectionsFromTests(report: any, completedTests: any[]) {
