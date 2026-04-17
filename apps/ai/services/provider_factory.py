@@ -28,6 +28,7 @@ class ProviderFactory:
                 base_url=getattr(settings, "OPENAI_BASE_URL", "") or None,
                 referer=getattr(settings, "OPENAI_REFERER", "") or None,
                 title=getattr(settings, "OPENAI_TITLE", "") or None,
+                fallback_models=getattr(settings, "OPENAI_FALLBACK_MODELS", []) or [],
             )
         if provider == "anthropic":
             if not getattr(settings, "ANTHROPIC_API_KEY", ""):

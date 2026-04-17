@@ -33,6 +33,22 @@ services:
         value: https://neuro-k06p.onrender.com
       - key: ALLOW_VERCEL_PREVIEWS
         value: "True"
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: OPENAI_REFERER
+        value: https://neuro-7rqkwf1xv-andrefsilvas-projects.vercel.app
+      - key: OPENAI_TITLE
+        value: NeuroAvalia
+      - key: OPENAI_MODEL_TEXT
+        value: google/gemma-4-31b-it:free
+      - key: OPENAI_MODEL_REASONING
+        value: google/gemma-4-31b-it:free
+      - key: OPENAI_FALLBACK_MODELS
+        value: google/gemma-3-27b-it:free,meta-llama/llama-3.3-70b-instruct:free,openai/gpt-oss-20b:free
       - key: EMAIL_BACKEND
         value: django.core.mail.backends.smtp.EmailBackend
       - key: DEFAULT_FROM_EMAIL

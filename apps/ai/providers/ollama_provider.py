@@ -13,7 +13,7 @@ class OllamaProvider(BaseAIProvider):
         response = requests.post(
             f"{self.base_url}/api/generate",
             json={
-                "model": kwargs.get("model", self.model),
+                "model": kwargs.get("model") or self.model,
                 "system": system_prompt,
                 "prompt": user_prompt,
                 "stream": False,

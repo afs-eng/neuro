@@ -16,7 +16,7 @@ class AnthropicProvider(BaseAIProvider):
 
         client = Anthropic(api_key=self.api_key)
         response = client.messages.create(
-            model=kwargs.get("model", self.model),
+            model=kwargs.get("model") or self.model,
             max_tokens=kwargs.get("max_tokens", 2048),
             temperature=kwargs.get("temperature", 0.2),
             system=system_prompt,

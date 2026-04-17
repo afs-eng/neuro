@@ -51,6 +51,14 @@ gunicorn config.wsgi:application --log-file -
 - `FRONTEND_BASE_URL=https://<dominio-vercel>`
 - `BACKEND_PUBLIC_URL=https://<dominio-render>`
 - `ALLOW_VERCEL_PREVIEWS=True`
+- `AI_PROVIDER=openai`
+- `OPENAI_API_KEY=<chave-openrouter>`
+- `OPENAI_BASE_URL=https://openrouter.ai/api/v1`
+- `OPENAI_REFERER=https://<dominio-vercel>`
+- `OPENAI_TITLE=NeuroAvalia`
+- `OPENAI_MODEL_TEXT=google/gemma-4-31b-it:free`
+- `OPENAI_MODEL_REASONING=google/gemma-4-31b-it:free`
+- `OPENAI_FALLBACK_MODELS=google/gemma-3-27b-it:free,meta-llama/llama-3.3-70b-instruct:free,openai/gpt-oss-20b:free`
 - `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, `DEFAULT_FROM_EMAIL`
 - `DJANGO_LOG_LEVEL=INFO`
 
@@ -79,6 +87,7 @@ gunicorn config.wsgi:application --log-file -
 - O frontend consome a API publica do Render
 - As variaveis do frontend devem apontar para a raiz do backend, sem adicionar `/api` no final
 - As rotas publicas de anamnese por token usam a URL do frontend em `FRONTEND_BASE_URL`
+- O OpenRouter fica configurado apenas no backend do Render; nenhuma chave de IA deve ir para o Vercel
 
 ---
 

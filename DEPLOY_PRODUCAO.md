@@ -50,10 +50,19 @@ No painel do Web Service → **Environment**, adicione:
 | `FRONTEND_BASE_URL` | URL do Vercel | `https://neuro-app.vercel.app` |
 | `BACKEND_PUBLIC_URL` | URL do Render | `https://neuro-k06p.onrender.com` |
 | `ALLOW_VERCEL_PREVIEWS` | `True` | `True` |
+| `AI_PROVIDER` | Provider de IA | `openai` |
+| `OPENAI_API_KEY` | Chave do OpenRouter | `sk-or-v1-...` |
+| `OPENAI_BASE_URL` | Endpoint do OpenRouter | `https://openrouter.ai/api/v1` |
+| `OPENAI_REFERER` | URL do frontend | `https://neuro-app.vercel.app` |
+| `OPENAI_TITLE` | Nome da aplicação | `NeuroAvalia` |
+| `OPENAI_MODEL_TEXT` | Modelo principal | `google/gemma-4-31b-it:free` |
+| `OPENAI_MODEL_REASONING` | Modelo reasoning | `google/gemma-4-31b-it:free` |
+| `OPENAI_FALLBACK_MODELS` | Fallbacks automáticos | `google/gemma-3-27b-it:free,meta-llama/llama-3.3-70b-instruct:free,openai/gpt-oss-20b:free` |
 | `RESEND_API_KEY` | Chave Resend (opcional) | `re_xxx` |
 | `RESEND_FROM_EMAIL` | Email remetente | `NeuroAvalia <noreply@meudominio.com.br>` |
 
 > **Nota**: O backend já suporta automaticamente domínios Vercel via regex (`ALLOW_VERCEL_PREVIEWS=True`).
+> **Nota**: A chave do OpenRouter fica somente no Render. O Vercel aponta para o backend e nunca deve receber `OPENAI_API_KEY`.
 
 #### 1.4 Executar comandos pós-deploy
 Após o primeiro deploy bem-sucedido, acesse o **Shell** no painel do Render e execute:
@@ -191,4 +200,4 @@ cd neuro-frontend && npm run build
 - [ ] SSL/HTTPS verificado
 - [ ] E-mail (Resend) funcionando
 - [ ] WhatsApp (Evolution API) configurado (opcional)
-- [ ] IA (Ollama/OpenAI) configurada (opcional)
+- [ ] IA (OpenRouter) configurada no Render
