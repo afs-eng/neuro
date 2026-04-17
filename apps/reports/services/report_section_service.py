@@ -51,6 +51,8 @@ class ReportSectionService:
                     "model": "rules-based",
                     "section": section_key,
                     "fallback_reason": str(exc),
+                    "used_fallback": True,
+                    "generation_path": "deterministic_fallback",
                 }
                 warnings = [ReportSectionService.AI_FALLBACK_WARNING]
         else:
@@ -61,10 +63,13 @@ class ReportSectionService:
                 "provider": "deterministic",
                 "model": "rules-based",
                 "section": section_key,
+                "used_fallback": False,
+                "generation_path": "deterministic_only",
             }
 
         generation_metadata = {
             **generation_metadata,
+            "used_fallback": bool(generation_metadata.get("used_fallback")),
             "generated_at": timezone.now().isoformat(),
         }
 

@@ -49,6 +49,22 @@ function getTextStatus(hasManualEdits: boolean, generationSource: string) {
   return "Igual ao texto gerado automaticamente";
 }
 
+function getGenerationDetails(metadata: Record<string, any>) {
+  const requestedModel = metadata.requested_model || metadata.model || "Nao informado";
+  const effectiveModel = metadata.model || "Nao informado";
+  const usedModelFallback = Boolean(metadata.used_model_fallback);
+  const promptName = metadata.prompt_name || "Nao informado";
+  const generationPath = metadata.generation_path || "Nao informado";
+
+  return {
+    requestedModel,
+    effectiveModel,
+    usedModelFallback,
+    promptName,
+    generationPath,
+  };
+}
+
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
   const reportId = params.id;
@@ -270,6 +286,7 @@ export default function ReportDetailPage() {
   const generationTimestamp = generationMetadata.generated_at || activeSection?.updated_at;
   const generationSource = getGenerationSource(generationMetadata.provider, generationMetadata.model);
   const textStatus = getTextStatus(hasManualEdits, generationSource);
+  const generationDetails = getGenerationDetails(generationMetadata);
   const sidebarSections = report.sections?.filter((section: any) => !WISC_SUBSCALE_KEYS.has(section.key)) || [];
 
   return (
@@ -406,7 +423,7 @@ export default function ReportDetailPage() {
                 </div>
               )}
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
                   <div className="text-xs uppercase tracking-wide text-slate-400">Origem</div>
                   <div className="mt-1 font-medium text-slate-800">{generationSource}</div>
@@ -417,7 +434,7 @@ export default function ReportDetailPage() {
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
                   <div className="text-xs uppercase tracking-wide text-slate-400">Modelo</div>
-                  <div className="mt-1 font-medium text-slate-800">{generationMetadata.model || "Nao informado"}</div>
+                  <div className="mt-1 font-medium text-slate-800">{generationDetails.effectiveModel}</div>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
                   <div className="text-xs uppercase tracking-wide text-slate-400">Ultima geracao</div>
@@ -427,7 +444,24 @@ export default function ReportDetailPage() {
                   <div className="text-xs uppercase tracking-wide text-slate-400">Status do texto</div>
                   <div className="mt-1 font-medium text-slate-800">{textStatus}</div>
                 </div>
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Execucao</div>
+                  <div className="mt-1 font-medium text-slate-800">{generationDetails.usedModelFallback ? "IA com fallback de modelo" : generationDetails.generationPath === "ai" ? "IA direta" : generationDetails.generationPath === "deterministic_fallback" ? "Fallback da secao" : "Fluxo padrao"}</div>
+                </div>
               </div>
+
+              {generationSource === "IA" && (
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Modelo solicitado</div>
+                    <div className="mt-1 font-medium text-slate-800">{generationDetails.requestedModel}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Prompt</div>
+                    <div className="mt-1 font-medium break-all text-slate-800">{generationDetails.promptName}</div>
+                  </div>
+                </div>
+              )}
 
               {warnings.length > 0 && (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

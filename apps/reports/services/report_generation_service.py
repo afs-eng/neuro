@@ -5,6 +5,10 @@ from apps.reports.models import Report, ReportSection, ReportStatus
 from apps.reports.services.report_ai_service import ReportAIService
 from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.report_review_service import ReportReviewService
+from apps.reports.services.section_registry import (
+    get_section_config,
+    list_section_configs,
+)
 from apps.reports.services.report_version_service import ReportVersionService
 
 
@@ -27,33 +31,7 @@ class ReportGenerationService:
 
     @staticmethod
     def get_sections_config():
-        return [
-            ("identificacao", "1. Identificação"),
-            ("descricao_demanda", "2. Descrição da Demanda"),
-            ("procedimentos", "3. Procedimentos"),
-            ("historia_pessoal", "4. História Pessoal"),
-            ("capacidade_cognitiva_global", "5. Capacidade Cognitiva Global"),
-            ("funcoes_executivas", "6. Funções Executivas"),
-            ("linguagem", "7. Linguagem"),
-            ("gnosias_praxias", "8. Gnosias e Praxias"),
-            ("memoria_aprendizagem", "9. Memória e Aprendizagem"),
-            ("bpa2", "10. BPA-2"),
-            ("ravlt", "11. RAVLT"),
-            ("fdt", "12. FDT"),
-            ("etdah_pais", "13. E-TDAH-PAIS"),
-            ("etdah_ad", "14. E-TDAH-AD"),
-            ("scared", "15. SCARED"),
-            ("epq_j", "16. EPQ-J"),
-            ("srs2", "17. SRS-2"),
-            ("ebadep", "18. EBADEP"),
-            (
-                "aspectos_emocionais_comportamentais",
-                "19. Aspectos Emocionais, Comportamentais e Escalas Complementares",
-            ),
-            ("conclusao", "20. Conclusão"),
-            ("hipotese_diagnostica", "21. Hipótese Diagnóstica"),
-            ("sugestoes_conduta", "22. Sugestões de Conduta"),
-        ]
+        return [(key, config["title"]) for key, config in list_section_configs()]
 
     @classmethod
     def _has_test(cls, context: dict, *codes: str) -> bool:
@@ -67,50 +45,13 @@ class ReportGenerationService:
         is_adolescent = cls._is_adolescent_case(context)
         base = []
         for key, title in cls.get_sections_config():
+            config = get_section_config(key)
+            required_any_codes = tuple(config.get("required_any_codes") or ())
             enabled = True
-            if key == "linguagem":
-                enabled = cls._has_test(context, "wisc4", "wasi", "wais3")
-            elif key == "gnosias_praxias":
-                enabled = cls._has_test(context, "wisc4", "wasi", "wais3")
-            elif key == "atencao":
-                enabled = cls._has_test(context, "bpa2", "etdah_ad", "etdah_pais")
-            elif key == "memoria_aprendizagem":
-                enabled = cls._has_test(context, "ravlt", "wisc4")
-            elif key == "funcoes_executivas":
-                enabled = cls._has_test(context, "fdt", "wisc4")
-            elif key == "bpa2":
-                enabled = cls._has_test(context, "bpa2")
-            elif key == "ravlt":
-                enabled = cls._has_test(context, "ravlt")
-            elif key == "fdt":
-                enabled = cls._has_test(context, "fdt")
-            elif key == "etdah_pais":
-                enabled = cls._has_test(context, "etdah_pais")
-            elif key == "etdah_ad":
-                enabled = cls._has_test(context, "etdah_ad")
-            elif key == "scared":
-                enabled = cls._has_test(context, "scared")
-            elif key == "srs2":
-                enabled = cls._has_test(context, "srs2")
-            elif key == "epq_j":
-                enabled = cls._has_test(context, "epq_j")
-            elif key == "ebadep":
-                enabled = cls._has_test(context, "ebadep_a", "ebadep_ij", "ebaped_ij")
-            elif key == "aspectos_emocionais_comportamentais":
-                enabled = (
-                    cls._has_test(
-                        context,
-                        "etdah_pais",
-                        "etdah_ad",
-                        "scared",
-                        "srs2",
-                        "epq_j",
-                        "ebadep_a",
-                        "ebadep_ij",
-                        "ebaped_ij",
-                    )
-                    or is_adolescent
-                )
+            if required_any_codes:
+                enabled = cls._has_test(context, *required_any_codes)
+            if not enabled and config.get("enable_when_adolescent"):
+                enabled = is_adolescent
             if enabled:
                 base.append((key, title))
         renumbered = []
@@ -219,6 +160,8 @@ class ReportGenerationService:
                         "model": "rules-based",
                         "section": key,
                         "fallback_reason": str(exc),
+                        "used_fallback": True,
+                        "generation_path": "deterministic_fallback",
                     },
                     [cls.AI_FALLBACK_WARNING],
                 )
@@ -229,6 +172,8 @@ class ReportGenerationService:
                 "provider": "deterministic",
                 "model": "rules-based",
                 "section": key,
+                "used_fallback": False,
+                "generation_path": "deterministic_only",
             },
             [],
         )

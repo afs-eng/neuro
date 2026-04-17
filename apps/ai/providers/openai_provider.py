@@ -56,6 +56,8 @@ class OpenAIProvider(BaseAIProvider):
         return unique
 
     def generate(self, system_prompt: str, user_prompt: str, **kwargs) -> dict:
+        requested_model = kwargs.get("model") or self.model
+        candidate_models = self._model_candidates(kwargs.get("model"))
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -67,9 +69,7 @@ class OpenAIProvider(BaseAIProvider):
         warnings: list[str] = []
         last_error: tuple[int, str] | None = None
 
-        for index, candidate_model in enumerate(
-            self._model_candidates(kwargs.get("model"))
-        ):
+        for index, candidate_model in enumerate(candidate_models):
             payload = {
                 "model": candidate_model,
                 "temperature": kwargs.get("temperature", 0.2),
@@ -98,6 +98,10 @@ class OpenAIProvider(BaseAIProvider):
                     "content": str(message.get("content") or "").strip(),
                     "provider": "openai",
                     "model": data.get("model") or candidate_model,
+                    "requested_model": requested_model,
+                    "used_model_fallback": index > 0,
+                    "fallback_model": candidate_model if index > 0 else None,
+                    "attempted_models": candidate_models[: index + 1],
                     "finish_reason": choice.get("finish_reason") or "unknown",
                     "usage": {
                         "prompt_tokens": usage.get("prompt_tokens"),
@@ -109,9 +113,9 @@ class OpenAIProvider(BaseAIProvider):
 
             status_code, message = self._extract_error(response)
             last_error = (status_code, message)
-            if index < len(
-                self._model_candidates(kwargs.get("model"))
-            ) - 1 and self._should_try_fallback(status_code, message):
+            if index < len(candidate_models) - 1 and self._should_try_fallback(
+                status_code, message
+            ):
                 warnings.append(
                     f"Falha no modelo '{candidate_model}' (HTTP {status_code}); tentando fallback."
                 )
