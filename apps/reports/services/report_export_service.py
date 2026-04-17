@@ -20,6 +20,7 @@ from docx.text.paragraph import Paragraph
 from docx.shared import Inches, Pt
 
 from apps.reports.models import Report
+from apps.reports.services.report_context_service import ReportContextService
 
 
 class ReportExportService:
@@ -35,6 +36,7 @@ class ReportExportService:
 
     @staticmethod
     def generate_html(report: Report):
+        ReportContextService.sync_report_context(report)
         content = str(report.final_text or report.edited_text or "")
         created_at = report.created_at.strftime("%d/%m/%Y") if report.created_at else ""
         patient_name = report.patient.full_name if report.patient else ""
@@ -67,11 +69,8 @@ class ReportExportService:
 
     @classmethod
     def generate_docx_bytes(cls, report: Report) -> bytes:
-        context = (
-            dict(report.context_payload or {})
-            if isinstance(report.context_payload, dict)
-            else {}
-        )
+        context = ReportContextService.sync_report_context(report)
+        context = dict(context) if isinstance(context, dict) else {}
         sections = {
             section.key: str(section.content_edited or section.content_generated or "")
             for section in report.sections.all()

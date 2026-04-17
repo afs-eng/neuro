@@ -318,10 +318,7 @@ def get_report(request, report_id: int):
     report, error = _get_report_or_404(report_id)
     if error:
         return error
-    latest_context = ReportContextService.build_context(report.evaluation)
-    if latest_context != (report.context_payload or {}):
-        report.context_payload = latest_context
-        report.save(update_fields=["context_payload", "updated_at"])
+    ReportContextService.sync_report_context(report)
     return 200, serialize_report(report, include_sections=True, include_versions=True)
 
 

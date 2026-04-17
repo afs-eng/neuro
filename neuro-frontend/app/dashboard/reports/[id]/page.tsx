@@ -23,11 +23,50 @@ const WISC_SUBSCALE_ORDER = [
   "memoria_aprendizagem",
 ];
 
+const TEST_SECTION_MAP: Record<string, string> = {
+  wisc4: "capacidade_cognitiva_global",
+  wasi: "capacidade_cognitiva_global",
+  wais3: "capacidade_cognitiva_global",
+  bpa2: "atencao",
+  fdt: "funcoes_executivas",
+  ravlt: "memoria_aprendizagem",
+  epq_j: "aspectos_emocionais_comportamentais",
+  scared: "aspectos_emocionais_comportamentais",
+  srs2: "aspectos_emocionais_comportamentais",
+  ebadep_a: "aspectos_emocionais_comportamentais",
+  ebadep_ij: "aspectos_emocionais_comportamentais",
+  ebaped_ij: "aspectos_emocionais_comportamentais",
+  etdah_ad: "atencao",
+  etdah_pais: "atencao",
+};
+
 function formatTimestamp(value?: string | null) {
   if (!value) return "Nao informado";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString("pt-BR");
+}
+
+function formatShortDate(value?: string | null) {
+  if (!value) return "Nao informado";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR");
+}
+
+function normalizeNumber(value: unknown) {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const normalized = Number(value.replace(",", "."));
+    return Number.isFinite(normalized) ? normalized : null;
+  }
+  return null;
+}
+
+function getPercentileWidth(value: unknown) {
+  const number = normalizeNumber(value);
+  if (number === null) return null;
+  return Math.max(0, Math.min(100, number));
 }
 
 function getGenerationSource(provider?: string | null, model?: string | null) {
@@ -74,6 +113,12 @@ function getCompletedTests(report: any) {
       code: item.instrument_code || "",
       name: item.instrument_name || item.instrument || item.instrument_code || "Teste",
       appliedOn: item.applied_on || null,
+      domain: item.domain || "",
+      summary: item.summary || "",
+      clinicalInterpretation: item.clinical_interpretation || item.interpretation_text || "",
+      resultRows: item.result_rows || [],
+      structuredResults: item.structured_results || {},
+      warnings: item.warnings || [],
     }))
     .filter((item: any) => {
       const key = `${item.code}:${item.name}`;
@@ -82,6 +127,62 @@ function getCompletedTests(report: any) {
       seen.add(key);
       return true;
     });
+}
+
+function buildMetricRows(test: any) {
+  const structured = test.structuredResults || {};
+
+  if (Array.isArray(structured.metric_results) && structured.metric_results.length > 0) {
+    return structured.metric_results.map((item: any) => ({
+      label: item.nome || item.codigo || "Metrica",
+      primary: item.valor ?? "-",
+      percentile: item.percentil_num ?? null,
+      classification: item.classificacao || "",
+    }));
+  }
+
+  if (Array.isArray(structured.subtestes) && structured.subtestes.length > 0) {
+    return structured.subtestes.map((item: any) => ({
+      label: item.subteste || item.nome || item.codigo || "Subteste",
+      primary: item.total ?? item.escore_padrao ?? item.escore_composto ?? "-",
+      percentile: item.percentil ?? null,
+      classification: item.classificacao || "",
+    }));
+  }
+
+  if (Array.isArray(structured.indices) && structured.indices.length > 0) {
+    return structured.indices.map((item: any) => ({
+      label: item.nome || item.indice || "Indice",
+      primary: item.escore_composto ?? "-",
+      percentile: item.percentil ?? null,
+      classification: item.classificacao || "",
+    }));
+  }
+
+  if (structured.results && typeof structured.results === "object") {
+    return Object.values(structured.results).map((item: any) => ({
+      label: item.name || "Fator",
+      primary: item.raw_score ?? item.escore_total ?? "-",
+      percentile: item.percentile_text || item.percentil || null,
+      classification: item.classification || item.classificacao || "",
+    }));
+  }
+
+  return [];
+}
+
+function getMissingSectionsFromTests(report: any, completedTests: any[]) {
+  const currentSectionKeys = new Set((report?.sections || []).map((section: any) => section.key));
+  const missing = new Set<string>();
+
+  for (const test of completedTests) {
+    const mappedSection = TEST_SECTION_MAP[test.code];
+    if (mappedSection && !currentSectionKeys.has(mappedSection)) {
+      missing.add(mappedSection);
+    }
+  }
+
+  return Array.from(missing);
 }
 
 export default function ReportDetailPage() {
@@ -229,6 +330,27 @@ export default function ReportDetailPage() {
     }
   }
 
+  async function handleRebuildReport() {
+    if (!report) return;
+    setSaving(true);
+    setNotice("");
+    try {
+      const updated = await reportService.build(report.id);
+      setReport(updated);
+      if ((updated as any)?.sections?.length) {
+        const firstSection = (updated as any).sections[0];
+        setActiveSectionId(firstSection.id);
+        setEditedText(firstSection.edited_text || firstSection.generated_text || "");
+      }
+      setNotice("Laudo reconstruido com os testes validados mais recentes.");
+      await loadReport();
+    } catch (err: any) {
+      setError(err?.message || "Nao foi possivel reconstruir o laudo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleExportHtml() {
     if (!report) return;
     try {
@@ -307,6 +429,7 @@ export default function ReportDetailPage() {
   const textStatus = getTextStatus(hasManualEdits, generationSource);
   const generationDetails = getGenerationDetails(generationMetadata);
   const completedTests = getCompletedTests(report);
+  const missingSections = getMissingSectionsFromTests(report, completedTests);
   const sidebarSections = report.sections?.filter((section: any) => !WISC_SUBSCALE_KEYS.has(section.key)) || [];
 
   return (
@@ -336,6 +459,22 @@ export default function ReportDetailPage() {
 
       {error && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
       {notice && <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
+      {missingSections.length > 0 && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="font-medium">Novos testes validados foram encontrados</div>
+              <div className="mt-1">
+                O snapshot do laudo ja foi atualizado, mas ainda faltam secoes correspondentes no texto atual. Reconstrua o laudo para incluir: {missingSections.join(", ")}.
+              </div>
+            </div>
+            <Button variant="outline" className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100" disabled={saving} onClick={handleRebuildReport}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Reconstruir laudo
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -495,6 +634,105 @@ export default function ReportDetailPage() {
                   <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
                     <div className="text-xs uppercase tracking-wide text-slate-400">Prompt</div>
                     <div className="mt-1 font-medium break-all text-slate-800">{generationDetails.promptName}</div>
+                  </div>
+                </div>
+              )}
+
+              {completedTests.length > 0 && (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">Dados dos testes concluidos</h3>
+                      <p className="mt-1 text-xs text-slate-500">Resumo estrutural usado na construcao do laudo. Mostra apenas testes validados.</p>
+                    </div>
+                    <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                      {completedTests.length} teste{completedTests.length > 1 ? "s" : ""}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-4">
+                    {completedTests.map((test: any) => {
+                      const metricRows = buildMetricRows(test);
+
+                      return (
+                        <div key={`${test.code}-${test.name}`} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <div>
+                              <div className="text-sm font-semibold text-slate-900">{test.name}</div>
+                              <div className="mt-1 text-xs uppercase tracking-wide text-slate-400">{test.code || "sem-codigo"}{test.domain ? ` · ${test.domain}` : ""}</div>
+                            </div>
+                            <div className="text-xs text-slate-500">Aplicado em {formatShortDate(test.appliedOn)}</div>
+                          </div>
+
+                          {test.summary && (
+                            <div className="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                              <span className="font-medium text-slate-900">Resumo:</span> {test.summary}
+                            </div>
+                          )}
+
+                          {metricRows.length > 0 && (
+                            <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                              <div className="grid grid-cols-[minmax(0,2fr)_120px_120px_minmax(0,1fr)] gap-3 border-b border-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                <div>Indicador</div>
+                                <div>Valor</div>
+                                <div>Percentil</div>
+                                <div>Classificacao</div>
+                              </div>
+                              <div>
+                                {metricRows.map((row: any, index: number) => {
+                                  const percentileWidth = getPercentileWidth(row.percentile);
+
+                                  return (
+                                    <div key={`${row.label}-${index}`} className="grid grid-cols-[minmax(0,2fr)_120px_120px_minmax(0,1fr)] gap-3 border-b border-slate-100 px-3 py-2 text-sm last:border-b-0">
+                                      <div className="font-medium text-slate-800">{row.label}</div>
+                                      <div className="text-slate-600">{String(row.primary ?? "-")}</div>
+                                      <div>
+                                        <div className="text-slate-600">{row.percentile ?? "-"}</div>
+                                        {percentileWidth !== null && (
+                                          <div className="mt-1 h-1.5 rounded-full bg-slate-100">
+                                            <div className="h-1.5 rounded-full bg-indigo-500" style={{ width: `${percentileWidth}%` }} />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="text-slate-600">{row.classification || "-"}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {(!metricRows.length && test.resultRows.length > 0) && (
+                            <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Linhas de resultado</div>
+                              <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                                {test.resultRows.map((row: string, index: number) => (
+                                  <li key={`${index}-${row}`}>{row}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {test.clinicalInterpretation && (
+                            <details className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                              <summary className="cursor-pointer font-medium text-slate-900">Ver interpretacao tecnica</summary>
+                              <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{test.clinicalInterpretation}</pre>
+                            </details>
+                          )}
+
+                          {test.warnings.length > 0 && (
+                            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                              <div className="font-medium">Avisos do teste</div>
+                              <ul className="mt-2 list-disc pl-5">
+                                {test.warnings.map((warning: string, index: number) => (
+                                  <li key={`${index}-${warning}`}>{warning}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
