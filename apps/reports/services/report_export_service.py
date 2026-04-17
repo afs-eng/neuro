@@ -154,7 +154,11 @@ class ReportExportService:
     def _build_adolescent_document(
         cls, report, context: dict, sections: dict[str, str]
     ):
-        document = Document()
+        template_path = cls.ADOLESCENT_TEMPLATE_PATH
+        document = (
+            Document(str(template_path)) if template_path.exists() else Document()
+        )
+        cls._clear_document_body(document)
         cls._apply_base_styles(document)
         patient = context.get("patient") or {}
         evaluation = context.get("evaluation") or {}
@@ -813,6 +817,14 @@ class ReportExportService:
         return paragraph
 
     @classmethod
+    def _clear_document_body(cls, document: Document):
+        body = document._body._element
+        for child in list(body):
+            if child.tag.endswith("sectPr"):
+                continue
+            body.remove(child)
+
+    @classmethod
     def _format_body_paragraph(cls, paragraph):
         paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         paragraph.paragraph_format.space_after = Pt(6)
@@ -910,16 +922,31 @@ class ReportExportService:
 
     @classmethod
     def _append_bullet(cls, document, text: str):
-        p = document.add_paragraph(style="List Bullet")
-        r = p.add_run(text)
+        try:
+            p = document.add_paragraph(style="List Bullet")
+            r = p.add_run(text)
+        except KeyError:
+            p = document.add_paragraph()
+            r = p.add_run(f"• {text}")
         r.font.name = cls.FONT_NAME
         r.font.size = cls.BODY_SIZE
 
     @classmethod
     def _append_table_with_interpretation(
-        cls, document, rows, table_key: str, interpretation: str | None
+        cls,
+        document,
+        rows,
+        table_key: str,
+        interpretation: str | None,
+        caption: str | None = None,
     ):
         if rows:
+            if caption:
+                caption_paragraph = document.add_paragraph()
+                caption_run = caption_paragraph.add_run(caption)
+                caption_run.font.name = cls.FONT_NAME
+                caption_run.font.size = Pt(10)
+                caption_run.italic = True
             table = document.add_table(rows=0, cols=len(rows[0]))
             for row_values in rows:
                 row = table.add_row().cells
@@ -1249,11 +1276,20 @@ class ReportExportService:
     @classmethod
     def _bpa_rows(cls, test: dict | None):
         payload = (test or {}).get("classified_payload") or {}
-        rows = [["Domínio", "Escore Bruto", "Percentil", "Classificação"]]
+        labels = {
+            "ac": "Atenção Concentrada - AC",
+            "ad": "Atenção Dividida - AD",
+            "aa": "Atenção Alternada - AA",
+            "ag": "Atenção Geral - AG",
+        }
+        rows = [["ATENÇÃO BPA", "Pontos", "Percentil", "Classificação"]]
         for item in payload.get("subtestes") or []:
             rows.append(
                 [
-                    item.get("subteste") or item.get("codigo") or "-",
+                    labels.get(
+                        item.get("codigo"),
+                        item.get("subteste") or item.get("codigo") or "-",
+                    ),
                     cls._num(item.get("total") or item.get("brutos")),
                     cls._num(item.get("percentil")),
                     item.get("classificacao") or "-",
