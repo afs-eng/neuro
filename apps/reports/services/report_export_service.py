@@ -1033,7 +1033,7 @@ class ReportExportService:
         r.bold = True
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = cls.HEADING_SPACE_AFTER
-        p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        p.paragraph_format.line_spacing = cls.IDENTIFICATION_LINE_SPACING
 
     @classmethod
     def _add_center_text(cls, document, text: str):
@@ -1044,7 +1044,7 @@ class ReportExportService:
         r.font.size = cls.CAPTION_SIZE
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.line_spacing = 1.0
+        p.paragraph_format.line_spacing = cls.IDENTIFICATION_LINE_SPACING
 
     @classmethod
     def _append_heading(cls, document, text: str):
