@@ -42,6 +42,160 @@ class ReportExportService:
     TABLE_WIDTH = Inches(6.2)
     ACCENT_COLOR = "2F6DB3"
     HEADER_FILL = "DCE6F1"
+    INSTRUMENT_CATALOG = {
+        "anamnese": {
+            "nome": "Anamnese",
+            "descricao": "Entrevista clínica inicial destinada ao levantamento da história do desenvolvimento, queixas atuais, antecedentes médicos, escolares, familiares, emocionais e comportamentais, com o objetivo de contextualizar os dados obtidos nos demais instrumentos.",
+        },
+        "wisc4": {
+            "nome": "Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV)",
+            "descricao": "Utilizada para avaliar o funcionamento intelectual global, os índices fatoriais (Compreensão Verbal, Organização Perceptual, Memória Operacional e Velocidade de Processamento) e fornecer indicadores sobre o perfil cognitivo.",
+        },
+        "wais3": {
+            "nome": "Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III)",
+            "descricao": "Instrumento destinado à avaliação da capacidade intelectual global em adultos, permitindo analisar habilidades verbais, não verbais, memória operacional e velocidade de processamento, além de oferecer indicadores sobre o perfil cognitivo geral.",
+        },
+        "wasi": {
+            "nome": "Escala Wechsler Abreviada de Inteligência (WASI)",
+            "descricao": "Utilizada para estimar o funcionamento intelectual global, verbal e de execução, bem como fornecer indicadores breves sobre a capacidade cognitiva geral.",
+        },
+        "bpa2": {
+            "nome": "Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2)",
+            "descricao": "Avalia a capacidade geral de atenção, incluindo atenção concentrada, alternada, dividida e atenção global.",
+        },
+        "fdt": {
+            "nome": "Teste dos Cinco Dígitos (FDT)",
+            "descricao": "Investiga a velocidade de processamento, controle inibitório, alternância e flexibilidade cognitiva.",
+        },
+        "ravlt": {
+            "nome": "Teste de Aprendizagem Auditivo-Verbal de Rey (RAVLT)",
+            "descricao": "Avalia memória verbal episódica, aquisição, retenção, recuperação e resistência à interferência.",
+        },
+        "figuras_complexas_rey": {
+            "nome": "Figuras Complexas de Rey",
+            "descricao": "Instrumento utilizado para avaliar habilidades visuoconstrutivas, planejamento perceptomotor e memória visual, por meio das etapas de cópia e evocação.",
+        },
+        "etdah_ad": {
+            "nome": "Escala para Transtorno de Déficit de Atenção e Hiperatividade – Autorrelato (E-TDAH-AD)",
+            "descricao": "Questionário destinado à identificação de sintomas relacionados à desatenção, impulsividade, hiperatividade, aspectos emocionais e dificuldades funcionais associadas ao TDAH, com base no autorrelato.",
+        },
+        "etdah_pais": {
+            "nome": "Escala para Transtorno de Déficit de Atenção e Hiperatividade – Versão Pais (E-TDAH-PAIS)",
+            "descricao": "Questionário para identificação de sintomas de desatenção, impulsividade, hiperatividade, regulação emocional e comportamento adaptativo, a partir da percepção dos responsáveis.",
+        },
+        "scared": {
+            "nome": "SCARED – Autorrelato (Screen for Child Anxiety Related Emotional Disorders)",
+            "descricao": "Avalia sintomas ansiosos em crianças e adolescentes, incluindo ansiedade generalizada, ansiedade de separação, fobia social, pânico e sintomas somáticos, com base no autorrelato.",
+        },
+        "scared_mae": {
+            "nome": "SCARED – Versão Mãe",
+            "descricao": "Avalia sintomas ansiosos, incluindo ansiedade generalizada, de separação, fobia social e somatizações, a partir da percepção materna.",
+        },
+        "srs2": {
+            "nome": "Escala de Responsividade Social – Segunda Edição (SRS-2)",
+            "descricao": "Rastreia dificuldades em comunicação social, cognição social, padrões restritos e repetitivos e comportamentos associados ao espectro autista.",
+        },
+        "epq_j": {
+            "nome": "Inventário de Personalidade de Eysenck para Jovens (EPQ-J)",
+            "descricao": "Avalia traços de personalidade em crianças e adolescentes, contemplando dimensões como extroversão, neuroticismo, psicoticismo e sinceridade.",
+        },
+        "bfp": {
+            "nome": "Bateria Fatorial de Personalidade (BFP)",
+            "descricao": "Instrumento fundamentado no modelo dos Cinco Grandes Fatores, destinado à avaliação dos traços de personalidade: neuroticismo, extroversão, socialização, realização e abertura à experiência.",
+        },
+        "iphexa": {
+            "nome": "Inventário de Personalidade HEXA-Flexível para Adultos (IPHEXA)",
+            "descricao": "Avalia traços de personalidade com base em dimensões amplas do funcionamento da personalidade, contribuindo para a compreensão do estilo emocional, interpessoal e adaptativo do avaliado.",
+        },
+        "bai": {
+            "nome": "Inventário de Ansiedade de Beck (BAI)",
+            "descricao": "Instrumento de autorrelato utilizado para mensurar a intensidade de sintomas ansiosos, com ênfase em manifestações fisiológicas e subjetivas de ansiedade.",
+        },
+        "bdi": {
+            "nome": "Inventário de Depressão de Beck (BDI)",
+            "descricao": "Instrumento de autorrelato utilizado para avaliar a intensidade de sintomas depressivos, incluindo aspectos afetivos, cognitivos, motivacionais e somáticos.",
+        },
+        "ebadep_a": {
+            "nome": "Escala Baptista de Depressão – Versão Adulto (EBADEP-A)",
+            "descricao": "Avalia a presença e a intensidade de sintomas depressivos em adultos, contemplando aspectos emocionais, cognitivos, comportamentais e fisiológicos.",
+        },
+        "ebadep_ij": {
+            "nome": "Escala Baptista de Depressão – Versão Infantojuvenil (EBADEP-IJ)",
+            "descricao": "Instrumento destinado à identificação de sintomas depressivos em crianças e adolescentes, abrangendo indicadores emocionais, cognitivos e comportamentais.",
+        },
+        "ebaped_ij": {
+            "nome": "Escala Baptista de Depressão – Versão Infantojuvenil (EBADEP-IJ)",
+            "descricao": "Instrumento destinado à identificação de sintomas depressivos em crianças e adolescentes, abrangendo indicadores emocionais, cognitivos e comportamentais.",
+        },
+        "scq": {
+            "nome": "Social Communication Questionnaire (SCQ)",
+            "descricao": "Questionário de rastreio voltado à identificação de dificuldades na comunicação social e comportamentos associados ao Transtorno do Espectro Autista.",
+        },
+        "cars2_hf": {
+            "nome": "Childhood Autism Rating Scale – High Functioning (CARS2-HF)",
+            "descricao": "Escala destinada à avaliação de comportamentos associados ao Transtorno do Espectro Autista em indivíduos com maior nível de funcionamento, considerando interação social, comunicação, flexibilidade e padrões comportamentais.",
+        },
+        "mchat": {
+            "nome": "Modified Checklist for Autism in Toddlers (M-CHAT)",
+            "descricao": "Instrumento de rastreio precoce para sinais de risco para Transtorno do Espectro Autista em crianças pequenas, com foco em interação social, atenção compartilhada e comportamentos comunicativos.",
+        },
+        "son_r_2_5_7": {
+            "nome": "SON-R 2½–7[a]",
+            "descricao": "Teste não verbal de inteligência utilizado para avaliar o raciocínio geral, a percepção visual e a organização espacial, minimizando a influência da linguagem.",
+        },
+        "thcp": {
+            "nome": "Teste de Habilidades Cognitivas Primárias (THCP)",
+            "descricao": "Instrumento utilizado para investigar habilidades cognitivas básicas relacionadas ao desenvolvimento infantil, contribuindo para a análise do perfil cognitivo e do potencial de aprendizagem.",
+        },
+        "mmse_2": {
+            "nome": "Miniexame do Estado Mental – Segunda Edição (MMSE-2)",
+            "descricao": "Instrumento de rastreio cognitivo utilizado para avaliar orientação, atenção, memória, linguagem e habilidades construtivas, auxiliando na investigação de possíveis alterações cognitivas.",
+        },
+        "vineland": {
+            "nome": "Vineland – Escala de Comportamento Adaptativo",
+            "descricao": "Avalia o comportamento adaptativo em domínios como comunicação, socialização, habilidades de vida diária e, em algumas versões, habilidades motoras, contribuindo para a compreensão do funcionamento adaptativo global.",
+        },
+        "portage": {
+            "nome": "Portage",
+            "descricao": "Instrumento utilizado para avaliação do desenvolvimento infantil em diferentes áreas, como linguagem, cognição, socialização, autocuidados e desenvolvimento motor.",
+        },
+        "htp": {
+            "nome": "HTP (House-Tree-Person)",
+            "descricao": "Técnica projetiva gráfica utilizada para investigação de aspectos emocionais, vivenciais e da dinâmica da personalidade, por meio da interpretação dos desenhos da casa, árvore e pessoa.",
+        },
+    }
+    PROCEDURES_ORDER = [
+        "anamnese",
+        "wisc4",
+        "wais3",
+        "wasi",
+        "son_r_2_5_7",
+        "thcp",
+        "mmse_2",
+        "vineland",
+        "portage",
+        "bpa2",
+        "fdt",
+        "ravlt",
+        "figuras_complexas_rey",
+        "etdah_pais",
+        "etdah_ad",
+        "scared",
+        "scared_mae",
+        "srs2",
+        "epq_j",
+        "bfp",
+        "iphexa",
+        "bai",
+        "bdi",
+        "ebadep_a",
+        "ebadep_ij",
+        "ebaped_ij",
+        "scq",
+        "cars2_hf",
+        "mchat",
+        "htp",
+    ]
 
     @staticmethod
     def generate_html(report: Report):
@@ -1074,33 +1228,64 @@ class ReportExportService:
     @classmethod
     def _procedures_intro(cls, context: dict) -> str:
         sessions = len(context.get("progress_entries") or []) or 5
-        return f"Para esta avaliação foram realizadas: uma sessão de anamnese, {sessions:02d} sessões de testagem com o(a) paciente e uma sessão de devolutiva com familiar responsável."
+        age_text = cls._age_text(context)
+        subject = "paciente"
+        if age_text != "Não informada":
+            try:
+                years = int(str(age_text).split(" ", 1)[0])
+                if years < 12:
+                    subject = "criança"
+                elif years < 18:
+                    subject = "adolescente"
+                else:
+                    subject = "paciente"
+            except (TypeError, ValueError):
+                subject = "paciente"
+        return f"Para esta avaliação foram realizadas: uma sessão de anamnese, {sessions:02d} sessões de testagem com o(a) {subject} e uma sessão de devolutiva com familiar responsável."
 
     @classmethod
     def _adolescent_instruments(cls, context: dict):
-        descriptions = {
-            "wisc4": "Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV)",
-            "bpa2": "Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2)",
-            "fdt": "Teste dos Cinco Dígitos – FDT",
-            "ravlt": "Teste de Aprendizagem Auditivo-Verbal de Rey – RAVLT",
-            "etdah_pais": "Escala para Transtorno de Déficit de Atenção e Hiperatividade – versão pais",
-            "etdah_ad": "Escala para Transtorno de Déficit de Atenção e Hiperatividade – autorrelato",
-            "scared": "Screen for Child Anxiety Related Emotional Disorders – SCARED",
-            "srs2": "Escala de Responsividade Social – Segunda Edição (SRS-2)",
-            "epq_j": "Inventário de Personalidade de Eysenck para Jovens – EPQ-J",
-        }
-        items = []
+        validated_codes = []
+        seen_codes = {"anamnese"}
         for test in context.get("validated_tests") or []:
             code = test.get("instrument_code")
-            if code in descriptions:
-                items.append(
-                    {
-                        "name": descriptions[code],
-                        "description": test.get("summary")
-                        or test.get("clinical_interpretation")
-                        or "instrumento utilizado para composição clínica do laudo",
-                    }
-                )
+            if not code or code in seen_codes:
+                continue
+            seen_codes.add(code)
+            validated_codes.append(code)
+
+        ordered_codes = [
+            code
+            for code in cls.PROCEDURES_ORDER
+            if code == "anamnese" or code in validated_codes
+        ]
+
+        items = []
+        for code in ordered_codes:
+            catalog_entry = cls.INSTRUMENT_CATALOG.get(code)
+            if not catalog_entry:
+                continue
+            items.append(
+                {
+                    "name": catalog_entry["nome"],
+                    "description": catalog_entry["descricao"],
+                }
+            )
+
+        remaining_codes = [
+            code for code in validated_codes if code not in cls.PROCEDURES_ORDER
+        ]
+        for code in remaining_codes:
+            catalog_entry = cls.INSTRUMENT_CATALOG.get(code)
+            if not catalog_entry:
+                continue
+            items.append(
+                {
+                    "name": catalog_entry["nome"],
+                    "description": catalog_entry["descricao"],
+                }
+            )
+
         return items
 
     @staticmethod
