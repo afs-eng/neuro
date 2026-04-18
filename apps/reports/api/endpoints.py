@@ -1,5 +1,9 @@
+import logging
+import threading
+
 from ninja import Router
 from django.http import HttpResponse
+from django.db import close_old_connections
 from django.utils.text import slugify
 
 from apps.accounts.models import UserRole
@@ -31,6 +35,7 @@ from .schemas import (
 )
 
 router = Router(tags=["reports"])
+logger = logging.getLogger(__name__)
 
 
 def can_edit_reports(user) -> bool:
@@ -109,6 +114,34 @@ def _get_report_or_404(report_id: int):
     return report, None
 
 
+def _generate_report_async(report_id: int, user_id: int | None):
+    close_old_connections()
+    try:
+        report = (
+            Report.objects.select_related("evaluation", "patient")
+            .filter(id=report_id)
+            .first()
+        )
+        if not report:
+            logger.error("Laudo %s nao encontrado para geracao assincrona", report_id)
+            return
+        user = (
+            request_user_model().objects.filter(id=user_id).first() if user_id else None
+        )
+        ReportGenerationService.generate_full_report(report, user=user)
+    except Exception:
+        logger.exception("Erro na geracao assincrona do laudo %s", report_id)
+        Report.objects.filter(id=report_id).update(status=ReportStatus.DRAFT)
+    finally:
+        close_old_connections()
+
+
+def request_user_model():
+    from django.contrib.auth import get_user_model
+
+    return get_user_model()
+
+
 @router.get("/", response=list[ReportOut], auth=bearer_auth)
 def list_reports_endpoint(request, evaluation_id: int | None = None):
     reports = (
@@ -170,9 +203,14 @@ def _generate_report_for_evaluation(evaluation_id: int, user):
         author=user,
         interested_party=evaluation.patient.full_name,
         purpose=evaluation.evaluation_purpose or evaluation.referral_reason,
+        status=ReportStatus.GENERATING,
     )
-    ReportGenerationService.generate_full_report(report, user=user)
-    report.refresh_from_db()
+    thread = threading.Thread(
+        target=_generate_report_async,
+        args=(report.id, getattr(user, "id", None)),
+        daemon=True,
+    )
+    thread.start()
     return report, None
 
 

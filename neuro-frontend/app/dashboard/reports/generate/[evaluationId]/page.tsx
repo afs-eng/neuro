@@ -36,7 +36,7 @@ export default function GenerateReportPage() {
     setError("");
     try {
       const report = await reportService.generateFromEvaluation(params.evaluationId);
-      router.push(`/dashboard/reports/${report.id}`);
+      router.push(`/dashboard/reports/${report.id}?autobuild=1`);
     } catch (err: any) {
       setError(err?.message || "Nao foi possivel gerar o laudo.");
     } finally {

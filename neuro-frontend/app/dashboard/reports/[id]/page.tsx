@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageContainer, PageHeader } from "@/components/ui/page";
 import { resolveApiUrl } from "@/lib/api";
@@ -205,6 +205,7 @@ function getMissingSectionsFromTests(report: any, completedTests: any[]) {
 
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const reportId = params.id;
   const [report, setReport] = useState<any>(null);
   const [activeSectionId, setActiveSectionId] = useState<number | null>(null);
@@ -246,6 +247,22 @@ export default function ReportDetailPage() {
   useEffect(() => {
     loadReport();
   }, [loadReport]);
+
+  useEffect(() => {
+    if (searchParams.get("autobuild") === "1") {
+      setNotice("Geracao do laudo iniciada. A pagina sera atualizada automaticamente quando as secoes ficarem prontas.");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!report || report.status !== "generating") return;
+
+    const intervalId = window.setInterval(() => {
+      loadReport().catch(() => undefined);
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadReport, report]);
 
   useEffect(() => {
     if (activeSection) {
