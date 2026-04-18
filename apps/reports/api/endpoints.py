@@ -295,12 +295,20 @@ def export_report_html(request, report_id: int):
     return 200, {"html": ReportExportService.generate_html(report)}
 
 
-@router.post("/{report_id}/export-docx", auth=bearer_auth)
+@router.post(
+    "/{report_id}/export-docx",
+    response={200: None, 404: MessageOut, 500: MessageOut},
+    auth=bearer_auth,
+)
 def export_report_docx(request, report_id: int):
     report, error = _get_report_or_404(report_id)
     if error:
         return error
-    payload = ReportExportService.generate_docx_bytes(report)
+    try:
+        payload = ReportExportService.generate_docx_bytes(report)
+    except Exception as exc:
+        logger.exception("Erro ao exportar DOCX do laudo %s", report_id)
+        return 500, {"message": f"Erro ao exportar DOCX: {exc}"}
     patient_name = report.patient.full_name if report.patient else f"report-{report.id}"
     filename = f"Laudo-{slugify(patient_name)}.docx"
     response = HttpResponse(

@@ -398,7 +398,12 @@ export default function ReportDetailPage() {
         try {
           const payload = await response.json();
           message = payload?.message || message;
-        } catch {}
+        } catch {
+          try {
+            const text = await response.text();
+            if (text) message = text;
+          } catch {}
+        }
         throw new Error(message);
       }
 
