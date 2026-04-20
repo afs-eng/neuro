@@ -13,6 +13,7 @@ from apps.reports.models import Report, ReportSection, ReportStatus
 from apps.reports.selectors import (
     get_report_by_id,
     get_reports_by_evaluation,
+    get_reports_by_patient,
     list_reports,
 )
 from apps.reports.services.report_export_service import ReportExportService
@@ -143,10 +144,15 @@ def request_user_model():
 
 
 @router.get("/", response=list[ReportOut], auth=bearer_auth)
-def list_reports_endpoint(request, evaluation_id: int | None = None):
-    reports = (
-        get_reports_by_evaluation(evaluation_id) if evaluation_id else list_reports()
-    )
+def list_reports_endpoint(
+    request, evaluation_id: int | None = None, patient_id: int | None = None
+):
+    if evaluation_id:
+        reports = get_reports_by_evaluation(evaluation_id)
+    elif patient_id:
+        reports = get_reports_by_patient(patient_id)
+    else:
+        reports = list_reports()
     return [serialize_report(item) for item in reports]
 
 
@@ -394,6 +400,23 @@ def update_report(request, report_id: int, payload: ReportUpdateIn):
     report.save()
     ReportVersionService.create_version(report, user=request.auth)
     return 200, serialize_report(report)
+
+
+@router.delete(
+    "/{report_id}",
+    response={200: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def delete_report(request, report_id: int):
+    if not can_edit_reports(request.auth):
+        return 403, {"message": "Permissão negada."}
+
+    report, error = _get_report_or_404(report_id)
+    if error:
+        return error
+
+    report.delete()
+    return 200, {"message": "Laudo excluído com sucesso."}
 
 
 @router.patch(

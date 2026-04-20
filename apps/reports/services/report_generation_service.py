@@ -2,9 +2,11 @@ from django.utils import timezone
 
 from apps.evaluations.models import EvaluationStatus
 from apps.reports.models import Report, ReportSection, ReportStatus
+from apps.reports.builders.references_builder import build_references_text
 from apps.reports.services.report_ai_service import ReportAIService
 from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.report_review_service import ReportReviewService
+from apps.reports.services.wisc4_standardization import WISC4StandardizationService
 from apps.reports.services.section_registry import (
     get_section_config,
     list_section_configs,
@@ -139,6 +141,19 @@ class ReportGenerationService:
 
     @classmethod
     def _generate_section_payload(cls, report: Report, key: str, context: dict):
+        if WISC4StandardizationService.supports(key, context):
+            return (
+                WISC4StandardizationService.build(key, context),
+                {
+                    "provider": "deterministic",
+                    "model": "standardized-wisc4",
+                    "section": key,
+                    "used_fallback": False,
+                    "generation_path": "deterministic_wisc4_standardized",
+                },
+                [],
+            )
+
         if ReportAIService.supports_section(key):
             try:
                 generation_result = ReportAIService.generate_section(
@@ -790,6 +805,9 @@ class ReportGenerationService:
                 "Sugere-se devolutiva clínica estruturada ao paciente e/ou responsáveis, articulação com profissionais assistentes, e planejamento de intervenções voltadas às áreas de maior vulnerabilidade identificadas. "
                 "Também se recomenda acompanhamento longitudinal para monitoramento da funcionalidade e resposta às estratégias terapêuticas adotadas."
             )
+
+        if key == "referencias_bibliograficas":
+            return build_references_text(context.get("validated_tests") or [])
 
         return (
             "Seção em elaboração a partir do contexto clínico estruturado da avaliação."

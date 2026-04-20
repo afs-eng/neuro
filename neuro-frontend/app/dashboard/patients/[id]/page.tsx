@@ -123,6 +123,9 @@ export default function PatientDetailPage() {
   const [deleteEvaluationId, setDeleteEvaluationId] = useState<number | null>(null);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deletingEvaluation, setDeletingEvaluation] = useState(false);
+  const [deleteReportId, setDeleteReportId] = useState<number | null>(null);
+  const [deleteReportConfirmationOpen, setDeleteReportConfirmationOpen] = useState(false);
+  const [deletingReport, setDeletingReport] = useState(false);
 
   useEffect(() => {
     fetchPatientData();
@@ -190,6 +193,16 @@ export default function PatientDetailPage() {
     setDeleteConfirmationOpen(false);
   }
 
+  function handleOpenDeleteReportDialog(reportId: number) {
+    setDeleteReportId(reportId);
+    setDeleteReportConfirmationOpen(true);
+  }
+
+  function handleCloseDeleteReportDialog() {
+    setDeleteReportId(null);
+    setDeleteReportConfirmationOpen(false);
+  }
+
   async function handleDeleteEvaluation() {
     if (!deleteEvaluationId) return;
 
@@ -210,6 +223,23 @@ export default function PatientDetailPage() {
       alert("Não foi possível excluir a avaliação. Tente novamente.");
     } finally {
       setDeletingEvaluation(false);
+    }
+  }
+
+  async function handleDeleteReport() {
+    if (!deleteReportId) return;
+
+    try {
+      setDeletingReport(true);
+      await api.delete(`/api/reports/${deleteReportId}`);
+      setReports((prev) => prev.filter((report) => report.id !== deleteReportId));
+      handleCloseDeleteReportDialog();
+      fetchPatientData();
+    } catch (err) {
+      console.error("Erro ao excluir laudo:", err);
+      alert("Não foi possível excluir o laudo. Tente novamente.");
+    } finally {
+      setDeletingReport(false);
     }
   }
 
@@ -462,32 +492,44 @@ export default function PatientDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     {reports.map((report) => (
-                      <Link
+                      <div
                         key={report.id}
-                        href={`/dashboard/evaluations/${report.evaluation_id}/report`}
-                        className="block p-4 rounded-xl border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-all group"
+                        className="p-4 rounded-xl border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-all group"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="space-y-1 flex-1">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-bold text-slate-900">{report.evaluation_title || report.evaluation_code}</span>
+                        <div className="flex items-center justify-between gap-4">
+                          <Link href={`/dashboard/evaluations/${report.evaluation_id}/report`} className="flex min-w-0 flex-1 items-center justify-between gap-4">
+                            <div className="space-y-1 flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-bold text-slate-900">{report.evaluation_title || report.evaluation_code}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                <span>Autor: {report.author_name}</span>
+                                <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                <span>Criado em: {formatDateTime(report.created_at)}</span>
+                                <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                <span className={`font-semibold ${
+                                  report.status === "finalized" ? "text-emerald-600" : "text-amber-600"
+                                }`}>
+                                  {report.status === "finalized" ? "Finalizado" : "Em andamento"}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500">
-                              <span>Autor: {report.author_name}</span>
-                              <span className="h-1 w-1 rounded-full bg-slate-300" />
-                              <span>Criado em: {formatDateTime(report.created_at)}</span>
-                              <span className="h-1 w-1 rounded-full bg-slate-300" />
-                              <span className={`font-semibold ${
-                                report.status === "finalized" ? "text-emerald-600" : "text-amber-600"
-                              }`}>
-                                {report.status === "finalized" ? "Finalizado" : "Em andamento"}
-                              </span>
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-300 transition-colors group-hover:border-primary/20 group-hover:text-primary">
+                              <ChevronRight className="h-5 w-5" />
                             </div>
-                          </div>
-                          <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors" />
+                          </Link>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 shrink-0 rounded-full text-slate-400 hover:bg-red-50 hover:text-red-600"
+                            onClick={() => handleOpenDeleteReportDialog(report.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -599,6 +641,53 @@ export default function PatientDetailPage() {
                 disabled={deletingEvaluation}
               >
                 {deletingEvaluation ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Sim, Excluir
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteReportConfirmationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <h3 className="text-lg font-bold text-slate-900">Excluir Laudo?</h3>
+                <p className="text-sm text-slate-600">
+                  Esta ação irá remover permanentemente o laudo selecionado.
+                </p>
+                <p className="text-sm font-bold text-red-600">Esta ação não pode ser desfeita.</p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                className="font-bold"
+                onClick={handleCloseDeleteReportDialog}
+                disabled={deletingReport}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="font-bold"
+                onClick={handleDeleteReport}
+                disabled={deletingReport}
+              >
+                {deletingReport ? (
                   <>
                     <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     Excluindo...

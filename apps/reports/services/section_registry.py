@@ -215,6 +215,11 @@ SECTION_REGISTRY: dict[str, dict] = {
             "message": "Nao ha resultados validados da EBADEP suficientes para gerar esta secao com IA.",
         },
     },
+    "referencias_bibliograficas": {
+        "title": "23. Referências Bibliográficas",
+        "order": 23,
+        "required_any_codes": (),
+    },
     "aspectos_emocionais_comportamentais": {
         "title": "19. Aspectos Emocionais, Comportamentais e Escalas Complementares",
         "order": 19,
@@ -296,4 +301,4 @@ def get_section_validation(section_key: str) -> dict:
 
 
 def list_section_configs() -> list[tuple[str, dict]]:
-    return list(SECTION_REGISTRY.items())
+    return sorted(SECTION_REGISTRY.items(), key=lambda item: item[1].get("order", 0))

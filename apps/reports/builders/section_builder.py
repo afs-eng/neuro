@@ -1,3 +1,6 @@
+from .references_builder import build_references_text
+
+
 SECTION_ALIASES = {
     "demanda": "descricao_demanda",
     "historia_pessoal_anamnese": "historia_pessoal",
@@ -38,6 +41,7 @@ DEFAULT_REPORT_SECTIONS = [
     ("ebadep", "EBADEP"),
     ("conclusao", "Conclusao"),
     ("sugestoes_conduta", "Sugestoes de conduta"),
+    ("referencias_bibliograficas", "Referencias Bibliograficas"),
 ]
 
 
@@ -68,6 +72,8 @@ def build_section_source_payload(section_key: str, snapshot_payload: dict) -> di
             "anamnesis": anamnesis,
             "progress_entries": snapshot_payload.get("progress_entries", []),
         }
+    if section_key == "referencias_bibliograficas":
+        return {"validated_tests": tests}
     return snapshot_payload
 
 
@@ -144,4 +150,6 @@ def build_section_text(
         return "Secao pronta para conclusao clinica integrada pelo profissional responsavel."
     if section_key == "sugestoes_conduta":
         return "Secao pronta para orientacoes e encaminhamentos finais."
+    if section_key == "referencias_bibliograficas":
+        return build_references_text(source_payload.get("validated_tests", []))
     return "Secao preparada para preenchimento estruturado."

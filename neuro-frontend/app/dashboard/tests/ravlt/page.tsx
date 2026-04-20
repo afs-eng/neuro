@@ -43,6 +43,8 @@ function RAVLTFormPageContent() {
   const [saving, setSaving] = useState(false)
   const [currentTrial, setCurrentTrial] = useState('a1')
   const [activeTab, setActiveTab] = useState<'general' | 'recognition'>('general')
+  const [isPointerDown, setIsPointerDown] = useState(false)
+  const [dragMode, setDragMode] = useState<'check' | 'uncheck'>('check')
 
   const evaluationId = searchParams.get("evaluation_id");
   const applicationId = searchParams.get("application_id");
@@ -108,16 +110,74 @@ function RAVLTFormPageContent() {
     fetchEvaluation()
   }, [evaluationId, applicationId, router, searchParams])
 
-  const toggleCheckbox = (wordIndex: number, trial: string) => {
+  useEffect(() => {
+    const handlePointerUp = () => {
+      setIsPointerDown(false)
+    }
+
+    window.addEventListener('mouseup', handlePointerUp)
+    return () => window.removeEventListener('mouseup', handlePointerUp)
+  }, [])
+
+  const updateTrialScore = (state: Record<string, boolean>, trial: string) => {
+    const trialCheckboxes = Object.entries(state)
+      .filter(([k]) => k.endsWith(`-${trial}`))
+      .filter(([, v]) => v).length
+    setScores(prev => ({ ...prev, [trial]: trialCheckboxes }))
+  }
+
+  const setCheckboxValue = (wordIndex: number, trial: string, checked: boolean) => {
     const key = `${wordIndex}-${trial}`
     setCheckboxes(prev => {
-      const newState = { ...prev, [key]: !prev[key] }
-      const trialCheckboxes = Object.entries(newState)
-        .filter(([k]) => k.endsWith(`-${trial}`))
-        .filter(([, v]) => v).length
-      setScores(prev => ({ ...prev, [trial]: trialCheckboxes }))
+      if (prev[key] === checked) {
+        return prev
+      }
+
+      const newState = { ...prev, [key]: checked }
+      updateTrialScore(newState, trial)
       return newState
     })
+  }
+
+  const handleCheckboxMouseDown = (wordIndex: number, trial: string) => {
+    const key = `${wordIndex}-${trial}`
+    const nextMode = checkboxes[key] ? 'uncheck' : 'check'
+    setIsPointerDown(true)
+    setDragMode(nextMode)
+    setCheckboxValue(wordIndex, trial, nextMode === 'check')
+  }
+
+  const handleCheckboxMouseEnter = (wordIndex: number, trial: string) => {
+    if (!isPointerDown) {
+      return
+    }
+
+    setCheckboxValue(wordIndex, trial, dragMode === 'check')
+  }
+
+  const setRecognitionValue = (index: number, checked: boolean) => {
+    setRecognitionChecks(prev => {
+      if (prev[index] === checked) {
+        return prev
+      }
+
+      return { ...prev, [index]: checked }
+    })
+  }
+
+  const handleRecognitionMouseDown = (index: number) => {
+    const nextMode = recognitionChecks[index] ? 'uncheck' : 'check'
+    setIsPointerDown(true)
+    setDragMode(nextMode)
+    setRecognitionValue(index, nextMode === 'check')
+  }
+
+  const handleRecognitionMouseEnter = (index: number) => {
+    if (!isPointerDown) {
+      return
+    }
+
+    setRecognitionValue(index, dragMode === 'check')
   }
 
   const getTrialLabel = (trial: string) => {
@@ -150,10 +210,6 @@ function RAVLTFormPageContent() {
       .filter(([, v]) => v).length
   }
 
-  const toggleRecognition = (index: number) => {
-    setRecognitionChecks(prev => ({ ...prev, [index]: !prev[index] }))
-  }
-
   const getRecognitionStats = () => {
     const totalAcertos = Object.values(recognitionChecks).filter(Boolean).length
     return { totalAcertos }
@@ -163,6 +219,12 @@ function RAVLTFormPageContent() {
     e.preventDefault()
     if (!evaluationId) {
       alert('ID da avaliação não encontrado.')
+      return
+    }
+
+    if (Object.keys(recognitionChecks).length === 0) {
+      alert('Preencha a fase de reconhecimento antes de salvar o resultado.')
+      setActiveTab('recognition')
       return
     }
 
@@ -303,7 +365,13 @@ function RAVLTFormPageContent() {
                           return (
                             <td key={trial} className={`p-1 border-r border-slate-100 ${currentTrial === trial ? 'bg-primary/5' : ''}`}>
                               <button
-                                onClick={() => toggleCheckbox(idx, trial)}
+                                type="button"
+                                onMouseDown={() => handleCheckboxMouseDown(idx, trial)}
+                                onMouseEnter={(event) => {
+                                  if (event.buttons === 1) {
+                                    handleCheckboxMouseEnter(idx, trial)
+                                  }
+                                }}
                                 className={`w-10 h-6 mx-auto flex items-center justify-center transition-all duration-200 rounded-md ${
                                   isChecked
                                     ? `${getTrialColor(trial)} text-white shadow-sm`
@@ -390,7 +458,13 @@ function RAVLTFormPageContent() {
                       return (
                         <button 
                           key={idx} 
-                          onClick={() => toggleRecognition(idx)} 
+                          type="button"
+                          onMouseDown={() => handleRecognitionMouseDown(idx)}
+                          onMouseEnter={(event) => {
+                            if (event.buttons === 1) {
+                              handleRecognitionMouseEnter(idx)
+                            }
+                          }}
                           className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md border transition-all ${
                             isChecked 
                               ? 'bg-primary text-white border-primary shadow-sm transform hover:scale-105' 

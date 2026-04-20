@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from io import BytesIO
 import logging
+import re
+from pathlib import Path
 
 import matplotlib
 
@@ -9,6 +11,7 @@ matplotlib.use("Agg")
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 from django.conf import settings
 from docx import Document
 from docx.table import Table
@@ -17,11 +20,13 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
-from docx.shared import Inches, Pt
+from docx.shared import Inches, Pt, RGBColor
 from docx.shared import Cm
 
 from apps.reports.models import Report
+from apps.reports.builders.references_builder import build_references
 from apps.reports.services.report_context_service import ReportContextService
+from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
 
 
 class ReportExportService:
@@ -29,6 +34,7 @@ class ReportExportService:
     ADOLESCENT_TEMPLATE_PATH = settings.BASE_DIR / "Modelo-Adolescente.docx"
     FONT_NAME = "Times New Roman"
     BODY_SIZE = Pt(12)
+    TABLE_SIZE = Pt(9)
     TITLE_SIZE = Pt(12)
     CAPTION_SIZE = Pt(9)
     BODY_LINE_SPACING = 1.5
@@ -42,6 +48,11 @@ class ReportExportService:
     TABLE_WIDTH = Inches(6.2)
     ACCENT_COLOR = "2F6DB3"
     HEADER_FILL = "DCE6F1"
+    WISC_HEADER_FILL = "A8D08D"
+    WISC_NAME_FILL = "538135"
+    WISC_VALUE_FILL = "E2EFD9"
+    LOCAL_LIBERATION_SERIF = Path.home() / ".local/share/fonts/liberation/LiberationSerif-Regular.ttf"
+    LOCAL_LIBERATION_SERIF_BOLD = Path.home() / ".local/share/fonts/liberation/LiberationSerif-Bold.ttf"
     INSTRUMENT_CATALOG = {
         "anamnese": {
             "nome": "Anamnese",
@@ -392,13 +403,8 @@ class ReportExportService:
             or "Sem conteúdo disponível para esta seção.",
         )
 
-        cls._append_heading(document, "5. ANÁLISE QUALITATIVA")
-        cls._append_subheading(document, "Capacidade Cognitiva Global – WISC-IV")
-        cls._append_paragraph(
-            document,
-            sections.get("capacidade_cognitiva_global")
-            or "Sem conteúdo disponível para esta seção.",
-        )
+        cls._append_heading(document, "5. EFICIÊNCIA COGNITIVA")
+        cls._append_wisc_global_block(document, cls._find_test(context, "wisc4"), context)
         cls._append_chart(
             document,
             "Desempenho no WISC-IV",
@@ -411,32 +417,38 @@ class ReportExportService:
                 else None
             ),
         )
+        legend_paragraph = document.add_paragraph(cls._wisc_chart_legend())
+        cls._format_chart_legend_paragraph(legend_paragraph)
         cls._append_subheading(document, "Subescalas WISC-IV")
         cls._append_subheading(document, "Funções Executivas")
         cls._append_table_with_interpretation(
             document,
-            cls._wisc_rows(cls._find_test(context, "wisc4"), verbal=False),
+            cls._wisc_rows(
+                cls._find_test(context, "wisc4"), context, "funcoes_executivas"
+            ),
             "wisc",
             sections.get("funcoes_executivas"),
         )
         cls._append_subheading(document, "Linguagem")
         cls._append_table_with_interpretation(
             document,
-            cls._wisc_rows(cls._find_test(context, "wisc4"), verbal=True),
+            cls._wisc_rows(cls._find_test(context, "wisc4"), context, "linguagem"),
             "wisc",
             sections.get("linguagem"),
         )
         cls._append_subheading(document, "Gnosias e Praxias")
         cls._append_table_with_interpretation(
             document,
-            cls._wisc_rows(cls._find_test(context, "wisc4"), verbal=False),
+            cls._wisc_rows(
+                cls._find_test(context, "wisc4"), context, "gnosias_praxias"
+            ),
             "wisc",
             sections.get("gnosias_praxias"),
         )
         cls._append_subheading(document, "Memória e Aprendizagem")
         cls._append_table_with_interpretation(
             document,
-            cls._wisc_memory_rows(cls._find_test(context, "wisc4")),
+            cls._wisc_memory_rows(cls._find_test(context, "wisc4"), context),
             "wisc",
             sections.get("memoria_aprendizagem"),
         )
@@ -634,6 +646,9 @@ class ReportExportService:
             style = document.styles[style_name]
             style.font.name = cls.FONT_NAME
             style.font.size = cls.BODY_SIZE
+            style.paragraph_format.space_before = Pt(0)
+            style.paragraph_format.space_after = Pt(0)
+            style.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
 
     @classmethod
     def _replace_simple_sections(cls, document: Document, sections: dict[str, str]):
@@ -656,6 +671,14 @@ class ReportExportService:
             "Sugestões de Conduta (Encaminhamentos):": sections.get(
                 "sugestoes_conduta", "Sem conteúdo disponível para esta seção."
             ),
+            "Referências Bibliográficas": sections.get(
+                "referencias_bibliograficas",
+                "Sem conteúdo disponível para esta seção.",
+            ),
+            "Referencia Bibliográfica": sections.get(
+                "referencias_bibliograficas",
+                "Sem conteúdo disponível para esta seção.",
+            ),
         }
         boundaries = {
             "IDENTIFICAÇÃO": "DESCRIÇÃO DA DEMANDA",
@@ -664,6 +687,8 @@ class ReportExportService:
             "ANÁLISE": "ANÁLISE QUALIDATIVA",
             "Conclusão": "Sugestões de Conduta (Encaminhamentos):",
             "Sugestões de Conduta (Encaminhamentos):": "Considerações Finais",
+            "Referências Bibliográficas": None,
+            "Referencia Bibliográfica": None,
         }
 
         for heading, text in replacements.items():
@@ -714,8 +739,35 @@ class ReportExportService:
             for line in (text or "").split("\n"):
                 if not line.strip():
                     continue
-                anchor = cls._insert_paragraph_after(anchor, line)
-                cls._format_body_paragraph(anchor)
+                if line.lstrip().startswith("- "):
+                    anchor = cls._insert_paragraph_after(anchor, "")
+                    bullet_text = line.lstrip()[2:].strip()
+                    p = anchor
+                    lead, separator, tail = bullet_text.partition(" Avaliou ")
+                    bullet_prefix = p.add_run("-\t")
+                    bullet_prefix.font.name = cls.FONT_NAME
+                    bullet_prefix.font.size = cls.BODY_SIZE
+                    bold_run = p.add_run(lead if separator else bullet_text)
+                    bold_run.font.name = cls.FONT_NAME
+                    bold_run.font.size = cls.BODY_SIZE
+                    bold_run.bold = True
+                    if separator:
+                        tail_run = p.add_run(f" Avaliou {tail}")
+                        tail_run.font.name = cls.FONT_NAME
+                        tail_run.font.size = cls.BODY_SIZE
+                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    p.paragraph_format.space_before = Pt(0)
+                    p.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+                    p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+                    p.paragraph_format.left_indent = Cm(1.1)
+                    p.paragraph_format.first_line_indent = Cm(-0.55)
+                    p.paragraph_format.tab_stops.add_tab_stop(Cm(1.1))
+                else:
+                    anchor = cls._insert_paragraph_after(anchor, line)
+                    if line.startswith("Capacidade Cognitiva Global:"):
+                        cls._append_wisc_intro_paragraph(anchor, line)
+                    else:
+                        cls._format_left_body_paragraph(anchor)
 
         def add_table(caption: str, rows: list[list[str]] | None, table_key: str):
             nonlocal anchor, table_index
@@ -742,10 +794,12 @@ class ReportExportService:
             run = anchor.runs[0] if anchor.runs else anchor.add_run()
             run.add_picture(BytesIO(image_bytes), width=cls.IMAGE_WIDTH)
             anchor.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if caption == "Índices do WISC-IV":
+                anchor = cls._insert_paragraph_after(anchor, cls._wisc_chart_legend())
+                cls._format_chart_legend_paragraph(anchor)
             chart_index += 1
 
-        add_title("Capacidade Cognitiva Global")
-        add_text(sections.get("capacidade_cognitiva_global", ""))
+        anchor = cls._insert_wisc_global_block_after(anchor, tests.get("wisc4"), context)
         add_chart("Índices do WISC-IV", cls._wisc_chart(tests.get("wisc4")))
 
         if is_adolescent:
@@ -753,7 +807,7 @@ class ReportExportService:
             add_text(sections.get("funcoes_executivas", ""))
             add_table(
                 "Resultados das Funções Executivas",
-                cls._wisc_rows(tests.get("wisc4"), verbal=False),
+                cls._wisc_rows(tests.get("wisc4"), context, "funcoes_executivas"),
                 "wisc",
             )
 
@@ -761,7 +815,7 @@ class ReportExportService:
             add_text(sections.get("linguagem", ""))
             add_table(
                 "Resultados da Linguagem",
-                cls._wisc_rows(tests.get("wisc4"), verbal=True),
+                cls._wisc_rows(tests.get("wisc4"), context, "linguagem"),
                 "wisc",
             )
 
@@ -769,7 +823,7 @@ class ReportExportService:
             add_text(sections.get("gnosias_praxias", ""))
             add_table(
                 "Resultados de Gnosias e Praxias",
-                cls._wisc_rows(tests.get("wisc4"), verbal=False),
+                cls._wisc_rows(tests.get("wisc4"), context, "gnosias_praxias"),
                 "wisc",
             )
 
@@ -777,8 +831,8 @@ class ReportExportService:
             add_text(sections.get("memoria_aprendizagem", ""))
             add_table(
                 "Resultados da Memória e Aprendizagem",
-                cls._ravlt_rows(tests.get("ravlt")),
-                "ravlt",
+                cls._wisc_memory_rows(tests.get("wisc4"), context),
+                "wisc",
             )
 
             add_title("BPA-2 Bateria Psicológica para Avaliação da Atenção")
@@ -999,6 +1053,149 @@ class ReportExportService:
             run.font.size = cls.BODY_SIZE
 
     @classmethod
+    def _format_left_body_paragraph(cls, paragraph):
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+        paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        paragraph.paragraph_format.first_line_indent = Pt(0)
+        for run in paragraph.runs:
+            run.font.name = cls.FONT_NAME
+            run.font.size = cls.BODY_SIZE
+
+    @classmethod
+    def _append_wisc_intro_paragraph(cls, paragraph, text: str):
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+        paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        paragraph.paragraph_format.first_line_indent = Cm(1.25)
+
+        qit_match = re.search(r"QI Total \(QIT [^)]+\)", text)
+        class_match = re.search(r"ficando na classificação ([^,.]+)", text)
+        age_phrase_match = re.search(
+            r"quando comparado à média geral e com idade cognitiva estimada de [^.]+",
+            text,
+        )
+
+        bold_segments = [
+            "Capacidade Cognitiva Global:",
+            "WISC IV",
+        ]
+        if qit_match:
+            bold_segments.append(qit_match.group(0))
+        if class_match:
+            bold_segments.append(class_match.group(1).strip())
+        if age_phrase_match:
+            bold_segments.append(age_phrase_match.group(0))
+
+        cursor = 0
+        for segment in sorted(set(bold_segments), key=lambda item: text.find(item)):
+            index = text.find(segment, cursor)
+            if index < 0:
+                continue
+            if index > cursor:
+                run = paragraph.add_run(text[cursor:index])
+                run.font.name = cls.FONT_NAME
+                run.font.size = cls.BODY_SIZE
+            run = paragraph.add_run(segment)
+            run.font.name = cls.FONT_NAME
+            run.font.size = cls.BODY_SIZE
+            run.bold = True
+            cursor = index + len(segment)
+
+        if cursor < len(text):
+            run = paragraph.add_run(text[cursor:])
+            run.font.name = cls.FONT_NAME
+            run.font.size = cls.BODY_SIZE
+
+    @staticmethod
+    def _wisc_payload(test: dict | None) -> dict:
+        return (
+            (test or {}).get("structured_results")
+            or (test or {}).get("classified_payload")
+            or (test or {}).get("computed_payload")
+            or {}
+        )
+
+    @classmethod
+    def _wisc_global_intro_text(cls, test: dict | None, context: dict) -> str:
+        payload = cls._wisc_payload(test)
+        qit = payload.get("qit_data") or {}
+        patient_label = "A paciente" if (context.get("patient") or {}).get("sex") == "F" else "O paciente"
+        intro = (
+            f"Capacidade Cognitiva Global: {patient_label} obteve, a partir da escala WISC IV, "
+            f"QI Total (QIT {qit.get('escore_composto', 'não informado')}), ficando na classificação "
+            f"{qit.get('classificacao', 'não informada')}"
+        )
+        idade_cognitiva = payload.get("idade_cognitiva")
+        if idade_cognitiva:
+            intro += (
+                f", quando comparado à média geral e com idade cognitiva estimada de {idade_cognitiva}"
+            )
+        intro += ". Em relação aos índices fatoriais (medidas mais apuradas da inteligência), apresentou os seguintes resultados:"
+        return intro
+
+    @classmethod
+    def _wisc_global_bullet_parts(cls, test: dict | None) -> list[tuple[str, str]]:
+        payload = cls._wisc_payload(test)
+        indices = {item.get("indice"): item for item in payload.get("indices") or []}
+        definitions = [
+            ("Compreensão Verbal", "ICV", indices.get("icv"), "Avaliou o conhecimento verbal adquirido, o processo mental necessário para responder às questões formuladas, a capacidade de compreensão verbal e o raciocínio verbal."),
+            ("Organização Perceptual", "IOP", indices.get("iop"), "Avaliou o raciocínio não verbal, a atenção para detalhes e a integração visomotora."),
+            ("Memória Operacional", "IMO", indices.get("imt"), "Avaliou a atenção, a concentração e a memória operacional."),
+            ("Velocidade de Processamento", "IVP", indices.get("ivp"), "Avaliou a capacidade de em realizar tarefas que demandam rapidez e precisão na análise de estímulos visuais."),
+        ]
+        rows: list[tuple[str, str]] = []
+        for label, code, item, description in definitions:
+            item = item or {}
+            lead = (
+                f"{label} ({code}) — {item.get('escore_composto', 'não informado')} — "
+                f"{item.get('classificacao', 'não informada')}"
+            )
+            rows.append((lead, description))
+        return rows
+
+    @classmethod
+    def _append_wisc_global_bullet(cls, paragraph, lead: str, tail: str):
+        bullet_prefix = paragraph.add_run("-\t")
+        bullet_prefix.font.name = cls.FONT_NAME
+        bullet_prefix.font.size = cls.BODY_SIZE
+        bold_run = paragraph.add_run(lead)
+        bold_run.font.name = cls.FONT_NAME
+        bold_run.font.size = cls.BODY_SIZE
+        bold_run.bold = True
+        tail_run = paragraph.add_run(f" {tail}")
+        tail_run.font.name = cls.FONT_NAME
+        tail_run.font.size = cls.BODY_SIZE
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+        paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        paragraph.paragraph_format.left_indent = Cm(1.1)
+        paragraph.paragraph_format.first_line_indent = Cm(-0.55)
+        paragraph.paragraph_format.tab_stops.add_tab_stop(Cm(1.1))
+
+    @classmethod
+    def _append_wisc_global_block(cls, document, test: dict | None, context: dict):
+        intro = cls._wisc_global_intro_text(test, context)
+        p = document.add_paragraph()
+        cls._append_wisc_intro_paragraph(p, intro)
+        for lead, tail in cls._wisc_global_bullet_parts(test):
+            p = document.add_paragraph()
+            cls._append_wisc_global_bullet(p, lead, tail)
+
+    @classmethod
+    def _insert_wisc_global_block_after(cls, anchor, test: dict | None, context: dict):
+        intro = cls._wisc_global_intro_text(test, context)
+        anchor = cls._insert_paragraph_after(anchor, "")
+        cls._append_wisc_intro_paragraph(anchor, intro)
+        for lead, tail in cls._wisc_global_bullet_parts(test):
+            anchor = cls._insert_paragraph_after(anchor, "")
+            cls._append_wisc_global_bullet(anchor, lead, tail)
+        return anchor
+
+    @classmethod
     def _format_subtitle_paragraph(cls, paragraph):
         paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
         paragraph.paragraph_format.space_before = cls.SUBHEADING_SPACE_BEFORE
@@ -1049,10 +1246,19 @@ class ReportExportService:
     @classmethod
     def _append_heading(cls, document, text: str):
         p = document.add_paragraph()
-        r = p.add_run(text)
-        r.font.name = cls.FONT_NAME
-        r.font.size = cls.TITLE_SIZE
-        r.bold = True
+        if text.endswith("EFICIÊNCIA COGNITIVA") and ". " in text:
+            number, heading_text = text.split(". ", 1)
+            runs = [
+                p.add_run(f"{number}."),
+                p.add_run("\t\t"),
+                p.add_run(heading_text),
+            ]
+        else:
+            runs = [p.add_run(text)]
+        for run in runs:
+            run.font.name = cls.FONT_NAME
+            run.font.size = cls.TITLE_SIZE
+            run.bold = True
         p.paragraph_format.space_before = cls.HEADING_SPACE_BEFORE
         p.paragraph_format.space_after = cls.HEADING_SPACE_AFTER
         p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
@@ -1166,6 +1372,28 @@ class ReportExportService:
         img = document.add_paragraph()
         img.alignment = WD_ALIGN_PARAGRAPH.CENTER
         img.add_run().add_picture(BytesIO(image_bytes), width=cls.IMAGE_WIDTH)
+
+    @classmethod
+    def _format_chart_legend_paragraph(cls, paragraph):
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = Pt(0)
+        paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        paragraph.paragraph_format.first_line_indent = Pt(0)
+        for run in paragraph.runs:
+            run.font.name = cls.FONT_NAME
+            run.font.size = Pt(9)
+            run.italic = True
+
+    @classmethod
+    def _wisc_chart_legend(cls) -> str:
+        return (
+            "Gráfico 1 WISC-IV - INDICES DE QIS: Índice de Compreensão Verbal (ICV): composto por provas que avaliam as habilidades verbais por meio do raciocínio, compreensão e conceituação. "
+            "Índice de Organização Perceptual (IOP): constituído por atividades que examinam o grau e a qualidade do contato não verbal do indivíduo com o ambiente, assim como a capacidade de integrar estímulos perceptuais e respostas motoras pertinentes, o nível de rapidez com o qual executa uma atividade e o modo como avalia informações visuoespaciais. "
+            "Índice de Memória Operacional (IMO): formado por provas que analisam atenção, concentração e memória de trabalho. "
+            "Índice de Velocidade de Processamento (IVP): constitui-se de atividades que avaliam agilidade mental e processamento grafomotor. "
+            "Coeficiente de Inteligência Total (QIT): avalia o nível geral do funcionamento intelectual."
+        )
 
     @classmethod
     def _find_test(cls, context: dict, code: str):
@@ -1318,35 +1546,44 @@ class ReportExportService:
 
     @staticmethod
     def _references_list(context: dict):
-        return [
-            "CONSELHO FEDERAL DE PSICOLOGIA (CFP). Resolução nº 6, de 29 de março de 2019. Brasília: CFP, 2019.",
-            "WECHSLER, D. WISC-IV – Escala de Inteligência Wechsler para Crianças – Quarta Edição. São Paulo: Pearson.",
-            "RUEDA, F. J. M. Bateria Psicológica para Avaliação da Atenção – BPA-2. São Paulo: Vetor Editora.",
-            "SALLES, J. F.; FONSECA, R. P.; PARENTE, M. A. M. P. Teste dos Cinco Dígitos (FDT). São Paulo: Casa do Psicólogo.",
-            "BIRMAHER, B. et al. Screen for Child Anxiety Related Emotional Disorders (SCARED). JAACAP.",
-            "CONSTANTINO, J. N.; GRUBER, C. P. Social Responsiveness Scale – Second Edition (SRS-2).",
-            "EYSENCK, H. J.; EYSENCK, S. B. G. Inventário de Personalidade de Eysenck – Versão Jovens (EPQ-J).",
-        ]
+        return build_references(context.get("validated_tests") or [])
 
     @classmethod
-    def _wisc_memory_rows(cls, test: dict | None):
+    def _wisc_memory_rows(cls, test: dict | None, context: dict):
         payload = (test or {}).get("classified_payload") or {}
-        rows = [["Testes Utilizados", "Escore Obtido", "Percentil", "Classificação"]]
-        for item in payload.get("subtestes") or []:
-            if item.get("subteste") in {
-                "Sequência de Números e Letras",
-                "Dígitos",
-                "Dígitos Ordem Direta",
-                "Dígitos Ordem Inversa",
-            }:
-                rows.append(
-                    [
-                        item.get("subteste") or "-",
-                        cls._num(item.get("escore_padrao") or item.get("escore_bruto")),
-                        cls._num(item.get("percentil")),
-                        item.get("classificacao") or "-",
-                    ]
-                )
+        ncp_table = cls._wisc_ncp_table(context)
+        rows = [[
+            "Testes Utilizados",
+            "Escore Máximo",
+            "Escore Médio",
+            "Escore Mínimo",
+            "Escore Bruto",
+            "Classificação",
+        ]]
+        labels = {
+            "SNL": "Seq. Núm. e Letras",
+            "DG": "Dígitos",
+        }
+        for code in ("SNL", "DG"):
+            item = next(
+                (entry for entry in payload.get("subtestes") or [] if entry.get("codigo") == code),
+                None,
+            )
+            if not item:
+                continue
+            score_max, score_mid, score_min = cls._wisc_reference_scores(
+                ncp_table, code
+            )
+            rows.append(
+                [
+                    labels.get(code, item.get("subteste") or "-"),
+                    score_max,
+                    score_mid,
+                    score_min,
+                    cls._num(item.get("escore_bruto")),
+                    item.get("classificacao") or "-",
+                ]
+            )
         return rows if len(rows) > 1 else None
 
     @classmethod
@@ -1400,7 +1637,14 @@ class ReportExportService:
             if row_index == 0:
                 cls._set_repeat_table_header(row)
             for cell in row.cells:
-                if row_index == 0:
+                if table_key == "wisc":
+                    if row_index == 0:
+                        cls._set_cell_shading(cell, cls.WISC_HEADER_FILL)
+                    elif cell == row.cells[0]:
+                        cls._set_cell_shading(cell, cls.WISC_NAME_FILL)
+                    else:
+                        cls._set_cell_shading(cell, cls.WISC_VALUE_FILL)
+                elif row_index == 0:
                     cls._set_cell_shading(cell, cls.HEADER_FILL)
                 for paragraph in cell.paragraphs:
                     paragraph.alignment = (
@@ -1409,18 +1653,33 @@ class ReportExportService:
                         else WD_ALIGN_PARAGRAPH.LEFT
                     )
                     paragraph.paragraph_format.space_after = Pt(0)
-                    paragraph.paragraph_format.line_spacing = 1.0
+                    paragraph.paragraph_format.line_spacing = 1.5
                     for run in paragraph.runs:
                         run.font.name = cls.FONT_NAME
-                        run.font.size = cls.BODY_SIZE
+                        run.font.size = cls.TABLE_SIZE
                         if row_index == 0:
                             run.bold = True
+                        if table_key == "wisc" and row_index > 0 and cell == row.cells[0]:
+                            run.font.color.rgb = RGBColor(255, 255, 255)
                 cell.vertical_alignment = None
+
+            if table_key == "wisc" and row_index > 0 and row.cells[0].text == "Fala Espontânea":
+                merged = row.cells[1]
+                for idx in range(2, len(row.cells)):
+                    merged = merged.merge(row.cells[idx])
+                row.cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
 
     @classmethod
     def _apply_table_widths(cls, table, table_key: str):
         widths_map = {
-            "wisc": [Inches(2.5), Inches(1.2), Inches(1.1), Inches(1.4)],
+            "wisc": [
+                Inches(2.35),
+                Inches(1.05),
+                Inches(1.05),
+                Inches(1.05),
+                Inches(0.95),
+                Inches(1.35),
+            ],
             "bpa": [Inches(2.8), Inches(1.2), Inches(1.0), Inches(1.2)],
             "ravlt": [Inches(2.2), Inches(1.2)],
             "fdt": [
@@ -1467,6 +1726,86 @@ class ReportExportService:
         return str(value).replace(".", ",")
 
     @staticmethod
+    def _parse_iso_date(value):
+        if not value:
+            return None
+        from datetime import date
+
+        if isinstance(value, date):
+            return value
+        try:
+            return date.fromisoformat(str(value)[:10])
+        except ValueError:
+            return None
+
+    @classmethod
+    def _wisc_ncp_table(cls, context: dict):
+        birth_date = cls._parse_iso_date((context.get("patient") or {}).get("birth_date"))
+        reference_date = cls._parse_iso_date((context.get("evaluation") or {}).get("start_date"))
+        for test in context.get("validated_tests") or []:
+            if test.get("instrument_code") == "wisc4" and test.get("applied_on"):
+                reference_date = cls._parse_iso_date(test.get("applied_on"))
+                break
+        if not birth_date or not reference_date:
+            return None
+        try:
+            years, months = _calcular_idade(birth_date, reference_date)
+            return _carregar_tabela_ncp(years, months)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _normalize_wisc_cell(cell: str) -> tuple[int | None, int | None]:
+        raw = (cell or "").strip().replace(":", "-")
+        if not raw or raw == "-":
+            return (None, None)
+        if "-" in raw:
+            start, end = raw.split("-", 1)
+            try:
+                return (int(start), int(end))
+            except ValueError:
+                return (None, None)
+        if raw.isdigit():
+            if len(raw) == 2 and int(raw[1]) == int(raw[0]) + 1:
+                return (int(raw[0]), int(raw[1]))
+            if len(raw) == 4:
+                left, right = raw[:2], raw[2:]
+                if left.isdigit() and right.isdigit():
+                    return (int(left), int(right))
+            number = int(raw)
+            return (number, number)
+        return (None, None)
+
+    @classmethod
+    def _wisc_reference_scores(cls, table: list[dict] | None, code: str) -> tuple[str, str, str]:
+        if not table:
+            return ("-", "-", "-")
+
+        rows_by_pp = {}
+        for row in table:
+            try:
+                rows_by_pp[int(row.get("PP") or 0)] = row
+            except ValueError:
+                continue
+
+        max_start, max_end = cls._normalize_wisc_cell((rows_by_pp.get(19) or {}).get(code, ""))
+        if max_start is None:
+            max_text = "-"
+        else:
+            max_text = str(max_start) if max_start == max_end else f"{max_start}-{max_end}"
+
+        mid_start, _ = cls._normalize_wisc_cell((rows_by_pp.get(8) or {}).get(code, ""))
+        _, mid_end = cls._normalize_wisc_cell((rows_by_pp.get(12) or {}).get(code, ""))
+        if mid_start is None or mid_end is None:
+            mid_text = "-"
+        else:
+            mid_text = str(mid_start) if mid_start == mid_end else f"{mid_start}-{mid_end}"
+
+        min_start, _ = cls._normalize_wisc_cell((rows_by_pp.get(5) or {}).get(code, ""))
+        min_text = str(min_start) if min_start is not None else "-"
+        return (max_text, mid_text, min_text)
+
+    @staticmethod
     def _extract_percentile_value(value):
         if isinstance(value, (int, float)):
             return float(value)
@@ -1480,25 +1819,51 @@ class ReportExportService:
         return 0.0
 
     @classmethod
-    def _wisc_rows(cls, test: dict | None, verbal: bool):
+    def _wisc_rows(cls, test: dict | None, context: dict, domain: str):
         payload = (test or {}).get("classified_payload") or {}
-        subtests = payload.get("subtestes") or []
-        target = (
-            {"Semelhanças", "Vocabulário", "Compreensão"}
-            if verbal
-            else {"Cubos", "Conceitos Figurativos", "Raciocínio Matricial"}
-        )
-        rows = [["Subteste", "Escore Obtido", "Percentil", "Classificação"]]
-        for item in subtests:
-            if item.get("subteste") in target:
-                rows.append(
-                    [
-                        item.get("subteste") or "-",
-                        cls._num(item.get("escore_padrao") or item.get("escore_bruto")),
-                        cls._num(item.get("percentil")),
-                        item.get("classificacao") or "-",
-                    ]
-                )
+        ncp_table = cls._wisc_ncp_table(context)
+        subtests = {item.get("codigo"): item for item in payload.get("subtestes") or []}
+        domain_codes = {
+            "funcoes_executivas": ["SM", "CN", "CO", "RM"],
+            "linguagem": ["SM", "VC", "CO"],
+            "gnosias_praxias": ["RM", "CB"],
+        }
+        rows = [[
+            "Testes Utilizados",
+            "Escore Máximo",
+            "Escore Médio",
+            "Escore Mínimo",
+            "Escore Bruto",
+            "Classificação",
+        ]]
+        for code in domain_codes.get(domain, []):
+            item = subtests.get(code)
+            if not item:
+                continue
+            score_max, score_mid, score_min = cls._wisc_reference_scores(
+                ncp_table, code
+            )
+            rows.append(
+                [
+                    item.get("subteste") or "-",
+                    score_max,
+                    score_mid,
+                    score_min,
+                    cls._num(item.get("escore_bruto")),
+                    item.get("classificacao") or "-",
+                ]
+            )
+        if domain == "linguagem":
+            rows.append(
+                [
+                    "Fala Espontânea",
+                    "Dentro do esperado para a sua idade",
+                    "",
+                    "",
+                    "",
+                    "",
+                ]
+            )
         return rows if len(rows) > 1 else None
 
     @classmethod
@@ -1747,23 +2112,180 @@ class ReportExportService:
         return output.getvalue()
 
     @classmethod
+    def _build_wisc_chart_png(
+        cls, labels: list[str], values: list[float], errors: list[float] | None = None
+    ) -> bytes | None:
+        if not labels or not values:
+            return None
+
+        errors = errors or [0.0] * len(values)
+        regular_font = None
+        bold_font = None
+        if cls.LOCAL_LIBERATION_SERIF.exists():
+            font_manager.fontManager.addfont(str(cls.LOCAL_LIBERATION_SERIF))
+            regular_font = font_manager.FontProperties(fname=str(cls.LOCAL_LIBERATION_SERIF))
+        if cls.LOCAL_LIBERATION_SERIF_BOLD.exists():
+            font_manager.fontManager.addfont(str(cls.LOCAL_LIBERATION_SERIF_BOLD))
+            bold_font = font_manager.FontProperties(fname=str(cls.LOCAL_LIBERATION_SERIF_BOLD))
+        title_font = regular_font.copy() if regular_font else None
+        if title_font:
+            title_font.set_size(15)
+        x_label_font = regular_font.copy() if regular_font else None
+        if x_label_font:
+            x_label_font.set_size(11)
+        y_label_font = regular_font.copy() if regular_font else None
+        if y_label_font:
+            y_label_font.set_size(11)
+        y_tick_font = regular_font.copy() if regular_font else None
+        if y_tick_font:
+            y_tick_font.set_size(10)
+        x = list(range(len(labels)))
+
+        fig, ax = plt.subplots(figsize=(11, 6), dpi=150)
+        fig.patch.set_facecolor("white")
+        ax.set_facecolor("white")
+
+        bands = [
+            (130, 160, "#b8d87a"),
+            (120, 130, "#c8e08a"),
+            (110, 120, "#d8e8a0"),
+            (90, 110, "#c8d8e8"),
+            (80, 90, "#f0f0a0"),
+            (70, 80, "#f0f000"),
+            (40, 70, "#f0d080"),
+        ]
+        for y0, y1, color in bands:
+            ax.axhspan(y0, y1, facecolor=color, alpha=1.0, zorder=0)
+
+        ax.set_ylim(40, 160)
+        ax.set_xlim(-0.5, len(labels) - 0.5)
+        ax.yaxis.set_major_locator(plt.MultipleLocator(10))
+        ax.grid(axis="y", color="white", linewidth=1.2, zorder=1)
+        ax.grid(axis="x", color="white", linewidth=1.2, zorder=1)
+        ax.set_axisbelow(True)
+
+        color_by_label = {
+            "ICV": "#4472C4",
+            "IOP": "#ED7D31",
+            "IMO": "#808080",
+            "IVP": "#FFC000",
+            "QI Total": "#70AD47",
+            "GAI": "#4472C4",
+            "CPI": "#843C0C",
+        }
+        colors = [color_by_label.get(label, "#5B9BD5") for label in labels]
+
+        bars = ax.bar(
+            x,
+            values,
+            width=0.62,
+            color=colors,
+            edgecolor="none",
+            zorder=3,
+        )
+
+        ax.errorbar(
+            x,
+            values,
+            yerr=errors,
+            fmt="none",
+            ecolor="black",
+            elinewidth=1.8,
+            capsize=6,
+            capthick=1.8,
+            zorder=4,
+        )
+
+        for xi, value in zip(x, values):
+            ax.text(
+                xi,
+                42,
+                cls._num(value),
+                ha="center",
+                va="bottom",
+                fontsize=11,
+                fontweight="bold",
+                color="white",
+                fontproperties=bold_font,
+                zorder=4,
+            )
+
+        ax.set_title(
+            "WISC-IV INDICES QIs",
+            color="#70AD47",
+            pad=12,
+            fontproperties=title_font or regular_font,
+            fontweight="normal",
+        )
+        ax.set_ylabel(
+            "Pontos Compostos",
+            color="#3a5a1a",
+            fontproperties=y_label_font or regular_font,
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, fontsize=10, fontproperties=x_label_font or regular_font)
+        ax.tick_params(axis="y", labelsize=10, colors="#555555")
+        ax.tick_params(axis="x", pad=4, colors="#555555")
+        if y_tick_font:
+            for label in ax.get_yticklabels():
+                label.set_fontproperties(y_tick_font)
+
+        ax.spines["left"].set_color("#aaaaaa")
+        ax.spines["bottom"].set_color("#aaaaaa")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        output = BytesIO()
+        plt.tight_layout()
+        fig.savefig(output, format="png", bbox_inches="tight", facecolor="white")
+        plt.close(fig)
+        return output.getvalue()
+
+    @classmethod
     def _wisc_chart(cls, test: dict | None):
         payload = (test or {}).get("classified_payload") or {}
-        labels, values = [], []
-        for item in payload.get("indices") or []:
-            labels.append(item.get("indice") or item.get("nome") or "Índice")
-            values.append(
-                float(item.get("escore_composto") or item.get("percentil") or 0)
+        labels, values, errors = [], [], []
+        index_labels = {
+            "icv": "ICV",
+            "iop": "IOP",
+            "imt": "IMO",
+            "ivp": "IVP",
+        }
+        for code in ("icv", "iop", "imt", "ivp"):
+            item = next(
+                (entry for entry in payload.get("indices") or [] if entry.get("indice") == code),
+                None,
             )
+            if not item:
+                continue
+            labels.append(index_labels[code])
+            values.append(float(item.get("escore_composto") or 0))
+            interval = item.get("intervalo_confianca") or (0, 0)
+            if isinstance(interval, (list, tuple)) and len(interval) == 2:
+                errors.append(abs(float(interval[1]) - float(interval[0])) / 2)
+            else:
+                errors.append(0.0)
         qit = payload.get("qit_data") or {}
-        if qit:
-            labels.append("QIT")
-            values.append(
-                float(qit.get("escore_composto") or qit.get("percentil") or 0)
-            )
-        return cls._build_chart_png(
-            "bar", "Índices do WISC-IV", labels, values, "Pontuação composta"
-        )
+        if qit.get("escore_composto"):
+            labels.append("QI Total")
+            values.append(float(qit.get("escore_composto") or 0))
+            interval = qit.get("intervalo_confianca") or (0, 0)
+            if isinstance(interval, (list, tuple)) and len(interval) == 2:
+                errors.append(abs(float(interval[1]) - float(interval[0])) / 2)
+            else:
+                errors.append(0.0)
+        for key, label in (("gai_data", "GAI"), ("cpi_data", "CPI")):
+            item = payload.get(key) or {}
+            if not item.get("escore_composto"):
+                continue
+            labels.append(label)
+            values.append(float(item.get("escore_composto") or 0))
+            interval = item.get("intervalo_confianca") or (0, 0)
+            if isinstance(interval, (list, tuple)) and len(interval) == 2:
+                errors.append(abs(float(interval[1]) - float(interval[0])) / 2)
+            else:
+                errors.append(0.0)
+        return cls._build_wisc_chart_png(labels, values, errors)
 
     @classmethod
     def _bpa_chart(cls, test: dict | None):

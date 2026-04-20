@@ -1,8 +1,10 @@
 from collections.abc import Iterable
+from datetime import date
 
 from apps.tests.base.types import TestContext
 from apps.tests.registry import get_test_module
 from apps.tests.selectors import get_validated_test_applications_by_evaluation
+from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
 
 
 SECTION_MAP = {
@@ -209,6 +211,101 @@ def _build_scale_rows(payload: dict) -> list[str]:
     return _extract_generic_rows(payload)
 
 
+def _normalize_wisc_cell(cell: str) -> tuple[int | None, int | None]:
+    raw = (cell or "").strip().replace(":", "-")
+    if not raw or raw == "-":
+        return (None, None)
+    if "-" in raw:
+        start, end = raw.split("-", 1)
+        try:
+            return (int(start), int(end))
+        except ValueError:
+            return (None, None)
+    if raw.isdigit():
+        if len(raw) == 2 and int(raw[1]) == int(raw[0]) + 1:
+            return (int(raw[0]), int(raw[1]))
+        if len(raw) == 4:
+            left, right = raw[:2], raw[2:]
+            if left.isdigit() and right.isdigit():
+                return (int(left), int(right))
+        number = int(raw)
+        return (number, number)
+    return (None, None)
+
+
+def _wisc_reference_scores(table: list[dict] | None, code: str) -> tuple[str, str, str]:
+    if not table:
+        return ("-", "-", "-")
+
+    rows_by_pp = {}
+    for row in table:
+        try:
+            rows_by_pp[int(row.get("PP") or 0)] = row
+        except ValueError:
+            continue
+
+    max_start, max_end = _normalize_wisc_cell((rows_by_pp.get(19) or {}).get(code, ""))
+    max_text = "-" if max_start is None else str(max_start) if max_start == max_end else f"{max_start}-{max_end}"
+
+    mid_start, _ = _normalize_wisc_cell((rows_by_pp.get(8) or {}).get(code, ""))
+    _, mid_end = _normalize_wisc_cell((rows_by_pp.get(12) or {}).get(code, ""))
+    mid_text = "-" if mid_start is None or mid_end is None else str(mid_start) if mid_start == mid_end else f"{mid_start}-{mid_end}"
+
+    min_start, _ = _normalize_wisc_cell((rows_by_pp.get(5) or {}).get(code, ""))
+    min_text = str(min_start) if min_start is not None else "-"
+    return (max_text, mid_text, min_text)
+
+
+def _wisc_ncp_table_for_application(evaluation, applied_on) -> list[dict] | None:
+    if not evaluation.patient.birth_date:
+        return None
+    reference_date = applied_on or evaluation.start_date
+    if not reference_date:
+        return None
+    if isinstance(reference_date, str):
+        reference_date = date.fromisoformat(reference_date[:10])
+    years, months = _calcular_idade(evaluation.patient.birth_date, reference_date)
+    return _carregar_tabela_ncp(years, months)
+
+
+def _build_wisc_tables(payload: dict, evaluation, applied_on) -> dict:
+    ncp_table = _wisc_ncp_table_for_application(evaluation, applied_on)
+    subtests = {item.get("codigo"): item for item in payload.get("subtestes") or []}
+    domains = {
+        "funcoes_executivas": ["SM", "CN", "CO", "RM"],
+        "linguagem": ["SM", "VC", "CO"],
+        "gnosias_praxias": ["RM", "CB"],
+        "memoria_aprendizagem": ["SNL", "DG"],
+    }
+    tables = {}
+    for domain, codes in domains.items():
+        rows = []
+        for code in codes:
+            item = subtests.get(code)
+            if not item:
+                continue
+            score_max, score_mid, score_min = _wisc_reference_scores(ncp_table, code)
+            rows.append(
+                {
+                    "label": "Seq. Núm. e Letras" if code == "SNL" else item.get("subteste") or code,
+                    "maxScore": score_max,
+                    "avgScore": score_mid,
+                    "minScore": score_min,
+                    "obtainedScore": _format_number(item.get("escore_bruto")),
+                    "classification": item.get("classificacao") or "-",
+                }
+            )
+        if domain == "linguagem":
+            rows.append(
+                {
+                    "label": "Fala Espontânea",
+                    "note": "Dentro do esperado para a sua idade",
+                }
+            )
+        tables[domain] = rows
+    return tables
+
+
 def build_result_rows(instrument_code: str, payload: dict) -> list[str]:
     if not payload:
         return []
@@ -274,6 +371,11 @@ def build_validated_tests_snapshot(evaluation) -> list[dict]:
             )
 
         result_rows = build_result_rows(item.instrument.code, structured_results)
+        wisc_tables = (
+            _build_wisc_tables(structured_results, item.evaluation, item.applied_on)
+            if item.instrument.code == "wisc4"
+            else {}
+        )
 
         snapshots.append(
             {
@@ -294,6 +396,7 @@ def build_validated_tests_snapshot(evaluation) -> list[dict]:
                 "clinical_interpretation": clinical_interpretation,
                 "interpretation_text": clinical_interpretation,
                 "result_rows": result_rows,
+                "wisc_tables": wisc_tables,
                 "warnings": warnings,
             }
         )

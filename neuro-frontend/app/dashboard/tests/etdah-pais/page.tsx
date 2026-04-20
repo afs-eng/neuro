@@ -9,6 +9,12 @@ import { ArrowLeft, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
+function formatSexLabel(sex?: string | null) {
+  if (sex === "M") return "Masculino";
+  if (sex === "F") return "Feminino";
+  return "Nao informado";
+}
+
 const QUESTIONS = [
   // Fator 1 - Regulação Emocional (19 itens)
   "Faz amizade, mas não consegue mantê-las",
@@ -139,6 +145,9 @@ function ETDAHPAISTestPageContent() {
       try {
         const data = await api.get<any>(`/api/evaluations/${evaluationId}`);
         setEvaluation(data);
+        if (data?.patient_sex === "M" || data?.patient_sex === "F") {
+          setSex(data.patient_sex);
+        }
       } catch (error: any) {
         console.error("Erro ao buscar avaliação:", error);
       } finally {
@@ -177,7 +186,7 @@ function ETDAHPAISTestPageContent() {
     
     const payload: Record<string, unknown> = {
       evaluation_id: parseInt(evaluationId),
-      sex: sex,
+      sex: evaluation?.patient_sex || sex,
     };
     
     for (let i = 1; i <= 58; i++) {
@@ -241,14 +250,9 @@ function ETDAHPAISTestPageContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Sexo da criança</label>
-                <select
-                  value={sex}
-                  onChange={(e) => setSex(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-                >
-                  <option value="M">Masculino</option>
-                  <option value="F">Feminino</option>
-                </select>
+                <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {formatSexLabel(evaluation?.patient_sex || sex)}
+                </div>
               </div>
             </div>
 

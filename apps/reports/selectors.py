@@ -13,6 +13,10 @@ def get_reports_by_evaluation(evaluation_id: int) -> QuerySet[Report]:
     return list_reports().filter(evaluation_id=evaluation_id)
 
 
+def get_reports_by_patient(patient_id: int) -> QuerySet[Report]:
+    return list_reports().filter(patient_id=patient_id)
+
+
 def get_report_by_id(report_id: int) -> Optional[Report]:
     return Report.objects.with_details().filter(id=report_id).first()
 

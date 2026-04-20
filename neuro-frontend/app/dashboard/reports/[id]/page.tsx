@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageContainer, PageHeader } from "@/components/ui/page";
+import { WiscChart } from "@/components/charts/WiscChart";
 import { resolveApiUrl } from "@/lib/api";
 import { reportService } from "@/services/reportService";
 import { ArrowLeft, Calendar, CheckCircle2, Download, FileText, Loader2, RotateCcw, Save, User } from "lucide-react";
@@ -22,6 +23,13 @@ const WISC_SUBSCALE_ORDER = [
   "gnosias_praxias",
   "memoria_aprendizagem",
 ];
+
+const WISC_DOMAIN_LABELS: Record<string, string> = {
+  funcoes_executivas: "Funções Executivas",
+  linguagem: "Linguagem",
+  gnosias_praxias: "Gnosias e Praxias",
+  memoria_aprendizagem: "Memória e Aprendizagem",
+};
 
 const TEST_SECTION_MAP: Record<string, string> = {
   wisc4: "capacidade_cognitiva_global",
@@ -120,6 +128,7 @@ function getCompletedTests(report: any) {
       structuredResults: item.structured_results || {},
       classifiedPayload: item.classified_payload || {},
       computedPayload: item.computed_payload || {},
+      wiscTables: item.wisc_tables || {},
       warnings: item.warnings || [],
     }))
     .filter((item: any) => {
@@ -187,6 +196,25 @@ function getBpa2Label(code: string, fallback?: string) {
   };
 
   return labels[String(code || "").toLowerCase()] || fallback || code || "Subteste";
+}
+
+function getWiscChartData(test: any) {
+  const payload = test.classifiedPayload || test.structuredResults || test.computedPayload || {};
+  const indices = Array.isArray(payload.indices) ? payload.indices : [];
+  const byIndex = Object.fromEntries(indices.map((item: any) => [item.indice, item]));
+  const rows = [
+    { label: "ICV", value: byIndex.icv?.escore_composto },
+    { label: "IOP", value: byIndex.iop?.escore_composto },
+    { label: "IMO", value: byIndex.imt?.escore_composto },
+    { label: "IVP", value: byIndex.ivp?.escore_composto },
+    { label: "QI Total", value: payload.qit_data?.escore_composto },
+    { label: "GAI", value: payload.gai_data?.escore_composto },
+    { label: "CPI", value: payload.cpi_data?.escore_composto },
+  ];
+
+  return rows
+    .map((item) => ({ ...item, value: normalizeNumber(item.value) }))
+    .filter((item) => item.value !== null) as Array<{ label: string; value: number }>;
 }
 
 function getMissingSectionsFromTests(report: any, completedTests: any[]) {
@@ -694,6 +722,7 @@ export default function ReportDetailPage() {
                     {completedTests.map((test: any) => {
                       const metricRows = buildMetricRows(test);
                       const bpa2Subtests = test.code === "bpa2" ? getBpa2Subtests(test) : [];
+                      const wiscChartData = test.code === "wisc4" ? getWiscChartData(test) : [];
 
                       return (
                         <div key={`${test.code}-${test.name}`} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
@@ -708,6 +737,12 @@ export default function ReportDetailPage() {
                           {test.summary && (
                             <div className="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                               <span className="font-medium text-slate-900">Resumo:</span> {test.summary}
+                            </div>
+                          )}
+
+                          {test.code === "wisc4" && wiscChartData.length > 0 && (
+                            <div className="mt-3">
+                              <WiscChart data={wiscChartData} />
                             </div>
                           )}
 
@@ -756,6 +791,63 @@ export default function ReportDetailPage() {
                           )}
 
                           {test.code !== "bpa2" && metricRows.length > 0 && (
+                            test.code === "wisc4" && Object.values(test.wiscTables || {}).some((rows: any) => Array.isArray(rows) && rows.length > 0) ? (
+                              <div className="mt-3 space-y-4">
+                                {WISC_SUBSCALE_ORDER.map((domainKey) => {
+                                  const rows = test.wiscTables?.[domainKey] || [];
+                                  if (!rows.length) return null;
+
+                                  return (
+                                    <div key={domainKey} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                      <div className="border-b border-slate-100 px-3 py-2 text-sm font-semibold text-slate-800">
+                                        {WISC_DOMAIN_LABELS[domainKey] || domainKey}
+                                      </div>
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full border-collapse table-fixed text-[9px] leading-[1.4]">
+                                          <colgroup>
+                                            <col className="w-[27%]" />
+                                            <col className="w-[14%]" />
+                                            <col className="w-[14%]" />
+                                            <col className="w-[14%]" />
+                                            <col className="w-[14%]" />
+                                            <col className="w-[17%]" />
+                                          </colgroup>
+                                          <thead>
+                                            <tr>
+                                              <th className="border border-white bg-[#A8D08D] px-3 py-2 text-left font-semibold uppercase tracking-wide text-slate-900">Testes Utilizados</th>
+                                              <th className="border border-white bg-[#A8D08D] px-2 py-2 text-center font-semibold uppercase tracking-wide text-slate-900">Escore Máximo</th>
+                                              <th className="border border-white bg-[#A8D08D] px-2 py-2 text-center font-semibold uppercase tracking-wide text-slate-900">Escore Médio</th>
+                                              <th className="border border-white bg-[#A8D08D] px-2 py-2 text-center font-semibold uppercase tracking-wide text-slate-900">Escore Mínimo</th>
+                                              <th className="border border-white bg-[#A8D08D] px-2 py-2 text-center font-semibold uppercase tracking-wide text-slate-900">Escore Bruto</th>
+                                              <th className="border border-white bg-[#A8D08D] px-2 py-2 text-center font-semibold uppercase tracking-wide text-slate-900">Classificação</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {rows.map((row: any, index: number) => (
+                                              row.note ? (
+                                                <tr key={`${domainKey}-${row.label}-${index}`}>
+                                                  <td className="border border-white bg-[#538135] px-3 py-1.5 font-medium text-white">{row.label}</td>
+                                                  <td colSpan={5} className="border border-white bg-[#E2EFD9] px-3 py-1.5 text-left text-slate-700">{row.note}</td>
+                                                </tr>
+                                              ) : (
+                                                <tr key={`${domainKey}-${row.label}-${index}`}>
+                                                  <td className="border border-white bg-[#538135] px-3 py-1.5 text-left font-medium text-white">{row.label}</td>
+                                                  <td className="border border-white bg-[#E2EFD9] px-2 py-1.5 text-center text-slate-700">{row.maxScore}</td>
+                                                  <td className="border border-white bg-[#E2EFD9] px-2 py-1.5 text-center text-slate-700">{row.avgScore}</td>
+                                                  <td className="border border-white bg-[#E2EFD9] px-2 py-1.5 text-center text-slate-700">{row.minScore}</td>
+                                                  <td className="border border-white bg-[#E2EFD9] px-2 py-1.5 text-center text-slate-700">{row.obtainedScore}</td>
+                                                  <td className="border border-white bg-[#E2EFD9] px-2 py-1.5 text-center text-slate-700">{row.classification}</td>
+                                                </tr>
+                                              )
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
                             <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
                               <div className="grid grid-cols-[minmax(0,2fr)_120px_120px_minmax(0,1fr)] gap-3 border-b border-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                                 <div>Indicador</div>
@@ -785,6 +877,7 @@ export default function ReportDetailPage() {
                                 })}
                               </div>
                             </div>
+                            )
                           )}
 
                           {(test.code !== "bpa2" && !metricRows.length && test.resultRows.length > 0) && (

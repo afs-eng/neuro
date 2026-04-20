@@ -31,41 +31,11 @@ class ReportSectionService:
         context = build_report_snapshot(report.evaluation)
         report.context_payload = context
 
-        warnings = []
-        generation_metadata = {}
-        if ReportAIService.supports_section(section_key):
-            try:
-                generation_result = ReportAIService.generate_section(
-                    report, section_key, context
-                )
-                new_text = generation_result["content"]
-                warnings = generation_result.get("warnings") or []
-                generation_metadata = generation_result.get("metadata") or {}
-            except Exception as exc:
-                # Se a IA falhar, mantém a regeneração disponível com fallback determinístico.
-                new_text = ReportGenerationService._generate_section_text(
-                    report, section_key, context
-                )
-                generation_metadata = {
-                    "provider": "deterministic",
-                    "model": "rules-based",
-                    "section": section_key,
-                    "fallback_reason": str(exc),
-                    "used_fallback": True,
-                    "generation_path": "deterministic_fallback",
-                }
-                warnings = [ReportSectionService.AI_FALLBACK_WARNING]
-        else:
-            new_text = ReportGenerationService._generate_section_text(
+        new_text, generation_metadata, warnings = (
+            ReportGenerationService._generate_section_payload(
                 report, section_key, context
             )
-            generation_metadata = {
-                "provider": "deterministic",
-                "model": "rules-based",
-                "section": section_key,
-                "used_fallback": False,
-                "generation_path": "deterministic_only",
-            }
+        )
 
         generation_metadata = {
             **generation_metadata,

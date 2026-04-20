@@ -28,6 +28,7 @@ import {
   LayoutDashboard,
   Edit,
   Printer
+  ,Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { api, resolveApiUrl } from "@/lib/api";
@@ -155,6 +156,8 @@ interface ReportSection {
 interface ReportItem {
   id: number;
   evaluation_id: number;
+  evaluation_code: string;
+  evaluation_title: string;
   patient_id: number;
   author_id: number;
   author_name: string;
@@ -262,10 +265,13 @@ export default function EvaluationDetailPage() {
   const [showAnamnesisInviteForm, setShowAnamnesisInviteForm] = useState(false);
   const [showProgressForm, setShowProgressForm] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
+  const [deleteReportId, setDeleteReportId] = useState<number | null>(null);
+  const [deleteReportConfirmationOpen, setDeleteReportConfirmationOpen] = useState(false);
   const [savingDocument, setSavingDocument] = useState(false);
   const [savingAnamnesisInvite, setSavingAnamnesisInvite] = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
   const [savingReport, setSavingReport] = useState(false);
+  const [deletingReport, setDeletingReport] = useState(false);
   const [documentForm, setDocumentForm] = useState({
     title: "",
     document_type: "other",
@@ -537,10 +543,11 @@ export default function EvaluationDetailPage() {
     if (!evaluation) return;
     setTabLoading(true);
     try {
-      const data = await api.get<ReportItem[]>(`/api/reports?evaluation_id=${evaluation.id}`);
+      const data = await api.get<ReportItem[]>(`/api/reports/?patient_id=${evaluation.patient_id}`);
       setReports(data);
-      if (selectFirst && data[0]) {
-        await openReport(data[0].id);
+      const preferredReport = data.find((item) => item.evaluation_id === evaluation.id) || data[0];
+      if (selectFirst && preferredReport) {
+        await openReport(preferredReport.id);
       }
     } catch (err: any) {
       setPageNotice({ type: "error", text: err?.message || "Erro ao carregar laudos." });
@@ -679,6 +686,35 @@ export default function EvaluationDetailPage() {
       loadReports();
     } catch (err: any) {
       setPageNotice({ type: "error", text: err?.message || "Erro ao gerar laudo." });
+    }
+  }
+
+  function handleOpenDeleteReportDialog(reportId: number) {
+    setDeleteReportId(reportId);
+    setDeleteReportConfirmationOpen(true);
+  }
+
+  function handleCloseDeleteReportDialog() {
+    setDeleteReportId(null);
+    setDeleteReportConfirmationOpen(false);
+  }
+
+  async function handleDeleteReport() {
+    if (!deleteReportId) return;
+
+    try {
+      setDeletingReport(true);
+      await api.delete(`/api/reports/${deleteReportId}`);
+      setPageNotice({ type: "success", text: "Laudo excluído com sucesso." });
+      if (selectedReport?.id === deleteReportId) {
+        setSelectedReport(null);
+      }
+      handleCloseDeleteReportDialog();
+      loadReports();
+    } catch (err: any) {
+      setPageNotice({ type: "error", text: err?.message || "Erro ao excluir laudo." });
+    } finally {
+      setDeletingReport(false);
     }
   }
 
@@ -1594,22 +1630,51 @@ export default function EvaluationDetailPage() {
                   </div>
                 ) : (
                   <div className="space-y-8">
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div className="space-y-4">
                         {reports.map((r) => (
-                           <div 
-                            key={r.id} 
-                            onClick={() => openReport(r.id)}
-                            className={`p-6 rounded-2xl border transition-all cursor-pointer ${selectedReport?.id === r.id ? 'border-primary bg-primary/5' : 'border-slate-100 bg-slate-50/50 hover:bg-white'}`}
-                           >
-                             <div className="flex justify-between items-start mb-4">
-                                <h5 className="font-bold text-slate-900">{r.title}</h5>
-                                <Badge className="bg-emerald-500 text-white border-none rounded-full px-2 py-0.5 text-[8px] font-black">Snapshot</Badge>
-                             </div>
-                             <div className="flex items-center gap-2 mt-4 text-[10px] font-bold text-slate-400">
-                                <Calendar className="h-3 w-3" />
-                                <span>Gerado em {new Date(r.created_at).toLocaleDateString("pt-BR")}</span>
-                             </div>
-                           </div>
+                          <div
+                            key={r.id}
+                            className={`p-4 rounded-xl border transition-all group ${selectedReport?.id === r.id ? 'border-primary/30 bg-primary/5' : 'border-slate-100 hover:border-primary/30 hover:bg-slate-50'}`}
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <button
+                                type="button"
+                                onClick={() => openReport(r.id)}
+                                className="flex min-w-0 flex-1 items-center justify-between gap-4 text-left"
+                              >
+                                <div className="space-y-1 flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-bold text-slate-900">{r.evaluation_title || r.evaluation_code}</span>
+                                    <Badge className={`${r.evaluation_id === evaluation.id ? 'bg-emerald-500' : 'bg-slate-500'} text-white border-none rounded-full px-2 py-0.5 text-[8px] font-black`}>
+                                      {r.evaluation_id === evaluation.id ? 'Avaliação atual' : 'Outro laudo'}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                    <span>Autor: {r.author_name}</span>
+                                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                    <span>Criado em: {new Date(r.created_at).toLocaleDateString("pt-BR")}</span>
+                                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                    <span className={`font-semibold ${r.status === 'finalized' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                      {r.status === 'finalized' ? 'Finalizado' : 'Em andamento'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-300 transition-colors group-hover:border-primary/20 group-hover:text-primary">
+                                  <ChevronRight className="h-5 w-5" />
+                                </div>
+                              </button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 shrink-0 rounded-full text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                onClick={() => handleOpenDeleteReportDialog(r.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
                         ))}
                      </div>
 
@@ -1675,8 +1740,55 @@ export default function EvaluationDetailPage() {
                    </div>
                  </SectionCard>
               </div>
+        </div>
+      )}
+
+      {deleteReportConfirmationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <h3 className="text-lg font-bold text-slate-900">Excluir Laudo?</h3>
+                <p className="text-sm text-slate-600">
+                  Esta ação irá remover permanentemente o laudo selecionado.
+                </p>
+                <p className="text-sm font-bold text-red-600">Esta ação não pode ser desfeita.</p>
+              </div>
             </div>
-          )}
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                className="font-bold"
+                onClick={handleCloseDeleteReportDialog}
+                disabled={deletingReport}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="font-bold"
+                onClick={handleDeleteReport}
+                disabled={deletingReport}
+              >
+                {deletingReport ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Sim, Excluir
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAddTestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">

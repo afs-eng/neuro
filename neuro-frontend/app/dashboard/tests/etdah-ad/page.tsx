@@ -9,6 +9,12 @@ import { ArrowLeft, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
+function formatSexLabel(sex?: string | null) {
+  if (sex === "M") return "Masculino";
+  if (sex === "F") return "Feminino";
+  return "Nao informado";
+}
+
 const QUESTIONS = [
   "É atento quando conversa com alguém.",
   "É afobado no trabalho.",
@@ -233,6 +239,15 @@ function ETDAHADTestPageContent() {
             ) : (
               <div className="text-center py-4 text-red-500">Avaliação não encontrada</div>
             )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Sexo do paciente</label>
+                <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {formatSexLabel(evaluation?.patient_sex)}
+                </div>
+              </div>
+            </div>
 
             <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
               <p className="font-medium mb-2">Escala de resposta:</p>
