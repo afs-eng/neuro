@@ -191,6 +191,7 @@ function RAVLTFormPageContent() {
   const getTrialColor = (trial: string) => {
     const colors: Record<string, string> = {
       b: 'bg-amber-500', 
+      a6: 'bg-cyan-500',
       a7: 'bg-purple-600'
     }
     return colors[trial] || 'bg-primary'
@@ -199,6 +200,7 @@ function RAVLTFormPageContent() {
   const getTrialTextColor = (trial: string) => {
     const colors: Record<string, string> = {
       b: 'text-amber-600', 
+      a6: 'text-cyan-600',
       a7: 'text-purple-600'
     }
     return colors[trial] || 'text-primary'
@@ -310,12 +312,14 @@ function RAVLTFormPageContent() {
         {activeTab === 'general' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
             <SectionCard title="Controle de Aplicação" description="Marque as palavras evocadas pelo paciente em cada tentativa.">
-              <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+              <div className="mb-6 overflow-x-auto pb-2">
+                <div className="min-w-[800px] px-24">
+                  <div className="grid grid-cols-8 gap-2">
                 {TRIALS.map((trial) => (
                   <button
                     key={trial}
                     onClick={() => setCurrentTrial(trial)}
-                    className={`flex-shrink-0 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
+                    className={`w-full px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${
                       currentTrial === trial
                         ? `${getTrialColor(trial)} text-white shadow-md border-none`
                         : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300 hover:bg-slate-50'
@@ -327,6 +331,8 @@ function RAVLTFormPageContent() {
                     </span>
                   </button>
                 ))}
+                  </div>
+                </div>
               </div>
 
               <div className="overflow-x-auto rounded-[24px] border border-slate-200 bg-white shadow-sm mb-8">
@@ -396,7 +402,7 @@ function RAVLTFormPageContent() {
                 </table>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <div className="rounded-[24px] bg-blue-50 p-6 border border-blue-100 text-center flex flex-col justify-center relative overflow-hidden">
                   <Activity className="absolute -right-4 -bottom-4 h-24 w-24 text-blue-500/10" />
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-2">Fase Aprendizagem (A1-A5)</div>
@@ -411,6 +417,14 @@ function RAVLTFormPageContent() {
                   <div className="text-4xl font-black text-amber-700 tracking-tight">
                     {scores['b'] || getScoreForTrial('b')}
                     <span className="text-sm text-amber-400 font-bold ml-1">/ 15</span>
+                  </div>
+                </div>
+                <div className="rounded-[24px] bg-cyan-50 p-6 border border-cyan-100 text-center flex flex-col justify-center relative overflow-hidden">
+                  <Brain className="absolute -right-4 -bottom-4 h-24 w-24 text-cyan-500/10" />
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-600 mb-2">Evocação imediata (A6)</div>
+                  <div className="text-4xl font-black text-cyan-700 tracking-tight">
+                    {scores['a6'] || getScoreForTrial('a6')}
+                    <span className="text-sm text-cyan-400 font-bold ml-1">/ 15</span>
                   </div>
                 </div>
                 <div className="rounded-[24px] bg-purple-50 p-6 border border-purple-100 text-center flex flex-col justify-center relative overflow-hidden">

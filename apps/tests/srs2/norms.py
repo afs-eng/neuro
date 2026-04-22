@@ -2,6 +2,8 @@ import os
 import csv
 from typing import Optional, Dict, Tuple
 
+from .paths import TABLES_DIR
+
 NormTable = Dict[int, Tuple[float, float]]
 
 NORMS: Dict[str, Dict[str, Dict[str, NormTable]]] = {
@@ -20,8 +22,13 @@ NORMS: Dict[str, Dict[str, Dict[str, NormTable]]] = {
     }
 }
 
+
+def _normalize_column_name(name: str) -> str:
+    normalized = name.lstrip("\ufeff").strip().lower()
+    return normalized.replace("escoret", "escore_t")
+
 def load_norm_data():
-    base_dir = os.path.join(os.path.dirname(__file__), "tabelas-normativas")
+    base_dir = TABLES_DIR
     
     # Mapeamento dos arquivos CSV para Formulário e Gênero
     file_mapping = {
@@ -39,13 +46,13 @@ def load_norm_data():
     
     # Mapeamento flexível de nomes de coluna em vários arquivos para o fator interno
     factor_mapping = {
-        "percepcao_social": ["percepcao_social"],
-        "cognicao_social": ["cognicao_social"],
-        "comunicacao_social": ["comunicacao_social"],
-        "motivacao_social": ["motivacao_social"],
+        "percepcao_social": ["percepcao_social", "ps"],
+        "cognicao_social": ["cognicao_social", "cs"],
+        "comunicacao_social": ["comunicacao_social", "coms"],
+        "motivacao_social": ["motivacao_social", "ms"],
         "padroes_restritos": ["padroes_restritos_repetitivos", "prr"],
         "cis": ["comunicacao_interacao_social", "cis"],
-        "total": ["pontuacao_srs2_total", "total"]
+        "total": ["pontuacao_srs2_total", "total", "srs2_total"]
     }
 
     # Inicializar os dicionários dos fatores
@@ -62,8 +69,13 @@ def load_norm_data():
         with open(filepath, mode='r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
+                normalized_row = {
+                    _normalize_column_name(key): (value or "")
+                    for key, value in row.items()
+                    if key is not None
+                }
                 try:
-                    bruto_str = row.get("pontuacao_bruta", "").strip()
+                    bruto_str = normalized_row.get("pontuacao_bruta", "").strip()
                     if not bruto_str: 
                         continue
                     bruto = int(bruto_str)
@@ -75,9 +87,9 @@ def load_norm_data():
                         key_t = f"{name}_escore_t"
                         key_p = f"{name}_percentil"
                         
-                        if key_t in row and key_p in row:
-                            val_t = row[key_t].strip()
-                            val_p = row[key_p].strip()
+                        if key_t in normalized_row and key_p in normalized_row:
+                            val_t = normalized_row[key_t].strip()
+                            val_p = normalized_row[key_p].strip()
                             
                             if not val_t or val_t == "-":
                                 continue

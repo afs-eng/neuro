@@ -226,8 +226,6 @@ SECTION_REGISTRY: dict[str, dict] = {
         "supports_ai": True,
         "prompt_name": "reports/aspectos_emocionais_comportamentais_prompt.txt",
         "codes": {
-            "etdah_pais",
-            "etdah_ad",
             "scared",
             "srs2",
             "epq_j",
@@ -238,8 +236,6 @@ SECTION_REGISTRY: dict[str, dict] = {
         "kind": "section",
         "timeout": 2400,
         "required_any_codes": {
-            "etdah_pais",
-            "etdah_ad",
             "scared",
             "srs2",
             "epq_j",
@@ -250,8 +246,6 @@ SECTION_REGISTRY: dict[str, dict] = {
         "enable_when_adolescent": True,
         "validation": {
             "required_any_codes": {
-                "etdah_pais",
-                "etdah_ad",
                 "scared",
                 "srs2",
                 "epq_j",
@@ -265,6 +259,10 @@ SECTION_REGISTRY: dict[str, dict] = {
     "conclusao": {
         "title": "20. Conclusão",
         "order": 20,
+        "supports_ai": True,
+        "prompt_name": "reports/conclusao_prompt.txt",
+        "kind": "section",
+        "timeout": 2400,
         "required_any_codes": (),
     },
     "hipotese_diagnostica": {

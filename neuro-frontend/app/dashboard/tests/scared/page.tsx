@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,78 +9,72 @@ import { ArrowLeft, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 
-const PERGUNTAS = [
-  "Quando eu fico com medo, eu tenho dificuldade de respirar.",
-  "Eu sinto dor de cabeça quando estou na escola.",
-  "Eu não gosto de estar com pessoas que não conheço bem.",
-  "Fico com medo quando durmo fora de casa.",
-  "Eu me preocupo se outras pessoas gosta de mim.",
-  "Quando eu fico com medo, eu sinto como se eu fosse desmaiar.",
-  "Eu sou nervoso(a).",
-  "Eu sigo a minha mãe ou o meu pai aonde eles vão.",
-  "As pessoas me dizem que pareço nervoso(a).",
-  "Eu fico nervoso(a) com pessoas que eu não conheço bem.",
-  "Eu tenho dor de barriga na escola.",
-  "Quando eu fico com medo, eu acho que vou enlouquecer.",
-  "Eu tenho medo de dormir sozinho(a).",
-  "Eu me preocupo em ser tão bom quanto as outras crianças.",
-  "Quando eu fico com medo, tenho a impressão de que as coisas não são reais.",
-  "Eu tenho pesadelos com coisas ruins acontecendo com os meus pais.",
-  "Eu fico preocupo quando tenho que ir à escola.",
-  "Quando eu fico com medo, o meu coração bate rápido.",
-  "Quando eu fico nervoso(a), eu tremo de medo.",
-  "Eu tenho pesadelos com alguma coisa ruim acontecendo comigo.",
-  "Eu fico preocupado(a) se as coisas vão dar certo para mim.",
-  "Quando eu fico com medo, eu suo muito.",
-  "Eu sou muito preocupado(a).",
-  "Eu fico com muito medo sem nenhum motivo.",
-  "Eu tenho medo de ficar sozinho(a) em casa.",
-  "Eu tenho dificuldades para falar com pessoas que não conheço bem.",
-  "Quando eu fico com medo, eu me sinto sufocado.",
-  "As pessoas dizem que eu me preocupo demais.",
-  "Eu não gosto de ficar longe da família.",
-  "Eu tenho medo de ter ataques de ansiedade (ou ataques de pânico).",
-  "Eu tenho medo de que alguma coisa ruim aconteça com meus pais.",
-  "Eu fico com vergonha na frente de pessoas que não conhecer bem.",
-  "Eu me preocupo muito com o que vai acontecer no futuro.",
-  "Quando eu fico com medo, eu tenho vontade de vomitar.",
-  "Eu me preocupo muito em fazer as coisas bem feitas.",
-  "Eu tenho medo de ir à escola.",
-  "Eu me preocupo com as coisas que já aconteceram.",
-  "Quando eu fico com medo, eu me sinto tonto(a).",
-  "Fico nervoso(a) quando estou com outras crianças ou adultos e tenho que fazer algo enquanto eles me olham (por exemplo, ler em voz alta, falar, jogar um jogo ou praticar um esporte).",
-  "Eu fico nervoso(a) para ir a festas, bailes ou qualquer lugar onde estejam pessoas que não conheço bem.",
-  "Eu sou tímido(a).",
+type ScaredItem = {
+  item: number;
+  pergunta: string;
+};
+
+type ScaredFormData = {
+  label: string;
+  items: ScaredItem[];
+};
+
+const FORM_OPTIONS = [
+  { value: "child", label: "Autorrelato" },
+  { value: "parent", label: "Pais/Cuidadores" },
 ];
+
+function getAlternateForm(form: string) {
+  return form === "parent" ? "child" : "parent";
+}
+
+function formatFormDescription(form: string) {
+  return form === "parent"
+    ? "Versão respondida por pais ou cuidadores."
+    : "Versão de autorrelato para criança ou adolescente.";
+}
 
 function SCAREDTestPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [scores, setScores] = useState<Record<string, string>>({});
   const [evaluation, setEvaluation] = useState<any>(null);
-  const [loadingEvaluation, setLoadingEvaluation] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formsData, setFormsData] = useState<Record<string, ScaredFormData>>({});
+  const [form, setForm] = useState<string>("child");
 
   const evaluationId = searchParams.get("evaluation_id");
   const applicationId = searchParams.get("application_id");
   const isEditMode = searchParams.get("edit") === "true";
+  const requestedForm = searchParams.get("form");
+
+  const currentForm = formsData[form];
+  const items = useMemo(() => currentForm?.items || [], [currentForm]);
+  const alternateForm = getAlternateForm(form);
+  const alternateFormLabel = FORM_OPTIONS.find((option) => option.value === alternateForm)?.label || "Outro formulário";
 
   useEffect(() => {
-    async function fetchEvaluation() {
+    async function fetchData() {
+      if (!applicationId && (requestedForm === "child" || requestedForm === "parent")) {
+        setForm(requestedForm);
+      }
+
       if (applicationId) {
         try {
           const result = await api.get<any>(`/api/tests/applications/${applicationId}`);
-          if (result && result.evaluation_id && !evaluationId) {
-            const newEvalId = result.evaluation_id.toString();
-            router.replace(`/dashboard/tests/scared?application_id=${applicationId}&evaluation_id=${newEvalId}&edit=true`);
+          if (result?.evaluation_id && !evaluationId) {
+            router.replace(`/dashboard/tests/scared?application_id=${applicationId}&evaluation_id=${result.evaluation_id}&edit=true`);
             return;
           }
-          if (result && result.is_validated && !isEditMode) {
+          if (result?.is_validated && !isEditMode) {
             const resultEvaluationId = result.evaluation_id ? `?evaluation_id=${result.evaluation_id}` : "";
             router.push(`/dashboard/tests/scared/${applicationId}/result${resultEvaluationId}`);
             return;
           }
-          if (result && result.raw_payload) {
+          if (result?.raw_payload) {
             const raw = result.raw_payload;
+            setForm(raw.form || "child");
             const existingScores: Record<string, string> = {};
             const responses = raw.responses || {};
             for (let i = 1; i <= 41; i++) {
@@ -91,13 +85,20 @@ function SCAREDTestPageContent() {
             }
             setScores(existingScores);
           }
-        } catch (error) {
+        } catch {
           console.log("Teste não encontrado, redirecionando para formulário...");
         }
       }
 
+      try {
+        const itemsData = await api.get<Record<string, ScaredFormData>>("/api/tests/scared/items");
+        setFormsData(itemsData || {});
+      } catch (error) {
+        console.error("Erro ao buscar itens do SCARED:", error);
+      }
+
       if (!evaluationId) {
-        setLoadingEvaluation(false);
+        setLoading(false);
         return;
       }
 
@@ -107,11 +108,12 @@ function SCAREDTestPageContent() {
       } catch (error: any) {
         console.error("Erro ao buscar avaliação:", error);
       } finally {
-        setLoadingEvaluation(false);
+        setLoading(false);
       }
     }
-    fetchEvaluation();
-  }, [evaluationId, applicationId, isEditMode, router]);
+
+    fetchData();
+  }, [applicationId, evaluationId, isEditMode, requestedForm, router]);
 
   const clearForm = () => {
     if (confirm("Deseja realmente limpar todos os campos do formulário?")) {
@@ -136,21 +138,33 @@ function SCAREDTestPageContent() {
     }
 
     const payload = {
+      application_id: applicationId ? parseInt(applicationId) : undefined,
       evaluation_id: parseInt(evaluationId),
-      form: "child",
+      form,
       gender: evaluation?.patient_sex || "M",
       age: calcAge,
       responses: responseObj,
     };
 
+    setSaving(true);
     try {
-      const result = await api.post<{ application_id: number }>('/api/tests/scared/submit', payload);
+      const result = await api.post<{ application_id: number }>("/api/tests/scared/submit", payload);
       router.push(`/dashboard/tests/scared/${result.application_id}/result?evaluation_id=${evaluationId}`);
     } catch (error: any) {
-      console.error('Erro:', error);
-      alert('Erro ao salvar: ' + (error?.message || 'Tente novamente'));
+      console.error("Erro:", error);
+      alert("Erro ao salvar: " + (error?.message || "Tente novamente"));
+    } finally {
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -171,7 +185,7 @@ function SCAREDTestPageContent() {
               Itens do instrumento
               {isEditMode && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Modo Edição</Badge>}
             </CardTitle>
-            <CardDescription>Marque a frequência para cada item.</CardDescription>
+            <CardDescription>{formatFormDescription(form)}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
@@ -190,26 +204,24 @@ function SCAREDTestPageContent() {
                 <div className="text-center">Resp.</div>
               </div>
               <div className="max-h-[500px] overflow-y-auto">
-                {PERGUNTAS.map((text, idx) => (
+                {items.map((item, idx) => (
                   <div
-                    key={idx}
-                    className={`grid grid-cols-[60px_1fr_80px] items-center px-4 py-3 border-t ${
-                      idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                    }`}
+                    key={`${form}-${item.item}`}
+                    className={`grid grid-cols-[60px_1fr_80px] items-center px-4 py-3 border-t ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`}
                   >
-                    <div className="text-sm font-medium text-slate-900">{String(idx + 1).padStart(2, "0")}</div>
-                    <div className="text-sm text-slate-700 pr-4">{text}</div>
+                    <div className="text-sm font-medium text-slate-900">{String(item.item).padStart(2, "0")}</div>
+                    <div className="text-sm text-slate-700 pr-4">{item.pergunta}</div>
                     <div className="flex justify-center">
                       <Input
                         type="text"
                         inputMode="numeric"
                         maxLength={1}
                         className="h-8 w-16 rounded-lg text-center"
-                        value={scores[`${idx + 1}`] || ""}
+                        value={scores[String(item.item)] || ""}
                         onChange={(e) => {
                           const val = e.target.value;
                           if (val === "" || ["0", "1", "2"].includes(val)) {
-                            setScores({ ...scores, [`${idx + 1}`]: val });
+                            setScores({ ...scores, [String(item.item)]: val });
                           }
                         }}
                         onKeyDown={(e) => {
@@ -229,11 +241,21 @@ function SCAREDTestPageContent() {
             </div>
 
             <div className="flex gap-2">
-              <Button className="rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 transition-all font-bold" onClick={handleSave}>
+              <Button className="rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 transition-all font-bold" onClick={handleSave} disabled={saving}>
                 <Save className="h-4 w-4" />
                 {isEditMode ? "Salvar Alterações" : "Salvar aplicação"}
               </Button>
-              <Button variant="outline" className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={clearForm}>
+              {evaluationId && !applicationId && (
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => router.push(`/dashboard/tests/scared?evaluation_id=${evaluationId}&form=${alternateForm}`)}
+                  disabled={saving}
+                >
+                  Abrir {alternateFormLabel}
+                </Button>
+              )}
+              <Button variant="outline" className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={clearForm} disabled={saving}>
                 Limpar Campos
               </Button>
             </div>
@@ -246,16 +268,32 @@ function SCAREDTestPageContent() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-slate-600">
             <div>
+              <label className="font-medium text-slate-900">Formulário</label>
+              <select
+                value={form}
+                onChange={(e) => setForm(e.target.value)}
+                className="w-full mt-1 p-2 border rounded-lg"
+              >
+                {FORM_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <p className="font-medium text-slate-900">SCARED</p>
               <p>Screen for Child Anxiety Related Emotional Disorders</p>
+            </div>
+            <div>
+              <p className="font-medium text-slate-900">Paciente</p>
+              <p>{evaluation?.patient_name || "Não informado"}</p>
             </div>
             <div>
               <p className="font-medium text-slate-900">Itens</p>
               <p>41 itens com escala Likert de 3 pontos</p>
             </div>
             <div>
-              <p className="font-medium text-slate-900">Aplicação</p>
-              <p>Autorrelato (criança/adolescente)</p>
+              <p className="font-medium text-slate-900">Aplicação selecionada</p>
+              <p>{formsData[form]?.label || FORM_OPTIONS.find((option) => option.value === form)?.label}</p>
             </div>
           </CardContent>
         </Card>

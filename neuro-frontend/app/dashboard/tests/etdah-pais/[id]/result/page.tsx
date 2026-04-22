@@ -12,6 +12,25 @@ const FACTOR_NAMES: Record<string, string> = {
   escore_geral: "Escore Geral",
 }
 
+const CLINICAL_BADGE_STYLES: Record<string, string> = {
+  Superior: 'bg-red-100 text-red-700 border-red-200',
+  'Média Superior': 'bg-amber-100 text-amber-700 border-amber-200',
+  Média: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'Média Inferior': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  Inferior: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+}
+
+function getClinicalBadgeStyle(classification: string) {
+  return CLINICAL_BADGE_STYLES[classification] || 'bg-slate-100 text-slate-700 border-slate-200'
+}
+
+function formatAppliedOn(value: string) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return value
+  return date.toLocaleDateString('pt-BR')
+}
+
 export default function ETDAHPAISResultPage() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -73,10 +92,15 @@ export default function ETDAHPAISResultPage() {
 
   const responseRows = []
   for (let i = 0; i < 12; i++) {
-    responseRows.push([i + 1, i + 12, i + 24, i + 36, i + 48].filter((item) => item <= 58))
+    responseRows.push([i + 1, i + 13, i + 25, i + 37, i + 49].filter((item) => item <= 58))
   }
 
   const factorOrder = ["fator_1", "fator_2", "fator_3", "fator_4", "escore_geral"]
+  const interpretationText = result.interpretation || ''
+  const interpretationParagraphs = interpretationText
+    .split(/\n\s*\n/)
+    .map((paragraph: string) => paragraph.trim())
+    .filter(Boolean)
 
   const evaluationId = searchParams.get("evaluation_id")
 
@@ -100,7 +124,7 @@ export default function ETDAHPAISResultPage() {
             <div>
               <h1 className="text-3xl font-medium tracking-tight text-zinc-900">ETDAH-PAIS - Resultado</h1>
               <p className="mt-1 text-sm text-zinc-600">
-                {result.patient_name} • Aplicado em {result.applied_on}
+                {result.patient_name} • Aplicado em {formatAppliedOn(result.applied_on)}
               </p>
             </div>
             <div className="flex gap-3">
@@ -118,6 +142,24 @@ export default function ETDAHPAISResultPage() {
 
           <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5 mb-6">
             <h3 className="mb-4 text-lg font-semibold text-zinc-900">Escores por Fator</h3>
+            <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+              {factorOrder.map((factor) => {
+                const r = results[factor] || {}
+                const classification = r.classification || '—'
+                return (
+                    <div key={factor} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="text-sm font-semibold text-slate-900">{FACTOR_NAMES[factor]}</div>
+                      <div className="mt-3 text-3xl font-bold text-slate-900">{r.raw_score ?? rawScores[factor] ?? '—'}</div>
+                    <div className="mt-2 text-sm text-slate-500">Percentil Guilmette: {typeof r.percentile_guilmette === 'number' ? r.percentile_guilmette.toFixed(1) : '—'}</div>
+                    <div className="mt-3">
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${getClinicalBadgeStyle(classification)}`}>
+                        {classification}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -125,8 +167,8 @@ export default function ETDAHPAISResultPage() {
                     <th className="pb-3 text-left text-xs font-semibold text-zinc-500 uppercase">Fator</th>
                     <th className="pb-3 text-center text-xs font-semibold text-zinc-500 uppercase">Pontos Brutos</th>
                     <th className="pb-3 text-center text-xs font-semibold text-zinc-500 uppercase">Média</th>
-                    <th className="pb-3 text-center text-xs font-semibold text-zinc-500 uppercase">Percentil</th>
-                    <th className="pb-3 text-left text-xs font-semibold text-zinc-500 uppercase">Classificação</th>
+                    <th className="pb-3 text-center text-xs font-semibold text-zinc-500 uppercase">Percentil Guilmette</th>
+                    <th className="pb-3 text-left text-xs font-semibold text-zinc-500 uppercase">Classificação Clínica</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -137,8 +179,8 @@ export default function ETDAHPAISResultPage() {
                         <td className="py-3 text-zinc-900 font-medium">{FACTOR_NAMES[factor]}</td>
                         <td className="py-3 text-center font-medium text-zinc-900">{r.raw_score ?? rawScores[factor] ?? '—'}</td>
                         <td className="py-3 text-center text-zinc-600">{r.mean ?? '—'}</td>
-                        <td className="py-3 text-center text-zinc-600">{r.percentile_guilmette?.toFixed(1) ?? '—'}</td>
-                        <td className="py-3 text-zinc-600">{r.classification_guilmette ?? '—'}</td>
+                        <td className="py-3 text-center text-zinc-600">{typeof r.percentile_guilmette === 'number' ? r.percentile_guilmette.toFixed(1) : '—'}</td>
+                        <td className="py-3 text-zinc-600">{r.classification ?? '—'}</td>
                       </tr>
                     )
                   })}
@@ -210,8 +252,16 @@ export default function ETDAHPAISResultPage() {
 
           {results && Object.keys(results).length > 0 && (
             <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
-              <h3 className="mb-4 text-lg font-semibold text-zinc-900">Interpretação</h3>
-              
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900">Interpretação Clínica</h3>
+                  <p className="text-sm text-zinc-600">Interpretação técnica do ETDAH-PAIS por fator, escore geral e análise integrada.</p>
+                </div>
+                <div className="rounded-2xl bg-slate-100 px-4 py-2 text-xs font-medium text-slate-600">
+                  {interpretationParagraphs.length} blocos clínicos
+                </div>
+              </div>
+
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
                 <p className="text-sm text-amber-800">
                   <strong>Sexo:</strong> {raw.sex === 'M' ? 'Masculino' : 'Feminino'}
@@ -228,38 +278,12 @@ export default function ETDAHPAISResultPage() {
                 </p>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-dashed border-black/10">
-                      <th className="pb-3 text-left text-xs font-semibold text-zinc-500 uppercase">Fator</th>
-                      <th className="pb-3 text-center text-xs font-semibold text-zinc-500 uppercase">Pontos Brutos</th>
-                      <th className="pb-3 text-center text-xs font-semibold text-zinc-500 uppercase">Média</th>
-                      <th className="pb-3 text-center text-xs font-semibold text-zinc-500 uppercase">Percentil</th>
-                      <th className="pb-3 text-left text-xs font-semibold text-zinc-500 uppercase">Classificação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {factorOrder.map((factor) => {
-                      const r = results[factor] || {}
-                      const classification = r.classification_guilmette || ''
-                      const rowClass = classification.includes('Superior') ? 'bg-emerald-50' 
-                        : classification.includes('Média') || classification.includes('Médio') ? 'bg-blue-50'
-                        : classification.includes('Deficitário') || classification.includes('Inferior') ? 'bg-red-50'
-                        : ''
-                      
-                      return (
-                        <tr key={factor} className={`border-b border-dashed border-black/5 ${rowClass}`}>
-                          <td className="py-3 text-zinc-900 font-medium">{FACTOR_NAMES[factor]}</td>
-                          <td className="py-3 text-center font-medium text-zinc-900">{r.raw_score ?? '—'}</td>
-                          <td className="py-3 text-center text-zinc-600">{r.mean ?? '—'}</td>
-                          <td className="py-3 text-center text-zinc-600">{r.percentile_guilmette?.toFixed(1) ?? '—'}</td>
-                          <td className="py-3 text-zinc-600">{classification || '—'}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                {interpretationParagraphs.map((paragraph: string, index: number) => (
+                  <div key={index} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-zinc-700 shadow-sm whitespace-pre-wrap">
+                    {paragraph}
+                  </div>
+                ))}
               </div>
             </div>
           )}

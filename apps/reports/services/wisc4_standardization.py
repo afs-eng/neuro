@@ -19,7 +19,7 @@ class WISC4StandardizationService:
 
     DOMAIN_INTROS = {
         "funcoes_executivas": (
-            "Interpretação: A avaliação das funções executivas de {patient} foi realizada "
+            "Interpretação e Observações Clínicas: A avaliação das funções executivas de {patient} foi realizada "
             "por meio dos subtestes Semelhanças, Conceitos Figurativos, Compreensão e "
             "Raciocínio Matricial da Escala Wechsler de Inteligência para Crianças – "
             "Quarta Edição (WISC-IV). Esses subtestes permitem examinar habilidades de "
@@ -36,14 +36,14 @@ class WISC4StandardizationService:
             "de normas."
         ),
         "gnosias_praxias": (
-            "Interpretação: A avaliação das habilidades visuoperceptivas e construtivas de "
+            "Interpretação e Observações Clínicas: A avaliação das habilidades visuoperceptivas e construtivas de "
             "{patient} foi realizada por meio dos subtestes Raciocínio Matricial e Cubos "
             "da Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV). "
             "Esses subtestes investigam processos de percepção visual, integração "
             "visomotora, análise de padrões e organização espacial."
         ),
         "memoria_aprendizagem": (
-            "Interpretação: A avaliação da memória e aprendizagem de {patient} foi "
+            "Interpretação e Observações Clínicas: A avaliação da memória e aprendizagem de {patient} foi "
             "realizada por meio dos subtestes Sequência de Números e Letras e Dígitos da "
             "Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV). "
             "Esses instrumentos examinam processos de memória operacional auditiva, atenção "

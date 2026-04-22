@@ -22,8 +22,17 @@ const STAGE_LABELS: Record<string, string> = {
   alternancia: "Alternância",
 };
 
+const DOMAIN_LABELS: Record<string, string> = {
+  ProcessosAutomaticos: "Processos Automáticos",
+  ProcessosControlados: "Processos Controlados",
+};
+
 function formatClassification(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function toDomainKey(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
 }
 
 export default function FDTResultPage() {
@@ -70,6 +79,19 @@ export default function FDTResultPage() {
   const derivedScores = classified.derived_scores || {};
   const stageTotals = classified.stage_totals || {};
   const errorResults = Object.entries(classified.erros || {}) as [string, any][];
+  const interpretationParagraphs = String(result.interpretation_text || "")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  const metricGroups = metricResults.reduce((acc: Record<string, any[]>, item: any) => {
+    const key = toDomainKey(item.categoria || "");
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(item);
+    return acc;
+  }, {});
+  const metricGroupEntries = Object.entries(metricGroups) as [string, any[]][];
 
   return (
     <div className="min-h-screen bg-slate-300 p-6 md:p-10">
@@ -121,6 +143,23 @@ export default function FDTResultPage() {
 
           <div className="mb-6 rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
             <h3 className="mb-4 text-lg font-semibold text-zinc-900">Métricas normativas</h3>
+            <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              {metricGroupEntries.map(([groupKey, items]) => (
+                <div key={groupKey} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-sm font-semibold text-slate-900">{DOMAIN_LABELS[groupKey] || groupKey}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {items.map((item: any) => (
+                      <span
+                        key={item.codigo}
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${CLASSIFICATION_STYLES[item.classificacao] || "bg-slate-100 text-slate-700"}`}
+                      >
+                        {item.nome}: {item.classificacao}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -245,10 +284,24 @@ export default function FDTResultPage() {
             </div>
           )}
 
-          {result.interpretation_text && (
+          {interpretationParagraphs.length > 0 && (
             <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
-              <h3 className="mb-4 text-lg font-semibold text-zinc-900">Interpretação</h3>
-              <div className="whitespace-pre-wrap text-sm text-zinc-700">{result.interpretation_text}</div>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900">Interpretação Clínica</h3>
+                  <p className="text-sm text-zinc-600">Leitura estruturada do desempenho automático, controlado e do padrão de erros.</p>
+                </div>
+                <div className="rounded-2xl bg-slate-100 px-4 py-2 text-xs font-medium text-slate-600">
+                  {interpretationParagraphs.length} blocos clínicos
+                </div>
+              </div>
+              <div className="space-y-4">
+                {interpretationParagraphs.map((paragraph, index) => (
+                  <div key={index} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-zinc-700 shadow-sm">
+                    {paragraph}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

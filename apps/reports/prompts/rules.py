@@ -7,6 +7,7 @@ CLINICAL_REPORT_RULES = """
 3. **Sinalização de Ausência**: Se faltarem dados para uma conclusão, escreva: 'No momento, os dados são insuficientes para uma análise definitiva acerca de...'
 4. **Nomenclatura**: Siga o DSM-V ou CID-11.
 5. **Estilo**: Texto rico em análise clínica, evitando descrições mecanizadas de números. Converta 'Percentil 10' em 'Desempenho Inferior' ou 'Z-Score -1.5' em 'Déficit Clínico Significativo'.
+6. **Ortografia e Norma-Padrão**: Escreva sempre em português do Brasil, com acentuação correta, ortografia atual e redação formal compatível com a norma-padrão e com o estilo técnico de laudo psicológico/neuropsicológico.
 """
 
 # apps/reports/prompts/sections.py

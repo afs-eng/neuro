@@ -53,7 +53,7 @@ class ETDAHPAISModule(BaseTestModule):
         age = merged_data.get("age", context.raw_scores.get("age", 10))
         sex = merged_data.get("sex", context.raw_scores.get("sex", "M"))
 
-        return generate_report(raw_scores, age, sex)
+        return generate_report(raw_scores, age, sex, patient_name=context.patient_name)
 
 
 register_test_module(ETDAHPAIS_CODE, ETDAHPAISModule())

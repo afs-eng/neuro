@@ -19,6 +19,111 @@ from .norms import (
 from datetime import date
 
 
+def _first_name(name: str) -> str:
+    return (name or "Paciente").split(" ", 1)[0]
+
+
+def _format_score(value) -> str:
+    if value is None:
+        return "-"
+    if isinstance(value, float):
+        return f"{value:.2f}".replace(".", ",")
+    return str(value)
+
+
+def _result_map(merged_data: dict) -> dict:
+    return {item.get("variavel"): item for item in merged_data.get("resultados", [])}
+
+
+def _expected_phrase(classification: str) -> str:
+    if classification in {"Muito Superior", "Superior"}:
+        return "acima do esperado"
+    if classification == "Média Superior":
+        return "dentro do esperado em nível alto"
+    if classification == "Média":
+        return "dentro do esperado"
+    if classification == "Média Inferior":
+        return "no limite inferior da faixa normativa"
+    return "abaixo do esperado"
+
+
+def _global_memory_phrase(classification: str) -> str:
+    if classification in {"Muito Superior", "Superior"}:
+        return "superior"
+    if classification == "Média Superior":
+        return "acima da média"
+    if classification == "Média":
+        return "adequado"
+    if classification == "Média Inferior":
+        return "no limite inferior da média"
+    return "rebaixado"
+
+
+def _learning_curve_phrase(a1: int, a2: int, a3: int, a4: int, a5: int) -> str:
+    gains = sum(1 for earlier, later in ((a1, a2), (a2, a3), (a3, a4), (a4, a5)) if later >= earlier)
+    total_gain = a5 - a1
+    if gains >= 3 and total_gain >= 4:
+        return "com curva de aprendizagem ascendente, ganho progressivo ao longo das tentativas"
+    if gains >= 2 and total_gain >= 2:
+        return "com curva de aprendizagem progressiva, com ganho ao longo das tentativas"
+    return "com curva de aprendizagem pouco consistente, sem ganho expressivo ao longo das tentativas"
+
+
+def _acquisition_phrase(classification: str) -> str:
+    if classification in {"Muito Superior", "Superior", "Média Superior"}:
+        return "indicando boa capacidade de codificação e aproveitamento da repetição"
+    if classification == "Média":
+        return "indicando capacidade adequada de codificação e aproveitamento da repetição"
+    return "sugerindo menor eficiência de codificação e menor aproveitamento da repetição"
+
+
+def _efficiency_phrase(classification: str) -> str:
+    if classification in {"Muito Superior", "Superior", "Média Superior"}:
+        return "e boa eficiência nos processos de aquisição, retenção e evocação do material verbal"
+    if classification == "Média":
+        return "e eficiência adequada nos processos de aquisição, retenção e evocação do material verbal"
+    return "com oscilações nos processos de aquisição, retenção e evocação do material verbal"
+
+
+def _consolidation_phrase(classification: str) -> str:
+    if classification in {"Muito Superior", "Superior", "Média Superior", "Média"}:
+        return "evidenciando boa consolidação e recuperação espontânea do conteúdo aprendido"
+    return "sugerindo fragilidade na consolidação e/ou na recuperação espontânea do conteúdo aprendido"
+
+
+def _storage_phrase(classification: str) -> str:
+    if classification in {"Muito Superior", "Superior", "Média Superior", "Média"}:
+        return "reforçando armazenamento eficiente do material verbal"
+    return "sugerindo menor eficiência no armazenamento do material verbal"
+
+
+def _clinical_summary(name: str, alt_class: str, a7_class: str, r_class: str, ip_class: str) -> str:
+    preserved = {"Média", "Média Superior", "Superior", "Muito Superior"}
+    high = {"Média Superior", "Superior", "Muito Superior"}
+
+    if alt_class in high and a7_class in preserved and r_class in preserved:
+        summary = (
+            f"Em análise clínica, os resultados indicam que {name} apresenta memória auditivo-verbal preservada e qualitativamente fortalecida, "
+            "com bom desempenho em aprendizagem progressiva, evocação imediata, evocação tardia e reconhecimento."
+        )
+    elif alt_class in preserved and a7_class in preserved and r_class in preserved:
+        summary = (
+            f"Em análise clínica, os resultados indicam que {name} apresenta memória auditivo-verbal preservada, "
+            "com desempenho compatível com o esperado em aprendizagem progressiva, evocação tardia e reconhecimento."
+        )
+    else:
+        summary = (
+            f"Em análise clínica, os resultados indicam que {name} apresenta oscilação no desempenho da memória auditivo-verbal, "
+            "com fragilidades em parte dos processos de aprendizagem, retenção e/ou recuperação do material verbal."
+        )
+
+    if ip_class == "Média Inferior":
+        return summary + " O único ponto de atenção refere-se a uma leve suscetibilidade à interferência proativa, sem repercussão significativa sobre o desempenho global do teste."
+    if ip_class in {"Inferior", "Muito Inferior"}:
+        return summary + " Destaca-se, contudo, suscetibilidade aumentada à interferência proativa, o que pode dificultar a aquisição de novas informações diante de conteúdos previamente aprendidos."
+    return summary
+
+
 class RAVLTModule(BaseTestModule):
     code = RAVLT_CODE
     name = RAVLT_NAME
@@ -177,21 +282,67 @@ class RAVLTModule(BaseTestModule):
         }
 
     def interpret(self, context: TestContext, merged_data: dict) -> str:
-        results = merged_data.get("resultados", [])
-        if not results:
+        result_map = _result_map(merged_data)
+        if not result_map:
             return "Sem resultados para interpretação."
+
+        name = _first_name(context.patient_name)
+        a1 = result_map.get("A1", {})
+        a2 = result_map.get("A2", {})
+        a3 = result_map.get("A3", {})
+        a4 = result_map.get("A4", {})
+        a5 = result_map.get("A5", {})
+        b1 = result_map.get("B1", {})
+        a6 = result_map.get("A6", {})
+        a7 = result_map.get("A7", {})
+        r = result_map.get("Reconhecimento Lista A", {})
+        alt = result_map.get("Aprend. longo das Tentativas", {})
+        ret = result_map.get("Velocidade de Esquecimento", {})
+        ip = result_map.get("Interferência Proativa", {})
+        ir = result_map.get("Interferência Retroativa", {})
 
         parts = []
         parts.append(
-            f"RAVLT - Resultados | Faixa etária: {merged_data.get('faixa_etaria', '-')}"
+            "Interpretação e Observações Clínicas: "
+            f"{name} apresentou desempenho {_global_memory_phrase(alt.get('classificacao', 'Média'))} na memória episódica auditivo-verbal, "
+            f"{_learning_curve_phrase(a1.get('bruto', 0), a2.get('bruto', 0), a3.get('bruto', 0), a4.get('bruto', 0), a5.get('bruto', 0))} "
+            f"{_efficiency_phrase(alt.get('classificacao', 'Média'))}. "
+            f"A evocação imediata inicial já se mostrou {_expected_phrase(a1.get('classificacao', 'Média'))} (A1 = {_format_score(a1.get('bruto'))}), "
+            f"com progressão consistente nas tentativas subsequentes (A2 = {_format_score(a2.get('bruto'))}, A3 = {_format_score(a3.get('bruto'))}, A4 = {_format_score(a4.get('bruto'))}, A5 = {_format_score(a5.get('bruto'))}), "
+            f"{_acquisition_phrase(a5.get('classificacao', 'Média'))}."
         )
-        parts.append("")
 
-        for r in results:
-            if r.get("bruto") is not None:
-                parts.append(f"{r['variavel']}: {r['bruto']} ({r['classificacao']})")
+        parts.append(
+            f"A evocação da lista interferente (B1 = {_format_score(b1.get('bruto'))}) situou-se {_expected_phrase(b1.get('classificacao', 'Média'))}, "
+            "sugerindo registro adequado de novo material verbal. "
+            f"Após a interferência, a recuperação da lista original permaneceu {_expected_phrase(a6.get('classificacao', 'Média'))} (A6 = {_format_score(a6.get('bruto'))}), "
+            f"assim como a evocação tardia (A7 = {_format_score(a7.get('bruto'))}), {_consolidation_phrase(a7.get('classificacao', 'Média'))}. "
+            f"O desempenho em reconhecimento (R = {_format_score(r.get('bruto'))}) esteve {_expected_phrase(r.get('classificacao', 'Média'))}, "
+            f"{_storage_phrase(r.get('classificacao', 'Média'))}. "
+            f"A aprendizagem total (ALT = {_format_score(alt.get('bruto'))}) foi {_expected_phrase(alt.get('classificacao', 'Média'))}, "
+            "confirmando o rendimento global nesse domínio."
+        )
 
-        return "\n".join(parts)
+        parts.append(
+            f"O índice de retenção (RET = {_format_score(ret.get('bruto'))}) manteve-se {_expected_phrase(ret.get('classificacao', 'Média'))}, "
+            "indicando preservação do material após intervalo. "
+            f"O índice de interferência proativa (I.P. = {_format_score(ip.get('bruto'))}) situou-se {_expected_phrase(ip.get('classificacao', 'Média'))}, "
+            "sugerindo vulnerabilidade à influência de conteúdos previamente aprendidos sobre a aquisição de novas informações. "
+            f"Já o índice de interferência retroativa (I.R. = {_format_score(ir.get('bruto'))}) mostrou-se {_expected_phrase(ir.get('classificacao', 'Média'))}, "
+            "sem evidência de prejuízo relevante da nova aprendizagem sobre a recuperação do conteúdo anterior."
+        )
+
+        parts.append(
+            _clinical_summary(
+                name,
+                alt.get("classificacao", "Média"),
+                a7.get("classificacao", "Média"),
+                r.get("classificacao", "Média"),
+                ip.get("classificacao", "Média"),
+            )
+        )
+
+        return "\n\n".join(parts)
 
 
 register_test_module(RAVLT_CODE, RAVLTModule())

@@ -211,8 +211,14 @@ OPENAI_FALLBACK_MODELS = env_list("OPENAI_FALLBACK_MODELS")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL_TEXT = os.getenv("ANTHROPIC_MODEL_TEXT", "claude-3-7-sonnet-latest")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "ollama")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
+OLLAMA_BASE_URL = os.getenv(
+    "OLLAMA_BASE_URL",
+    os.getenv("DOCKER_OLLAMA_BASE_URL", "http://localhost:11434"),
+)
+OLLAMA_MODEL = os.getenv(
+    "OLLAMA_MODEL",
+    os.getenv("DOCKER_OLLAMA_MODEL", "qwen3.5:9b"),
+)
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024

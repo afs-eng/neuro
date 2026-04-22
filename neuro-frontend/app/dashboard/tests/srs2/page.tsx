@@ -125,6 +125,16 @@ function SRS2PageContent() {
     }
   }, [loading, evaluationId]);
 
+  const clearForm = () => {
+    if (!confirm("Deseja realmente limpar todos os campos do formulário?")) {
+      return;
+    }
+
+    setResponses({});
+    setRespondentName("");
+    setError(null);
+  };
+
   const handleSave = async () => {
     if (!evaluationId) {
       alert("evaluation_id não encontrado na URL");
@@ -264,6 +274,14 @@ function SRS2PageContent() {
               <Button className="rounded-xl gap-2" onClick={handleSave} disabled={saving}>
                 <Save className="h-4 w-4" />
                 Salvar aplicação
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                onClick={clearForm}
+                disabled={saving}
+              >
+                Limpar Campos
               </Button>
             </div>
           </CardContent>

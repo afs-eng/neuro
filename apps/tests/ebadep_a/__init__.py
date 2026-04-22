@@ -65,14 +65,14 @@ class EBADEPAModule(BaseTestModule):
         interp = interpret_result(classificacao)
 
         parts = []
-        parts.append(f"Classificação: {classificacao}")
-        parts.append(f"Interpretação: {interp.get('geral', '')}")
+        parts.append(f"Classificação Clínica: {classificacao}")
+        parts.append(f"Interpretação e Observações Clínicas: {interp.get('geral', '')}")
 
         if merged_data.get("items_criticos"):
             items = [str(d["item"]) for d in merged_data["items_criticos"]]
             parts.append(f"Itens com escore máximo (pontuação 3): {', '.join(items)}")
 
-        parts.append(f"Síntese: {get_synthesis(classificacao)}")
+        parts.append(f"Síntese Clínica: {get_synthesis(classificacao)}")
 
         return "\n".join(parts)
 

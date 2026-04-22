@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from io import BytesIO
 import logging
 import re
@@ -15,7 +16,7 @@ from matplotlib import font_manager
 from django.conf import settings
 from docx import Document
 from docx.table import Table
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -23,36 +24,55 @@ from docx.text.paragraph import Paragraph
 from docx.shared import Inches, Pt, RGBColor
 from docx.shared import Cm
 
+from apps.reports.charts import gerar_grafico_bpa_bytes
 from apps.reports.models import Report
 from apps.reports.builders.references_builder import build_references
 from apps.reports.services.report_context_service import ReportContextService
+from apps.reports.services.ptbr_text_service import PtBrTextService
+from apps.tests.srs2.interpreters import interpret_srs2_results
+from apps.tests.ravlt.norms import NORMS as RAVLT_NORMS
+from apps.tests.ravlt.norms import get_age_band as get_ravlt_age_band
 from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
 
 
 class ReportExportService:
-    DEFAULT_TEMPLATE_PATH = settings.BASE_DIR / "laudo-modelo.docx"
-    ADOLESCENT_TEMPLATE_PATH = settings.BASE_DIR / "Modelo-Adolescente.docx"
+    DEFAULT_TEMPLATE_PATH = settings.BASE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
+    ADOLESCENT_TEMPLATE_PATH = settings.BASE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
+    TABLE_STYLE_SOURCE_PATH = settings.BASE_DIR / "Modelo-WISC.docx"
     FONT_NAME = "Times New Roman"
     BODY_SIZE = Pt(12)
     TABLE_SIZE = Pt(9)
+    TABLE_HEADER_SIZE = Pt(8)
     TITLE_SIZE = Pt(12)
     CAPTION_SIZE = Pt(9)
+    BODY_FIRST_LINE_INDENT = Cm(1.5)
     BODY_LINE_SPACING = 1.5
     IDENTIFICATION_LINE_SPACING = 1.15
     HEADING_SPACE_BEFORE = Pt(10)
     HEADING_SPACE_AFTER = Pt(4)
     SUBHEADING_SPACE_BEFORE = Pt(6)
     SUBHEADING_SPACE_AFTER = Pt(2)
-    BODY_SPACE_AFTER = Pt(0)
+    BODY_SPACE_AFTER = Pt(6)
     IMAGE_WIDTH = Inches(6.2)
-    TABLE_WIDTH = Inches(6.2)
-    ACCENT_COLOR = "2F6DB3"
+    DEFAULT_TABLE_WIDTH = Inches(6.5)
     HEADER_FILL = "DCE6F1"
+    BPA_HEADER_FILL = "A8D08D"
+    BPA_BODY_FILL = "E2EFD9"
     WISC_HEADER_FILL = "A8D08D"
-    WISC_NAME_FILL = "538135"
+    WISC_NAME_FILL = "A9D18E"
     WISC_VALUE_FILL = "E2EFD9"
+    RAVLT_HEADER_FILL = "A9D08E"
+    FDT_HEADER_FILL = "A8D08D"
+    FDT_BODY_FILL = "E2EFD9"
+    TABLE_TITLE_FILL = "538135"
     LOCAL_LIBERATION_SERIF = Path.home() / ".local/share/fonts/liberation/LiberationSerif-Regular.ttf"
-    LOCAL_LIBERATION_SERIF_BOLD = Path.home() / ".local/share/fonts/liberation/LiberationSerif-Bold.ttf"
+    INTERPRETATION_LABELS = (
+        "Interpretação clínica:",
+        "Interpretação e Observações Clínicas:",
+    )
+    EMPTY_INTERPRETATION_MESSAGES = {
+        "Nenhum instrumento específico deste domínio apresentou interpretação clínica consolidada.",
+    }
     INSTRUMENT_CATALOG = {
         "anamnese": {
             "nome": "Anamnese",
@@ -260,9 +280,13 @@ class ReportExportService:
             document = cls._build_adolescent_document(report, context, sections)
         else:
             document = Document(str(template_path))
+            cls._ensure_model_table_styles(document)
             cls._apply_base_styles(document)
             cls._replace_simple_sections(document, sections)
             cls._rebuild_qualitative_section(document, sections, context)
+
+        cls._ensure_model_table_styles(document)
+        cls._normalize_model_header_footer(document)
 
         output = BytesIO()
         document.save(output)
@@ -328,10 +352,11 @@ class ReportExportService:
     def _build_adolescent_document(
         cls, report, context: dict, sections: dict[str, str]
     ):
-        template_path = cls.ADOLESCENT_TEMPLATE_PATH
+        template_path = cls._select_template_path(report)
         document = (
             Document(str(template_path)) if template_path.exists() else Document()
         )
+        cls._ensure_model_table_styles(document)
         cls._clear_document_body(document)
         cls._apply_base_styles(document)
         patient = context.get("patient") or {}
@@ -345,6 +370,57 @@ class ReportExportService:
             or patient.get("full_name")
             or "Familiares"
         )
+        table_index = 1
+        chart_index = 1
+        def append_table_with_interpretation(
+            rows,
+            table_key: str,
+            interpretation: str | None,
+            caption: str,
+        ):
+            nonlocal table_index
+            cls._append_table_with_interpretation(
+                document,
+                rows,
+                table_key,
+                interpretation,
+                caption=cls._table_caption_text(table_index, caption),
+            )
+            if rows:
+                table_index += 1
+
+        def append_chart(
+            caption: str,
+            image_bytes: bytes | None,
+            note: str | None = None,
+            width=None,
+            show_caption: bool = True,
+        ):
+            nonlocal chart_index
+            if not image_bytes:
+                return
+            cls._append_chart(
+                document,
+                cls._chart_caption_text(chart_index, caption) if show_caption else None,
+                image_bytes,
+                width=width,
+            )
+            if note:
+                note_paragraph = document.add_paragraph(note)
+                cls._format_chart_legend_paragraph(note_paragraph)
+            chart_index += 1
+
+        def section_or_test_interpretation(
+            section_key: str,
+            fallback_section_key: str | None,
+            test_payload: dict | None,
+        ) -> str:
+            return cls._resolve_interpretation_text(
+                sections.get(section_key),
+                sections.get(fallback_section_key) if fallback_section_key else None,
+                test_payload,
+            )
+
         purpose = (
             report.purpose
             or evaluation.get("evaluation_purpose")
@@ -382,7 +458,7 @@ class ReportExportService:
             cls._append_label_value(document, "Escola", patient.get("school_name"))
 
         cls._append_heading(document, "2. DESCRIÇÃO DA DEMANDA")
-        cls._append_subheading(document, "Motivo do Encaminhamento")
+        cls._append_subheading(document, "2.1. Motivo do Encaminhamento")
         cls._append_paragraph(
             document,
             sections.get("descricao_demanda")
@@ -396,228 +472,238 @@ class ReportExportService:
             cls._append_bullet(document, f"{item['name']}: {item['description']}")
 
         cls._append_heading(document, "4. ANÁLISE")
-        cls._append_subheading(document, "História Pessoal")
+        cls._append_subheading(document, "4.1. História Pessoal")
         cls._append_paragraph(
             document,
             sections.get("historia_pessoal")
             or "Sem conteúdo disponível para esta seção.",
         )
 
-        cls._append_heading(document, "5. EFICIÊNCIA COGNITIVA")
-        cls._append_wisc_global_block(document, cls._find_test(context, "wisc4"), context)
-        cls._append_chart(
-            document,
-            "Desempenho no WISC-IV",
-            cls._wisc_chart(
-                (context.get("validated_tests") or [{}])[0]
-                if any(
-                    t.get("instrument_code") == "wisc4"
-                    for t in context.get("validated_tests") or []
-                )
-                else None
-            ),
+        patient_title = "da paciente" if (context.get("patient") or {}).get("sex") == "F" else "do paciente"
+        cls._append_heading(document, "5. ANÁLISE QUALITATIVA")
+        cls._append_subheading(document, f"5.1. Desempenho {patient_title} no WISC-IV")
+        wisc_test = cls._find_test(context, "wisc4")
+        wisc_chart = cls._wisc_chart(wisc_test)
+        append_chart(
+            "WISC-IV - INDICES DE QIS",
+            wisc_chart,
+            cls._wisc_chart_legend(chart_index),
+            show_caption=False,
         )
-        legend_paragraph = document.add_paragraph(cls._wisc_chart_legend())
-        cls._format_chart_legend_paragraph(legend_paragraph)
-        cls._append_subheading(document, "Subescalas WISC-IV")
-        cls._append_subheading(document, "Funções Executivas")
-        cls._append_table_with_interpretation(
-            document,
+        cls._append_wisc_global_block(document, wisc_test, context)
+        cls._append_subheading(document, "5.2. Subescalas WISC-IV")
+        cls._append_subheading(document, "5.2.1. Função Executiva")
+        append_table_with_interpretation(
             cls._wisc_rows(
                 cls._find_test(context, "wisc4"), context, "funcoes_executivas"
             ),
             "wisc",
             sections.get("funcoes_executivas"),
+            "Resultado da Função executiva",
         )
-        cls._append_subheading(document, "Linguagem")
-        cls._append_table_with_interpretation(
-            document,
+        cls._append_subheading(document, "5.2.2. Linguagem")
+        append_table_with_interpretation(
             cls._wisc_rows(cls._find_test(context, "wisc4"), context, "linguagem"),
             "wisc",
             sections.get("linguagem"),
+            "Resultado da Linguagem",
         )
-        cls._append_subheading(document, "Gnosias e Praxias")
-        cls._append_table_with_interpretation(
-            document,
+        cls._append_subheading(document, "5.2.3. Gnosias e Praxias")
+        append_table_with_interpretation(
             cls._wisc_rows(
                 cls._find_test(context, "wisc4"), context, "gnosias_praxias"
             ),
             "wisc",
             sections.get("gnosias_praxias"),
+            "Resultados da Gnosias e praxias",
         )
-        cls._append_subheading(document, "Memória e Aprendizagem")
-        cls._append_table_with_interpretation(
-            document,
+        cls._append_subheading(document, "5.2.4. Memória e Aprendizagem")
+        append_table_with_interpretation(
             cls._wisc_memory_rows(cls._find_test(context, "wisc4"), context),
             "wisc",
             sections.get("memoria_aprendizagem"),
+            "Resultados da Memória e aprendizagem",
         )
 
         cls._append_heading(
-            document, "BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO"
+            document,
+            "6. BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO",
         )
         cls._append_paragraph(
             document,
             "A Bateria Psicológica para Avaliação da Atenção-2 (BPA-2) mensura a capacidade geral de atenção, avaliando individualmente atenção concentrada, dividida, alternada e geral.",
         )
-        cls._append_table_with_interpretation(
-            document,
-            cls._bpa_rows(cls._find_test(context, "bpa2")),
+        append_table_with_interpretation(
+            cls._bpa_rows(cls._find_test(context, "bpa2"), context),
             "bpa",
             sections.get("bpa2") or sections.get("atencao"),
+            "Atenção BPA-2 Resultados",
         )
-        cls._append_chart(
-            document,
-            "Gráfico BPA-2 – Resultados da avaliação da atenção",
-            cls._bpa_chart(cls._find_test(context, "bpa2")),
+        append_chart(
+            "BPA-2 apresenta os resultados da avaliação da atenção",
+            cls._bpa_chart_bytes(cls._find_test(context, "bpa2")),
         )
 
-        cls._append_heading(document, "RAVLT – REY AUDITORY VERBAL LEARNING TEST")
+        cls._append_heading(
+            document,
+            "7. RAVLT – REY AUDITORY VERBAL LEARNING TEST",
+        )
         cls._append_paragraph(
             document,
             "O RAVLT avalia memória verbal, capacidade de aprendizado auditivo e retenção de informações ao longo do tempo.",
         )
-        cls._append_chart(
-            document,
-            "Gráfico RAVLT – Resultados",
-            cls._ravlt_chart(cls._find_test(context, "ravlt")),
+        ravlt_interpretation = sections.get("ravlt") or sections.get("memoria_aprendizagem")
+        append_table_with_interpretation(
+            cls._ravlt_rows(cls._find_test(context, "ravlt"), context),
+            "ravlt",
+            None,
+            cls._ravlt_table_caption(),
         )
-        cls._append_table_with_interpretation(
-            document,
-            cls._ravlt_compact_rows(cls._find_test(context, "ravlt")),
-            "ravlt_compact",
-            sections.get("ravlt") or sections.get("memoria_aprendizagem"),
-        )
+        cls._append_ravlt_conceptual_paragraph(document)
+        if ravlt_interpretation:
+            cls._append_interpretation_block(
+                document, cls._normalize_interpretation_text(ravlt_interpretation)
+            )
+        append_chart("RAVLT Resultados", cls._ravlt_chart(cls._find_test(context, "ravlt")))
 
-        cls._append_heading(document, "FDT – TESTE DOS CINCO DÍGITOS")
+        cls._append_heading(
+            document, "8. FDT – TESTE DOS CINCO DÍGITOS"
+        )
         cls._append_paragraph(
             document,
             "O FDT avalia processos automáticos e controlados, incluindo velocidade de processamento, controle inibitório, alternância e flexibilidade cognitiva.",
         )
-        cls._append_table_with_interpretation(
-            document,
+        append_table_with_interpretation(
             cls._fdt_rows(cls._find_test(context, "fdt")),
             "fdt",
             sections.get("fdt") or sections.get("funcoes_executivas"),
+            "TABELA FDT- PROCESSOS AUTOMÁTICOS E CONTROLADOS",
         )
-        cls._append_chart(
-            document,
-            "Gráfico FDT – Processos Automáticos",
+        append_chart(
+            "FDT - Processos Automático",
             cls._fdt_chart(cls._find_test(context, "fdt"), automatic=True),
         )
-        cls._append_chart(
-            document,
-            "Gráfico FDT – Processos Controlados",
+        append_chart(
+            "FDT - Processos Controlados",
             cls._fdt_chart(cls._find_test(context, "fdt"), automatic=False),
         )
 
         if cls._find_test(context, "etdah_pais"):
-            cls._append_heading(document, "E-TDAH-PAIS")
+            cls._append_heading(document, "9. E-TDAH-PAIS")
             cls._append_paragraph(
                 document,
                 "A Escala E-TDAH-PAIS identifica manifestações comportamentais e emocionais associadas ao TDAH a partir da percepção dos responsáveis.",
             )
-            cls._append_table_with_interpretation(
-                document,
+            append_table_with_interpretation(
                 cls._etdah_rows(cls._find_test(context, "etdah_pais")),
                 "etdah",
-                sections.get("etdah_pais")
-                or sections.get("aspectos_emocionais_comportamentais"),
+                section_or_test_interpretation(
+                    "etdah_pais", None, cls._find_test(context, "etdah_pais")
+                ),
+                "Resultados do E-TDAH-PAIS",
             )
-            cls._append_chart(
-                document,
-                "Gráfico E-TDAH-PAIS – Resultados",
+            append_chart(
+                "E-TDAH-PAIS Resultados",
                 cls._etdah_chart(cls._find_test(context, "etdah_pais")),
             )
 
         if cls._find_test(context, "etdah_ad"):
-            cls._append_heading(document, "E-TDAH-AD")
+            cls._append_heading(document, "10. E-TDAH-AD")
             cls._append_paragraph(
                 document,
                 "O E-TDAH-AD investiga sintomas relacionados à atenção, hiperatividade, impulsividade e aspectos emocionais a partir do autorrelato do adolescente.",
             )
-            cls._append_table_with_interpretation(
-                document,
+            append_table_with_interpretation(
                 cls._etdah_rows(cls._find_test(context, "etdah_ad")),
                 "etdah",
-                sections.get("etdah_ad")
-                or sections.get("aspectos_emocionais_comportamentais"),
+                section_or_test_interpretation(
+                    "etdah_ad", None, cls._find_test(context, "etdah_ad")
+                ),
+                "Resultados do E-TDAH-AD",
             )
-            cls._append_chart(
-                document,
-                "Gráfico E-TDAH-AD – Resultados",
+            append_chart(
+                "E-TDAH-AD Resultados",
                 cls._etdah_chart(cls._find_test(context, "etdah_ad")),
             )
 
-        if cls._find_test(context, "scared"):
+        scared_tests = cls._find_tests(context, "scared")
+        if scared_tests:
             cls._append_heading(
                 document,
-                "SCARED – SCREEN FOR CHILD ANXIETY RELATED EMOTIONAL DISORDERS",
+                "11. SCARED",
             )
             cls._append_paragraph(
                 document,
                 "O SCARED rastreia sintomas ansiosos, incluindo pânico, ansiedade generalizada, ansiedade de separação, fobia social e evitação escolar.",
             )
-            cls._append_table_with_interpretation(
-                document,
-                cls._scared_rows(cls._find_test(context, "scared")),
-                "scared",
-                sections.get("scared")
-                or sections.get("aspectos_emocionais_comportamentais"),
-            )
-            cls._append_chart(
-                document,
-                "Gráfico SCARED – Resultados",
-                cls._scared_chart(cls._find_test(context, "scared")),
-            )
+            for scared_test in scared_tests:
+                form_label = cls._scared_form_label(scared_test)
+                append_table_with_interpretation(
+                    cls._scared_rows(scared_test),
+                    "scared",
+                    section_or_test_interpretation(
+                        "scared",
+                        None,
+                        scared_test,
+                    ),
+                    f"SCARED - Resultados {form_label}",
+                )
+                append_chart(
+                    f"SCARED Resultados {form_label}",
+                    cls._scared_chart(scared_test),
+                )
 
         if cls._find_test(context, "epq_j"):
             cls._append_heading(
-                document, "EPQ-J – INVENTÁRIO DE PERSONALIDADE DE EYSENCK PARA JOVENS"
-            )
-            cls._append_table_with_interpretation(
                 document,
+                "12. EPQ-J",
+            )
+            append_table_with_interpretation(
                 cls._epq_rows(cls._find_test(context, "epq_j")),
                 "epq",
-                sections.get("epq_j")
-                or sections.get("aspectos_emocionais_comportamentais"),
+                section_or_test_interpretation(
+                    "epq_j", None, cls._find_test(context, "epq_j")
+                ),
+                "EPQ-J Resultados da personalidade",
             )
-            cls._append_chart(
-                document,
-                "Gráfico EPQ-J – Resultados dos percentis",
+            append_chart(
+                "EPQ-J Resultados dos percentis",
                 cls._epq_chart(cls._find_test(context, "epq_j")),
             )
 
         if cls._find_test(context, "srs2"):
-            cls._append_heading(document, "SRS-2 – ESCALA DE RESPONSIVIDADE SOCIAL")
+            srs2_test = cls._find_test(context, "srs2")
+            cls._append_heading(
+                document,
+                "13. SRS-2 – ESCALA DE RESPONSIVIDADE SOCIAL",
+            )
             cls._append_paragraph(
                 document,
                 "A SRS-2 avalia aspectos da interação social e comportamentos associados ao espectro autista, exigindo sempre integração clínica cuidadosa.",
             )
-            cls._append_table_with_interpretation(
-                document,
-                cls._srs2_rows(cls._find_test(context, "srs2")),
+            append_table_with_interpretation(
+                cls._srs2_rows(srs2_test),
                 "srs2",
-                sections.get("srs2")
-                or sections.get("aspectos_emocionais_comportamentais"),
+                section_or_test_interpretation(
+                    "srs2", None, srs2_test
+                ),
+                "SRS-2 Resultados",
             )
-            cls._append_chart(
-                document,
-                "Gráfico SRS-2 – Resultados",
-                cls._srs2_chart(cls._find_test(context, "srs2")),
+            append_chart(
+                "SRS-2 Resultados",
+                cls._srs2_chart(srs2_test),
             )
-
-        cls._append_heading(document, "CONCLUSÃO")
+        cls._append_heading(document, "14. CONCLUSÃO")
         cls._append_paragraph(
             document,
             sections.get("conclusao") or "Sem conteúdo disponível para esta seção.",
         )
-        cls._append_subheading(document, "Sugestões de Conduta (Encaminhamentos):")
+        cls._append_heading(document, "15. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS)")
         for bullet in cls._split_bullets(sections.get("sugestoes_conduta") or ""):
             cls._append_bullet(document, bullet)
 
-        cls._append_heading(document, "A EQUIPE MULTIDISCIPLINAR")
-        for paragraph in cls._institutional_paragraphs(report):
+        cls._append_heading(document, "16. A EQUIPE MULTIDISCIPLINAR")
+        for paragraph in cls._team_paragraphs(report):
             cls._append_paragraph(document, paragraph)
         for line in cls._signature_lines(report):
             cls._append_paragraph(
@@ -635,20 +721,88 @@ class ReportExportService:
                 else False,
             )
 
-        cls._append_heading(document, "REFERÊNCIAS BIBLIOGRÁFICAS")
+        cls._append_heading(document, "17. IMPORTANTE RESSALTAR QUE ESTE DOCUMENTO:")
+        for item in cls._important_document_items():
+            cls._append_numbered_item(document, item)
+
+        cls._append_heading(document, "18. REFERÊNCIA BIBLIOGRÁFICA")
         for ref in cls._references_list(context):
             cls._append_paragraph(document, ref)
         return document
 
     @classmethod
     def _apply_base_styles(cls, document: Document):
+        cls._apply_page_layout(document)
         for style_name in ("Normal",):
             style = document.styles[style_name]
             style.font.name = cls.FONT_NAME
             style.font.size = cls.BODY_SIZE
             style.paragraph_format.space_before = Pt(0)
-            style.paragraph_format.space_after = Pt(0)
+            style.paragraph_format.space_after = cls.BODY_SPACE_AFTER
             style.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+            style.paragraph_format.first_line_indent = cls.BODY_FIRST_LINE_INDENT
+            style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+    @classmethod
+    def _apply_page_layout(cls, document: Document):
+        for section in document.sections:
+            section.top_margin = Cm(3)
+            section.bottom_margin = Cm(2)
+            section.left_margin = Cm(2)
+            section.right_margin = Cm(2)
+            section.header_distance = Cm(1.27)
+            section.footer_distance = Cm(1.27)
+            sect_pr = section._sectPr
+            pg_mar = sect_pr.find(qn("w:pgMar"))
+            if pg_mar is None:
+                pg_mar = OxmlElement("w:pgMar")
+                sect_pr.append(pg_mar)
+            pg_mar.set(qn("w:gutter"), "0")
+
+    @classmethod
+    def _normalize_model_header_footer(cls, document: Document):
+        for section in document.sections:
+            for paragraph in section.footer.paragraphs:
+                for run in paragraph.runs:
+                    if run.text == "pág. ":
+                        run.text = "pág."
+
+    @classmethod
+    def _ensure_model_table_styles(cls, document: Document):
+        try:
+            document.styles["Table Grid"]
+            return
+        except KeyError:
+            pass
+
+        source_path = cls.TABLE_STYLE_SOURCE_PATH
+        if not source_path.exists():
+            return
+
+        source_document = Document(str(source_path))
+        source_styles = source_document.styles.element
+        target_styles = document.styles.element
+
+        existing_ids = {
+            style.get(qn("w:styleId"))
+            for style in target_styles.findall(qn("w:style"))
+        }
+
+        for style_id in ("Tabelanormal", "Tabelacomgrade", "Tabelacomgrade1"):
+            if style_id in existing_ids:
+                continue
+            source_style = source_styles.find(f'.//w:style[@w:styleId="{style_id}"]', namespaces={"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"})
+            if source_style is not None:
+                target_styles.append(deepcopy(source_style))
+
+    @classmethod
+    def _apply_model_table_style(cls, table):
+        for style_name in ("Table Grid", "Tabela com grade1"):
+            try:
+                table.style = style_name
+                return
+            except KeyError:
+                continue
 
     @classmethod
     def _replace_simple_sections(cls, document: Document, sections: dict[str, str]):
@@ -707,7 +861,8 @@ class ReportExportService:
         cls._remove_nodes_between(start, end)
         anchor = start
         for line in (text or "Sem conteúdo disponível para esta seção.").split("\n"):
-            anchor = cls._insert_paragraph_after(anchor, line)
+            anchor = cls._insert_paragraph_after(anchor, "")
+            cls._append_body_text_with_bold_label(anchor, line)
             cls._format_body_paragraph(anchor)
 
     @classmethod
@@ -728,14 +883,14 @@ class ReportExportService:
         table_index = 1
         chart_index = 1
         anchor = start
-
         def add_title(text: str):
             nonlocal anchor
-            anchor = cls._insert_paragraph_after(anchor, text)
+            anchor = cls._insert_paragraph_after(anchor, PtBrTextService.normalize(text))
             cls._format_subtitle_paragraph(anchor)
 
         def add_text(text: str):
             nonlocal anchor
+            text = PtBrTextService.normalize(text)
             for line in (text or "").split("\n"):
                 if not line.strip():
                     continue
@@ -763,7 +918,8 @@ class ReportExportService:
                     p.paragraph_format.first_line_indent = Cm(-0.55)
                     p.paragraph_format.tab_stops.add_tab_stop(Cm(1.1))
                 else:
-                    anchor = cls._insert_paragraph_after(anchor, line)
+                    anchor = cls._insert_paragraph_after(anchor, "")
+                    cls._append_body_text_with_bold_label(anchor, line)
                     if line.startswith("Capacidade Cognitiva Global:"):
                         cls._append_wisc_intro_paragraph(anchor, line)
                     else:
@@ -773,45 +929,64 @@ class ReportExportService:
             nonlocal anchor, table_index
             if not rows:
                 return
-            anchor = cls._insert_paragraph_after(
-                anchor, f"Tabela {table_index}. {caption}"
+            if table_key == "ravlt":
+                table = cls._insert_ravlt_table_after(anchor, rows)
+            else:
+                table = cls._insert_table_after(anchor, rows, table_key)
+                cls._format_table(table, table_key)
+            anchor = cls._insert_paragraph_after_table(
+                table, cls._table_caption_text(table_index, caption)
             )
             cls._format_caption_paragraph(anchor)
-            table = cls._insert_table_after(anchor, rows)
-            cls._format_table(table, table_key)
-            anchor = cls._insert_paragraph_after_table(table, "")
             table_index += 1
 
-        def add_chart(caption: str, image_bytes: bytes | None):
+        def add_chart(
+            caption: str,
+            image_bytes: bytes | None,
+            note: str | None = None,
+            width=None,
+            show_caption: bool = True,
+        ):
             nonlocal anchor, chart_index
             if not image_bytes:
                 return
-            anchor = cls._insert_paragraph_after(
-                anchor, f"Gráfico {chart_index}. {caption}"
-            )
-            cls._format_caption_paragraph(anchor)
             anchor = cls._insert_paragraph_after(anchor, "")
             run = anchor.runs[0] if anchor.runs else anchor.add_run()
-            run.add_picture(BytesIO(image_bytes), width=cls.IMAGE_WIDTH)
+            run.add_picture(BytesIO(image_bytes), width=width or cls.IMAGE_WIDTH)
             anchor.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if caption == "Índices do WISC-IV":
-                anchor = cls._insert_paragraph_after(anchor, cls._wisc_chart_legend())
+            if show_caption:
+                anchor = cls._insert_paragraph_after(
+                    anchor, cls._chart_caption_text(chart_index, caption)
+                )
+                cls._format_caption_paragraph(anchor)
+            if note:
+                anchor = cls._insert_paragraph_after(anchor, note)
                 cls._format_chart_legend_paragraph(anchor)
             chart_index += 1
 
-        anchor = cls._insert_wisc_global_block_after(anchor, tests.get("wisc4"), context)
-        add_chart("Índices do WISC-IV", cls._wisc_chart(tests.get("wisc4")))
+        patient_title = "da paciente" if (context.get("patient") or {}).get("sex") == "F" else "do paciente"
+        add_title(f"5.1. Desempenho {patient_title} no WISC-IV")
+        add_chart(
+            "WISC-IV - INDICES DE QIS",
+            cls._wisc_chart(tests.get("wisc4")),
+            cls._wisc_chart_legend(chart_index),
+            show_caption=False,
+        )
+        add_text(cls._wisc_global_intro_text(tests.get("wisc4"), context))
+        for lead, tail in cls._wisc_global_bullet_parts(tests.get("wisc4")):
+            add_text(f"- {lead} {tail}")
 
         if is_adolescent:
-            add_title("Funções Executivas")
+            add_title("5.2. Subescalas WISC-IV")
+            add_title("5.2.1. Função Executiva")
             add_text(sections.get("funcoes_executivas", ""))
             add_table(
-                "Resultados das Funções Executivas",
+                "Resultado da Função executiva",
                 cls._wisc_rows(tests.get("wisc4"), context, "funcoes_executivas"),
                 "wisc",
             )
 
-            add_title("Linguagem")
+            add_title("5.2.2. Linguagem")
             add_text(sections.get("linguagem", ""))
             add_table(
                 "Resultados da Linguagem",
@@ -819,41 +994,51 @@ class ReportExportService:
                 "wisc",
             )
 
-            add_title("Gnosias e Praxias")
+            add_title("5.2.3. Gnosias e Praxias")
             add_text(sections.get("gnosias_praxias", ""))
             add_table(
-                "Resultados de Gnosias e Praxias",
+                "Resultados da Gnosias e praxias",
                 cls._wisc_rows(tests.get("wisc4"), context, "gnosias_praxias"),
                 "wisc",
             )
 
-            add_title("Memória e Aprendizagem")
+            add_title("5.2.4. Memória e Aprendizagem")
             add_text(sections.get("memoria_aprendizagem", ""))
             add_table(
-                "Resultados da Memória e Aprendizagem",
+                "Resultados da Memória e aprendizagem",
                 cls._wisc_memory_rows(tests.get("wisc4"), context),
                 "wisc",
             )
 
-            add_title("BPA-2 Bateria Psicológica para Avaliação da Atenção")
+            add_title("6. BPA-2 Bateria Psicológica para Avaliação da Atenção")
             add_text(sections.get("atencao", ""))
-            add_table("Resultados da BPA-2", cls._bpa_rows(tests.get("bpa2")), "bpa")
-            add_chart("Perfil atencional no BPA-2", cls._bpa_chart(tests.get("bpa2")))
-
-            add_title("RAVLT Rey Auditory Verbal Learning Test")
-            add_text(sections.get("ravlt", sections.get("memoria_aprendizagem", "")))
+            add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
             add_chart(
-                "Curva de aprendizagem no RAVLT", cls._ravlt_chart(tests.get("ravlt"))
+                "BPA-2 apresenta os resultados da avaliação da atenção",
+                cls._bpa_chart_bytes(tests.get("bpa2")),
             )
+
+            add_title("7. RAVLT Rey Auditory Verbal Learning Test")
+            ravlt_interpretation = sections.get("ravlt", sections.get("memoria_aprendizagem", ""))
             add_table(
-                "Resultados do RAVLT", cls._ravlt_rows(tests.get("ravlt")), "ravlt"
+                cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
             )
+            anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
+            if ravlt_interpretation:
+                anchor = cls._insert_interpretation_block_after(
+                    anchor, cls._normalize_interpretation_text(ravlt_interpretation)
+                )
+            add_chart("RAVLT Resultados", cls._ravlt_chart(tests.get("ravlt")))
 
-            add_title("FDT - Teste dos Cinco Dígitos")
+            add_title("8. FDT - Teste dos Cinco Dígitos")
             add_text(sections.get("fdt", sections.get("funcoes_executivas", "")))
-            add_table("Resultados do FDT", cls._fdt_rows(tests.get("fdt")), "fdt")
+            add_table(
+                "TABELA FDT- PROCESSOS AUTOMÁTICOS E CONTROLADOS",
+                cls._fdt_rows(tests.get("fdt")),
+                "fdt",
+            )
             add_chart(
-                "FDT - Processos Automáticos",
+                "FDT - Processos Automático",
                 cls._fdt_chart(tests.get("fdt"), automatic=True),
             )
             add_chart(
@@ -861,91 +1046,109 @@ class ReportExportService:
                 cls._fdt_chart(tests.get("fdt"), automatic=False),
             )
 
-            add_title("E-TDAH-PAIS")
-            add_text(
-                sections.get(
-                    "etdah_pais",
-                    sections.get("aspectos_emocionais_comportamentais", ""),
+            if tests.get("etdah_pais"):
+                add_title("9. E-TDAH-PAIS")
+                add_text(
+                    section_or_test_interpretation(
+                        "etdah_pais", None, tests.get("etdah_pais")
+                    )
                 )
-            )
-            add_table(
-                "Resultados do E-TDAH-PAIS",
-                cls._etdah_rows(tests.get("etdah_pais")),
-                "etdah",
-            )
-            add_chart(
-                "Perfil no E-TDAH-PAIS",
-                cls._etdah_chart(tests.get("etdah_pais")),
-            )
-
-            add_title("E-TDAH-AD")
-            add_text(
-                sections.get(
-                    "etdah_ad", sections.get("aspectos_emocionais_comportamentais", "")
+                add_table(
+                    "Resultados do E-TDAH-PAIS",
+                    cls._etdah_rows(tests.get("etdah_pais")),
+                    "etdah",
                 )
-            )
-            add_table(
-                "Resultados do E-TDAH-AD",
-                cls._etdah_rows(tests.get("etdah_ad")),
-                "etdah",
-            )
-            add_chart("Perfil no E-TDAH-AD", cls._etdah_chart(tests.get("etdah_ad")))
-
-            add_title("SCARED")
-            add_text(
-                sections.get(
-                    "scared", sections.get("aspectos_emocionais_comportamentais", "")
+                add_chart(
+                    "E-TDAH-PAIS Resultados",
+                    cls._etdah_chart(tests.get("etdah_pais")),
                 )
-            )
-            add_table(
-                "Resultados do SCARED", cls._scared_rows(tests.get("scared")), "scared"
-            )
-            add_chart("Perfil no SCARED", cls._scared_chart(tests.get("scared")))
 
-            add_title("EPQ-J")
-            add_text(
-                sections.get(
-                    "epq_j", sections.get("aspectos_emocionais_comportamentais", "")
+            if tests.get("etdah_ad"):
+                add_title("10. E-TDAH-AD")
+                add_text(
+                    section_or_test_interpretation(
+                        "etdah_ad", None, tests.get("etdah_ad")
+                    )
                 )
-            )
-            add_table("Resultados do EPQ-J", cls._epq_rows(tests.get("epq_j")), "epq")
-            add_chart(
-                "Perfil de personalidade no EPQ-J", cls._epq_chart(tests.get("epq_j"))
-            )
-
-            add_title("SRS-2 Escala de Responsividade Social")
-            add_text(
-                sections.get(
-                    "srs2", sections.get("aspectos_emocionais_comportamentais", "")
+                add_table(
+                    "Resultados do E-TDAH-AD",
+                    cls._etdah_rows(tests.get("etdah_ad")),
+                    "etdah",
                 )
-            )
-            add_table("Resultados do SRS-2", cls._srs2_rows(tests.get("srs2")), "srs2")
-            add_chart("Perfil social no SRS-2", cls._srs2_chart(tests.get("srs2")))
+                add_chart("E-TDAH-AD Resultados", cls._etdah_chart(tests.get("etdah_ad")))
 
-            add_title("Conclusão e Hipótese Diagnóstica")
-            add_text(
-                sections.get("hipotese_diagnostica", sections.get("conclusao", ""))
-            )
+            scared_tests = cls._find_tests(context, "scared")
+            if scared_tests:
+                add_title("11. SCARED")
+                add_text(
+                    section_or_test_interpretation(
+                        "scared", None, scared_tests[0]
+                    )
+                )
+                for scared_test in scared_tests:
+                    form_label = cls._scared_form_label(scared_test)
+                    add_table(
+                        f"SCARED - Resultados {form_label}",
+                        cls._scared_rows(scared_test),
+                        "scared"
+                    )
+                    add_chart(
+                        f"SCARED Resultados {form_label}",
+                        cls._scared_chart(scared_test),
+                    )
+
+            if tests.get("epq_j"):
+                add_title("12. EPQ-J")
+                add_text(
+                    section_or_test_interpretation(
+                        "epq_j", None, tests.get("epq_j")
+                    )
+                )
+                add_table(
+                    "EPQ-J Resultados da personalidade",
+                    cls._epq_rows(tests.get("epq_j")),
+                    "epq",
+                )
+                add_chart(
+                    "EPQ-J Resultados dos percentis",
+                    cls._epq_chart(tests.get("epq_j")),
+                )
+
+            if tests.get("srs2"):
+                srs2_test = tests.get("srs2")
+                add_title("13. SRS-2 Escala de Responsividade Social")
+                add_text(
+                    section_or_test_interpretation(
+                        "srs2", None, srs2_test
+                    )
+                )
+                add_table("SRS-2 Resultados", cls._srs2_rows(srs2_test), "srs2")
+                add_chart("SRS-2 Resultados", cls._srs2_chart(srs2_test))
         else:
-            add_title("Atenção")
+            add_title("5.1. Atenção")
             add_text(sections.get("atencao", ""))
-            add_table("Resultados da BPA-2", cls._bpa_rows(tests.get("bpa2")), "bpa")
-            add_chart("Perfil atencional no BPA-2", cls._bpa_chart(tests.get("bpa2")))
+            add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
+            add_chart(
+                "BPA-2 apresenta os resultados da avaliação da atenção",
+                cls._bpa_chart_bytes(tests.get("bpa2")),
+            )
 
-            add_title("Memória e Aprendizagem")
+            add_title("5.2. Memória e Aprendizagem")
             add_text(sections.get("memoria_aprendizagem", ""))
             add_table(
-                "Resultados do RAVLT", cls._ravlt_rows(tests.get("ravlt")), "ravlt"
+                cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
             )
-            add_chart(
-                "Curva de aprendizagem no RAVLT", cls._ravlt_chart(tests.get("ravlt"))
-            )
+            add_chart("RAVLT Resultados", cls._ravlt_chart(tests.get("ravlt")))
 
-            add_title("Funções Executivas")
+            add_title("5.3. Funções Executivas")
             add_text(sections.get("funcoes_executivas", ""))
-            add_table("Resultados do FDT", cls._fdt_rows(tests.get("fdt")), "fdt")
+            add_table(
+                "TABELA FDT- PROCESSOS AUTOMÁTICOS E CONTROLADOS",
+                cls._fdt_rows(tests.get("fdt")),
+                "fdt",
+            )
             add_chart(
-                "FDT - Processos Automáticos",
+                "FDT - Processos Automático",
                 cls._fdt_chart(tests.get("fdt"), automatic=True),
             )
             add_chart(
@@ -953,27 +1156,39 @@ class ReportExportService:
                 cls._fdt_chart(tests.get("fdt"), automatic=False),
             )
 
-            add_title("Aspectos Emocionais, Comportamentais e Escalas Complementares")
+            add_title("5.4. Aspectos Emocionais, Comportamentais e Escalas Complementares")
             add_text(sections.get("aspectos_emocionais_comportamentais", ""))
             add_table(
-                "Resultados do E-TDAH",
+                "E-TDAH Resultados",
                 cls._etdah_rows(tests.get("etdah_ad") or tests.get("etdah_pais")),
                 "etdah",
             )
             add_chart(
-                "Perfil no E-TDAH",
+                "E-TDAH Resultados",
                 cls._etdah_chart(tests.get("etdah_ad") or tests.get("etdah_pais")),
             )
+            for scared_test in cls._find_tests(context, "scared"):
+                form_label = cls._scared_form_label(scared_test)
+                add_table(
+                    f"SCARED - Resultados {form_label}",
+                    cls._scared_rows(scared_test),
+                    "scared"
+                )
+                add_chart(
+                    f"SCARED Resultados {form_label}",
+                    cls._scared_chart(scared_test),
+                )
             add_table(
-                "Resultados do SCARED", cls._scared_rows(tests.get("scared")), "scared"
+                "EPQ-J Resultados da personalidade",
+                cls._epq_rows(tests.get("epq_j")),
+                "epq",
             )
-            add_chart("Perfil no SCARED", cls._scared_chart(tests.get("scared")))
-            add_table("Resultados do EPQ-J", cls._epq_rows(tests.get("epq_j")), "epq")
             add_chart(
-                "Perfil de personalidade no EPQ-J", cls._epq_chart(tests.get("epq_j"))
+                "EPQ-J Resultados dos percentis",
+                cls._epq_chart(tests.get("epq_j")),
             )
-            add_table("Resultados do SRS-2", cls._srs2_rows(tests.get("srs2")), "srs2")
-            add_chart("Perfil social no SRS-2", cls._srs2_chart(tests.get("srs2")))
+            add_table("SRS-2 Resultados", cls._srs2_rows(tests.get("srs2")), "srs2")
+            add_chart("SRS-2 Resultados", cls._srs2_chart(tests.get("srs2")))
             add_table(
                 "Resultados da EBADEP",
                 cls._ebadep_rows(
@@ -1012,17 +1227,52 @@ class ReportExportService:
         return new_paragraph
 
     @classmethod
-    def _insert_table_after(cls, paragraph, rows: list[list[str]]):
+    def _insert_table_after(cls, paragraph, rows: list[list[str]], table_key: str | None = None):
         parent = paragraph._parent
-        table = parent.add_table(rows=0, cols=len(rows[0]))
+        table_rows = cls._with_table_title(rows, table_key)
+        table = parent.add_table(rows=0, cols=len(table_rows[0]), width=cls.DEFAULT_TABLE_WIDTH)
         tbl = table._tbl
         tbl.getparent().remove(tbl)
         paragraph._p.addnext(tbl)
-        for row_values in rows:
+        for row_values in table_rows:
             row = table.add_row().cells
             for index, value in enumerate(row_values):
                 row[index].text = value
         return Table(tbl, parent)
+
+    @classmethod
+    def _insert_ravlt_table_after(cls, paragraph, rows: list[list[str]]):
+        table = cls._insert_table_after(paragraph, rows, "ravlt")
+        cls._format_ravlt_table(table)
+        return table
+
+    @classmethod
+    def _with_table_title(cls, rows: list[list[str]] | None, table_key: str | None):
+        if not rows or not table_key:
+            return rows
+        title = cls._table_title_text(table_key)
+        if not title:
+            return rows
+        return [[title, *([""] * (len(rows[0]) - 1))], *rows]
+
+    @classmethod
+    def _table_title_text(cls, table_key: str) -> str | None:
+        return {
+            "bpa": "BPA-2",
+            "fdt": "FDT - TESTE DOS CINCO DÍGITOS",
+            "etdah": "E-TDAH-PAIS",
+            "scared": "SCARED",
+            "epq": "EPQ-J",
+            "srs2": "SRS-2",
+        }.get(table_key)
+
+    @classmethod
+    def _merge_title_row(cls, row):
+        merged_text = row.cells[0].text.strip()
+        merged = row.cells[0]
+        for idx in range(1, len(row.cells)):
+            merged = merged.merge(row.cells[idx])
+        merged.text = merged_text
 
     @classmethod
     def _insert_paragraph_after_table(cls, table, text: str):
@@ -1047,29 +1297,57 @@ class ReportExportService:
         paragraph.paragraph_format.space_before = Pt(0)
         paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
         paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
-        paragraph.paragraph_format.first_line_indent = Cm(1.25)
+        paragraph.paragraph_format.first_line_indent = cls.BODY_FIRST_LINE_INDENT
         for run in paragraph.runs:
             run.font.name = cls.FONT_NAME
             run.font.size = cls.BODY_SIZE
 
     @classmethod
     def _format_left_body_paragraph(cls, paragraph):
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         paragraph.paragraph_format.space_before = Pt(0)
         paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
         paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
-        paragraph.paragraph_format.first_line_indent = Pt(0)
+        paragraph.paragraph_format.first_line_indent = cls.BODY_FIRST_LINE_INDENT
         for run in paragraph.runs:
             run.font.name = cls.FONT_NAME
             run.font.size = cls.BODY_SIZE
 
     @classmethod
+    def _append_body_text_with_bold_label(cls, paragraph, text: str):
+        stripped = text.lstrip()
+        leading = text[: len(text) - len(stripped)]
+
+        if leading:
+            run = paragraph.add_run(leading)
+            run.font.name = cls.FONT_NAME
+            run.font.size = cls.BODY_SIZE
+
+        for label in cls.INTERPRETATION_LABELS:
+            if stripped.casefold().startswith(label.casefold()):
+                bold_run = paragraph.add_run(stripped[: len(label)])
+                bold_run.font.name = cls.FONT_NAME
+                bold_run.font.size = cls.BODY_SIZE
+                bold_run.bold = True
+
+                remainder = stripped[len(label) :]
+                if remainder:
+                    run = paragraph.add_run(remainder)
+                    run.font.name = cls.FONT_NAME
+                    run.font.size = cls.BODY_SIZE
+                return
+
+        run = paragraph.add_run(stripped)
+        run.font.name = cls.FONT_NAME
+        run.font.size = cls.BODY_SIZE
+
+    @classmethod
     def _append_wisc_intro_paragraph(cls, paragraph, text: str):
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         paragraph.paragraph_format.space_before = Pt(0)
         paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
         paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
-        paragraph.paragraph_format.first_line_indent = Cm(1.25)
+        paragraph.paragraph_format.first_line_indent = cls.BODY_FIRST_LINE_INDENT
 
         qit_match = re.search(r"QI Total \(QIT [^)]+\)", text)
         class_match = re.search(r"ficando na classificação ([^,.]+)", text)
@@ -1186,16 +1464,6 @@ class ReportExportService:
             cls._append_wisc_global_bullet(p, lead, tail)
 
     @classmethod
-    def _insert_wisc_global_block_after(cls, anchor, test: dict | None, context: dict):
-        intro = cls._wisc_global_intro_text(test, context)
-        anchor = cls._insert_paragraph_after(anchor, "")
-        cls._append_wisc_intro_paragraph(anchor, intro)
-        for lead, tail in cls._wisc_global_bullet_parts(test):
-            anchor = cls._insert_paragraph_after(anchor, "")
-            cls._append_wisc_global_bullet(anchor, lead, tail)
-        return anchor
-
-    @classmethod
     def _format_subtitle_paragraph(cls, paragraph):
         paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
         paragraph.paragraph_format.space_before = cls.SUBHEADING_SPACE_BEFORE
@@ -1219,6 +1487,23 @@ class ReportExportService:
             run.font.name = cls.FONT_NAME
             run.font.size = cls.CAPTION_SIZE
             run.italic = True
+
+    @classmethod
+    def _table_caption_text(cls, table_index: int, caption: str) -> str:
+        return f"Tabela {table_index} {caption}"
+
+    @classmethod
+    def _chart_caption_text(cls, chart_index: int, caption: str) -> str:
+        return f"Gráfico {chart_index} {caption}"
+
+    @classmethod
+    def _ravlt_table_caption(cls) -> str:
+        return (
+            'RAVLT Resultados: referente ao desempenho do paciente durante a prova RAVLT '
+            '(memória auditiva e aprendizagem de palavras). Os intervalos "A" se referem '
+            'à exposição de uma mesma lista de palavras e ao desempenho da memória de curto '
+            'prazo. O intervalo "B1" se refere à intrusão de uma nova lista de palavras.'
+        )
 
     @classmethod
     def _add_center_title(cls, document, text: str):
@@ -1266,6 +1551,7 @@ class ReportExportService:
 
     @classmethod
     def _append_subheading(cls, document, text: str):
+        text = PtBrTextService.normalize(text)
         p = document.add_paragraph()
         r = p.add_run(text)
         r.font.name = cls.FONT_NAME
@@ -1278,22 +1564,22 @@ class ReportExportService:
 
     @classmethod
     def _append_paragraph(cls, document, text: str, center: bool = False):
+        text = PtBrTextService.normalize(text)
         if not text:
             return
         p = document.add_paragraph()
         p.alignment = (
             WD_ALIGN_PARAGRAPH.CENTER if center else WD_ALIGN_PARAGRAPH.JUSTIFY
         )
-        r = p.add_run(text)
-        r.font.name = cls.FONT_NAME
-        r.font.size = cls.BODY_SIZE
+        cls._append_body_text_with_bold_label(p, text)
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = cls.BODY_SPACE_AFTER
         p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
-        p.paragraph_format.first_line_indent = Pt(0 if center else Cm(1.25))
+        p.paragraph_format.first_line_indent = Pt(0) if center else cls.BODY_FIRST_LINE_INDENT
 
     @classmethod
     def _append_identification_text(cls, document, text: str):
+        text = PtBrTextService.normalize(text)
         p = document.add_paragraph()
         r = p.add_run(text)
         r.font.name = cls.FONT_NAME
@@ -1305,12 +1591,14 @@ class ReportExportService:
 
     @classmethod
     def _append_label_value(cls, document, label: str, value: str):
+        label = PtBrTextService.normalize(label)
+        value = PtBrTextService.normalize(str(value or "Não informado"))
         p = document.add_paragraph()
         a = p.add_run(f"{label}: ")
         a.font.name = cls.FONT_NAME
         a.font.size = cls.BODY_SIZE
         a.bold = True
-        b = p.add_run(str(value or "Não informado"))
+        b = p.add_run(value)
         b.font.name = cls.FONT_NAME
         b.font.size = cls.BODY_SIZE
         p.paragraph_format.space_before = Pt(0)
@@ -1320,12 +1608,26 @@ class ReportExportService:
 
     @classmethod
     def _append_bullet(cls, document, text: str):
+        text = PtBrTextService.normalize(text)
         try:
             p = document.add_paragraph(style="List Bullet")
             r = p.add_run(text)
         except KeyError:
             p = document.add_paragraph()
             r = p.add_run(f"• {text}")
+        r.font.name = cls.FONT_NAME
+        r.font.size = cls.BODY_SIZE
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+        p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        p.paragraph_format.left_indent = Cm(0.75)
+        p.paragraph_format.first_line_indent = Cm(-0.25)
+
+    @classmethod
+    def _append_numbered_item(cls, document, text: str):
+        text = PtBrTextService.normalize(text)
+        p = document.add_paragraph()
+        r = p.add_run(text)
         r.font.name = cls.FONT_NAME
         r.font.size = cls.BODY_SIZE
         p.paragraph_format.space_before = Pt(0)
@@ -1344,51 +1646,219 @@ class ReportExportService:
         caption: str | None = None,
     ):
         if rows:
+            table_rows = cls._with_table_title(rows, table_key)
+            table = document.add_table(rows=0, cols=len(table_rows[0]))
+            for row_values in table_rows:
+                row = table.add_row().cells
+                for idx, value in enumerate(row_values):
+                    row[idx].text = str(value)
+            if table_key == "ravlt":
+                cls._format_ravlt_table(table)
+            else:
+                cls._format_table(table, table_key)
             if caption:
                 caption_paragraph = document.add_paragraph()
                 caption_run = caption_paragraph.add_run(caption)
                 caption_run.font.name = cls.FONT_NAME
                 caption_run.font.size = Pt(10)
                 caption_run.italic = True
-            table = document.add_table(rows=0, cols=len(rows[0]))
-            for row_values in rows:
-                row = table.add_row().cells
-                for idx, value in enumerate(row_values):
-                    row[idx].text = str(value)
-            cls._format_table(table, table_key)
+                cls._format_caption_paragraph(caption_paragraph)
         if interpretation:
-            cls._append_paragraph(document, f"Interpretação: {interpretation}")
+            cls._append_interpretation_block(
+                document, cls._normalize_interpretation_text(interpretation)
+            )
 
     @classmethod
-    def _append_chart(cls, document, caption: str, image_bytes: bytes | None):
-        if not image_bytes:
+    def _append_interpretation_block(cls, document, text: str):
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return
+
+        paragraphs = [
+            item.strip()
+            for item in re.split(r"\n\s*\n+", cleaned)
+            if item.strip()
+        ]
+
+        for item in paragraphs:
+            p = document.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            cls._append_body_text_with_bold_label(p, item)
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(0)
+            p.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+            p.paragraph_format.first_line_indent = Pt(0)
+
+    @classmethod
+    def _append_ravlt_conceptual_paragraph(cls, document):
+        text = cls._ravlt_conceptual_text()
+        if not text:
             return
         p = document.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        r = p.add_run(caption)
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        r = p.add_run(text)
         r.font.name = cls.FONT_NAME
         r.font.size = Pt(10)
-        r.italic = True
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = 1.15
+        p.paragraph_format.first_line_indent = Pt(0)
+
+    @classmethod
+    def _insert_ravlt_conceptual_paragraph_after(cls, anchor):
+        anchor = cls._insert_paragraph_after(anchor, cls._ravlt_conceptual_text())
+        anchor.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        anchor.paragraph_format.space_before = Pt(0)
+        anchor.paragraph_format.space_after = Pt(0)
+        anchor.paragraph_format.line_spacing = 1.15
+        anchor.paragraph_format.first_line_indent = Pt(0)
+        for run in anchor.runs:
+            run.font.name = cls.FONT_NAME
+            run.font.size = Pt(10)
+        return anchor
+
+    @classmethod
+    def _insert_interpretation_block_after(cls, anchor, text: str):
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return anchor
+        paragraphs = [
+            item.strip()
+            for item in re.split(r"\n\s*\n+", cleaned)
+            if item.strip()
+        ]
+        for item in paragraphs:
+            anchor = cls._insert_paragraph_after(anchor, "")
+            cls._append_body_text_with_bold_label(anchor, item)
+            anchor.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            anchor.paragraph_format.space_before = Pt(0)
+            anchor.paragraph_format.space_after = Pt(0)
+            anchor.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+            anchor.paragraph_format.first_line_indent = Pt(0)
+        return anchor
+
+    @classmethod
+    def _normalize_interpretation_text(cls, interpretation: str) -> str:
+        label = "Interpretação e Observações Clínicas:"
+        text = PtBrTextService.normalize(cls._strip_legacy_srs2_table(interpretation))
+        if not text:
+            return label
+        if text.casefold().startswith(label.casefold()):
+            return text
+        return f"{label} {text}"
+
+    @classmethod
+    def _strip_legacy_srs2_table(cls, text: str | None) -> str:
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return ""
+
+        cleaned = re.sub(
+            r"={20,}\s*\n"
+            r"Fator\s+Pts\s*Brts\s+T-Score\s+Percentil\s+Classifica(?:ç|c)ão\s*\n"
+            r"={20,}\s*\n"
+            r".*?"
+            r"\n={20,}",
+            "",
+            cleaned,
+            flags=re.IGNORECASE | re.DOTALL,
+        ).strip()
+
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        if cleaned in cls.EMPTY_INTERPRETATION_MESSAGES:
+            return ""
+        return cleaned
+
+    @classmethod
+    def _resolve_interpretation_text(
+        cls,
+        primary_section: str | None,
+        fallback_section: str | None,
+        test_payload: dict | None,
+    ) -> str:
+        candidates = [
+            primary_section,
+            fallback_section,
+            (test_payload or {}).get("clinical_interpretation"),
+            (test_payload or {}).get("summary"),
+            cls._fallback_test_interpretation(test_payload),
+        ]
+
+        for candidate in candidates:
+            cleaned = cls._strip_legacy_srs2_table(candidate)
+            if cleaned:
+                return cleaned
+        return ""
+
+    @classmethod
+    def _merge_text_blocks(cls, *blocks: str | None) -> str:
+        cleaned_blocks = []
+        seen = set()
+        for block in blocks:
+            cleaned = PtBrTextService.normalize(block)
+            if not cleaned:
+                continue
+            key = cleaned.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            cleaned_blocks.append(cleaned)
+        return "\n\n".join(cleaned_blocks)
+
+    @classmethod
+    def _fallback_test_interpretation(cls, test_payload: dict | None) -> str:
+        if not test_payload or test_payload.get("instrument_code") != "srs2":
+            return ""
+
+        merged_data = {
+            **(test_payload.get("computed_payload") or {}),
+            **(
+                test_payload.get("classified_payload")
+                or test_payload.get("structured_results")
+                or {}
+            ),
+        }
+        return (interpret_srs2_results(merged_data) or "").strip()
+
+    @classmethod
+    def _ravlt_conceptual_text(cls) -> str:
+        return (
+            "O Rey Auditory Verbal Learning Test (RAVLT) é um teste neuropsicológico amplamente utilizado para avaliar a memória verbal, a capacidade de aprendizado auditivo e a retenção de informações ao longo do tempo. Desenvolvido por Rey (1958). O RAVLT permite analisar diferentes aspectos da memória, como a curva de aprendizado, interferência, esquecimento e reconhecimento verbal (Lezak et al., 2004). Ele é frequentemente utilizado na investigação de déficits cognitivos associados a doenças neurodegenerativas, lesões cerebrais traumáticas e transtornos psiquiátricos (Strauss, Sherman & Spreen, 2006). Os resultados do teste auxiliam no diagnóstico diferencial de condições como Alzheimer e TDAH, além de fornecerem subsídios para o planejamento de intervenções cognitivas (Salthouse, 2010). Assim, o RAVLT é uma ferramenta essencial para a avaliação da memória e da aprendizagem verbal."
+        )
+
+    @classmethod
+    def _append_chart(cls, document, caption: str | None, image_bytes: bytes | None, width=None):
+        if not image_bytes:
+            return
         img = document.add_paragraph()
         img.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        img.add_run().add_picture(BytesIO(image_bytes), width=cls.IMAGE_WIDTH)
+        img.add_run().add_picture(BytesIO(image_bytes), width=width or cls.IMAGE_WIDTH)
+        if caption:
+            p = document.add_paragraph()
+            r = p.add_run(caption)
+            r.font.name = cls.FONT_NAME
+            r.font.size = cls.BODY_SIZE
+            cls._format_caption_paragraph(p)
 
     @classmethod
     def _format_chart_legend_paragraph(cls, paragraph):
         paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         paragraph.paragraph_format.space_before = Pt(0)
-        paragraph.paragraph_format.space_after = Pt(0)
+        paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
         paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
         paragraph.paragraph_format.first_line_indent = Pt(0)
         for run in paragraph.runs:
             run.font.name = cls.FONT_NAME
-            run.font.size = Pt(9)
+            run.font.size = cls.CAPTION_SIZE
+            run.font.color.rgb = RGBColor(0x5B, 0x9B, 0xD5)
+            run.bold = False
             run.italic = True
 
     @classmethod
-    def _wisc_chart_legend(cls) -> str:
+    def _wisc_chart_legend(cls, chart_index: int) -> str:
         return (
-            "Gráfico 1 WISC-IV - INDICES DE QIS: Índice de Compreensão Verbal (ICV): composto por provas que avaliam as habilidades verbais por meio do raciocínio, compreensão e conceituação. "
+            f"Gráfico {chart_index} WISC-IV - INDICES DE QIS :"
+            "Índice de Compreensão Verbal (ICV): composto por provas que avaliam as habilidades verbais por meio do raciocínio, compreensão e conceituação. "
             "Índice de Organização Perceptual (IOP): constituído por atividades que examinam o grau e a qualidade do contato não verbal do indivíduo com o ambiente, assim como a capacidade de integrar estímulos perceptuais e respostas motoras pertinentes, o nível de rapidez com o qual executa uma atividade e o modo como avalia informações visuoespaciais. "
             "Índice de Memória Operacional (IMO): formado por provas que analisam atenção, concentração e memória de trabalho. "
             "Índice de Velocidade de Processamento (IVP): constitui-se de atividades que avaliam agilidade mental e processamento grafomotor. "
@@ -1401,6 +1871,27 @@ class ReportExportService:
             if item.get("instrument_code") == code:
                 return item
         return None
+
+    @classmethod
+    def _find_tests(cls, context: dict, code: str):
+        tests = [
+            item
+            for item in context.get("validated_tests") or []
+            if item.get("instrument_code") == code
+        ]
+        form_order = {"child": 0, "parent": 1}
+        return sorted(
+            tests,
+            key=lambda item: form_order.get(
+                ((item.get("classified_payload") or {}).get("form_type") or (item.get("raw_payload") or {}).get("form") or "child"),
+                99,
+            ),
+        )
+
+    @staticmethod
+    def _scared_form_label(test: dict | None) -> str:
+        form_type = ((test or {}).get("classified_payload") or {}).get("form_type") or ((test or {}).get("raw_payload") or {}).get("form")
+        return "Pais/Cuidadores" if form_type == "parent" else "Autorrelato"
 
     @classmethod
     def _format_date_display(cls, value: str | None) -> str:
@@ -1524,14 +2015,21 @@ class ReportExportService:
         return parts or [text]
 
     @classmethod
-    def _institutional_paragraphs(cls, report):
+    def _team_paragraphs(cls, report):
         email = getattr(getattr(report, "author", None), "email", "") or ""
         return [
             "A Avaliação Neuropsicológica, quando bem fundamentada, é essencial para direcionar a reabilitação cognitiva e fornecer subsídios para outros profissionais em suas respectivas áreas de atuação.",
             "É importante que o documento seja lido na íntegra, e não apenas a conclusão, para que se compreenda plenamente o raciocínio clínico utilizado ao longo de todo o processo avaliativo.",
             f"Com a devida autorização por escrito dos responsáveis, coloco-me à disposição para esclarecimentos e discussões sobre o exame{f', podendo ser contatada pelo e-mail {email}' if email else ''}.",
-            "Importante ressaltar que este documento não deve ser utilizado para fins diferentes daqueles especificados no item de identificação do documento e possui caráter sigiloso.",
-            "Ressalta-se que o ser humano possui uma natureza dinâmica; não definitiva e não cristalizada. Os resultados aqui expostos dizem respeito ao funcionamento atual do paciente e podem sofrer alterações posteriores.",
+        ]
+
+    @classmethod
+    def _important_document_items(cls):
+        return [
+            "1. Não deve ser utilizado para fins diferentes daqueles especificados no item de identificação do documento.",
+            "2. Possui caráter sigiloso e extrajudicial, não cabendo à psicóloga a responsabilidade pelo seu uso indevido ou pela entrega do laudo sem autorização adequada.",
+            "3. A análise isolada deste laudo não possui valor diagnóstico se não for considerada em conjunto com dados clínicos, epistemológicos, exames de neuroimagem e laboratoriais adicionais referentes ao paciente.",
+            "4. Esta avaliação está em conformidade com as Resoluções CRP 09/2018 e 06/2019. Em conformidade com o Código de Ética Profissional, este exame deve ser tratado como confidencial.",
         ]
 
     @classmethod
@@ -1587,14 +2085,92 @@ class ReportExportService:
         return rows if len(rows) > 1 else None
 
     @classmethod
-    def _ravlt_compact_rows(cls, test: dict | None):
-        payload = (
-            (test or {}).get("classified_payload")
-            or (test or {}).get("computed_payload")
-            or {}
-        )
-        headers = [
-            "Desempenho",
+    def _ravlt_norm_band(cls, test: dict | None, context: dict | None = None) -> str:
+        context = context or {}
+        patient = context.get("patient") or {}
+        birth_date = patient.get("birth_date")
+        applied_on = (test or {}).get("applied_on")
+        if birth_date and applied_on:
+            try:
+                age = _calcular_idade(str(birth_date), str(applied_on)[:10])
+                if isinstance(age, tuple):
+                    age = age[0]
+                return get_ravlt_age_band(int(age))
+            except Exception:
+                pass
+
+        payload = (test or {}).get("classified_payload") or {}
+        band = payload.get("faixa_etaria")
+        if band in RAVLT_NORMS:
+            return band
+        return "21-30"
+
+    @classmethod
+    def _ravlt_obtained_map(cls, test: dict | None) -> dict:
+        classified = (test or {}).get("classified_payload") or {}
+        computed = (test or {}).get("computed_payload") or {}
+        # Build a normalized map from classified resultados for flexible key matching
+        def _normalize_key(s: str | None) -> str | None:
+            if not s:
+                return None
+            # lower-case and keep only ascii alphanumerics
+            return re.sub(r"[^a-z0-9]", "", str(s).casefold())
+
+        results_map = {}
+        for item in classified.get("resultados") or []:
+            if not isinstance(item, dict):
+                continue
+            var = item.get("variavel") or item.get("variavel_nome") or item.get("nome")
+            key = _normalize_key(var) or None
+            if key:
+                results_map[key] = item
+
+        def _get_bruto_from_results(names: list[str]) -> object:
+            for name in names:
+                key = _normalize_key(name)
+                if key and key in results_map:
+                    return results_map[key].get("bruto")
+            return None
+
+        # Try to read values from the classified resultados if available
+        if results_map:
+            return {
+                "A1": _get_bruto_from_results(["A1", "a1"]),
+                "A2": _get_bruto_from_results(["A2", "a2"]),
+                "A3": _get_bruto_from_results(["A3", "a3"]),
+                "A4": _get_bruto_from_results(["A4", "a4"]),
+                "A5": _get_bruto_from_results(["A5", "a5"]),
+                "B1": _get_bruto_from_results(["B1", "b1", "b"]),
+                "A6": _get_bruto_from_results(["A6", "a6"]),
+                "A7": _get_bruto_from_results(["A7", "a7"]),
+                "R": _get_bruto_from_results(["R", "r", "reconhecimentolistaa", "reconhecimento lista a"]),
+                "ALT": _get_bruto_from_results(["ALT", "alt", "aprendlongodastentativas", "aprend longo das tentativas"]),
+                "RET": _get_bruto_from_results(["RET", "ret", "velocidadedeesquecimento", "velocidade de esquecimento"]),
+                "I.P.": _get_bruto_from_results(["IP", "ip", "interferenciaproativa", "interferência proativa"]),
+                "I.R.": _get_bruto_from_results(["IR", "ir", "interferenciaretroativa", "interferência retroativa"]),
+            }
+
+        # Fallback: try to read from computed_payload or classified top-level short keys
+        return {
+            "A1": computed.get("a1", {}).get("escore") or classified.get("a1"),
+            "A2": computed.get("a2", {}).get("escore") or classified.get("a2"),
+            "A3": computed.get("a3", {}).get("escore") or classified.get("a3"),
+            "A4": computed.get("a4", {}).get("escore") or classified.get("a4"),
+            "A5": computed.get("a5", {}).get("escore") or classified.get("a5"),
+            "B1": computed.get("b", {}).get("escore") or classified.get("b1") or classified.get("b"),
+            "A6": computed.get("a6", {}).get("escore") or classified.get("a6"),
+            "A7": computed.get("a7", {}).get("escore") or classified.get("a7"),
+            "R": computed.get("reconhecimento", {}).get("escore") or classified.get("r"),
+            "ALT": computed.get("aprend_longo", {}).get("escore") or classified.get("alt"),
+            "RET": computed.get("velocidade_esquecimento", {}).get("escore") or classified.get("ret"),
+            "I.P.": computed.get("interferencia_proativa", {}).get("escore") or classified.get("ip"),
+            "I.R.": computed.get("interferencia_retroativa", {}).get("escore") or classified.get("ir"),
+        }
+
+    @classmethod
+    def _ravlt_rows(cls, test: dict | None, context: dict | None = None):
+        # Columns in the same order as the reference model.
+        columns = [
             "A1",
             "A2",
             "A3",
@@ -1609,34 +2185,119 @@ class ReportExportService:
             "I.P.",
             "I.R.",
         ]
-        row = [
-            "Obtido",
-            cls._num(payload.get("a1")),
-            cls._num(payload.get("a2")),
-            cls._num(payload.get("a3")),
-            cls._num(payload.get("a4")),
-            cls._num(payload.get("a5")),
-            cls._num(payload.get("b1") or payload.get("b")),
-            cls._num(payload.get("a6")),
-            cls._num(payload.get("a7")),
-            cls._num(payload.get("r")),
-            cls._num(payload.get("alt")),
-            cls._num(payload.get("ret")),
-            cls._num(payload.get("ip")),
-            cls._num(payload.get("ir")),
-        ]
-        return [headers, row] if any(value != "-" for value in row[1:]) else None
+        norm_key_map = {
+            "A1": "A1",
+            "A2": "A2",
+            "A3": "A3",
+            "A4": "A4",
+            "A5": "A5",
+            "A6": "A6",
+            "A7": "A7",
+            "B1": "B1",
+            "R": "Reconhecimento Lista A",
+            "ALT": "Aprend. longo das Tentativas",
+            "RET": "Velocidade de Esquecimento",
+            "I.P.": "Interferência Proativa",
+            "I.R.": "Interferência Retroativa",
+        }
+        band = cls._ravlt_norm_band(test, context)
+        norms = RAVLT_NORMS.get(band, RAVLT_NORMS["21-30"])
+
+        # Prefer explicit payload values if present: ravlt_esperado / ravlt_minimo / ravlt_obtido
+        payload_source = (test or {})
+        classified = (test or {}).get("classified_payload") or {}
+        computed = (test or {}).get("computed_payload") or {}
+
+        # Merge likely locations for a potential ravlt payload
+        candidate_payloads = [payload_source, classified, computed]
+
+        def _find_ravlt_map(key_name: str) -> dict | None:
+            for src in candidate_payloads:
+                val = src.get(key_name)
+                if isinstance(val, dict) and val:
+                    return val
+            return None
+
+        ravlt_expected_raw = _find_ravlt_map("ravlt_esperado")
+        ravlt_minimum_raw = _find_ravlt_map("ravlt_minimo")
+        ravlt_obtained_raw = _find_ravlt_map("ravlt_obtido")
+
+        def _normalize_payload_map(m: dict | None) -> dict:
+            if not m:
+                return {}
+            mapping = {}
+            short_map = {
+                "a1": "A1",
+                "a2": "A2",
+                "a3": "A3",
+                "a4": "A4",
+                "a5": "A5",
+                "b1": "B1",
+                "b": "B1",
+                "a6": "A6",
+                "a7": "A7",
+                "r": "R",
+                "alt": "ALT",
+                "ret": "RET",
+                "ip": "I.P.",
+                "ir": "I.R.",
+            }
+            for k, v in (m or {}).items():
+                if not k:
+                    continue
+                key_norm = str(k).casefold()
+                if key_norm in short_map:
+                    mapping[short_map[key_norm]] = v
+                else:
+                    # also accept keys already matching final labels
+                    mapping_key = k if k in columns else None
+                    if mapping_key:
+                        mapping[mapping_key] = v
+            return mapping
+
+        expected_map = _normalize_payload_map(ravlt_expected_raw)
+        minimum_map = _normalize_payload_map(ravlt_minimum_raw)
+        obtained_map = _normalize_payload_map(ravlt_obtained_raw)
+
+        # If obtained_map is empty, fallback to computed/classified extraction
+        if not any(v is not None for v in obtained_map.values()):
+            obtained_map = cls._ravlt_obtained_map(test)
+
+        if not any(value is not None for value in obtained_map.values()):
+            return None
+
+        # Header: first cell is the label 'Desempenho', then the numeric column labels
+        rows = [["Desempenho", *columns], ["Esperado"], ["Mínimo"], ["Obtido"]]
+        for column in columns:
+            # Prefer explicit payload expected/minimum, otherwise use norms
+            if expected_map.get(column) is not None:
+                rows[1].append(cls._num(expected_map.get(column)))
+            else:
+                norm = norms.get(norm_key_map[column])
+                rows[1].append(cls._num(norm.p50 if norm else None))
+
+            if minimum_map.get(column) is not None:
+                rows[2].append(cls._num(minimum_map.get(column)))
+            else:
+                norm = norms.get(norm_key_map[column])
+                rows[2].append(cls._num(norm.p25 if norm else None))
+
+            rows[3].append(cls._num(obtained_map.get(column)))
+        return rows
 
     @classmethod
     def _format_table(cls, table, table_key: str):
         table.style = "Table Grid"
-        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.alignment = (
+            WD_TABLE_ALIGNMENT.LEFT if table_key in {"wisc", "bpa"} else WD_TABLE_ALIGNMENT.CENTER
+        )
         table.autofit = False
         cls._apply_table_widths(table, table_key)
+        title_text = cls._table_title_text(table_key)
         for row_index, row in enumerate(table.rows):
             if row_index == 0:
                 cls._set_repeat_table_header(row)
-            for cell in row.cells:
+            for cell_index, cell in enumerate(row.cells):
                 if table_key == "wisc":
                     if row_index == 0:
                         cls._set_cell_shading(cell, cls.WISC_HEADER_FILL)
@@ -1644,64 +2305,410 @@ class ReportExportService:
                         cls._set_cell_shading(cell, cls.WISC_NAME_FILL)
                     else:
                         cls._set_cell_shading(cell, cls.WISC_VALUE_FILL)
+                elif table_key == "bpa":
+                    if row_index == 0 and title_text:
+                        cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
+                    elif row_index in {0, 1} and title_text:
+                        cls._set_cell_shading(cell, cls.BPA_HEADER_FILL)
+                    elif row_index == 0:
+                        cls._set_cell_shading(cell, cls.BPA_HEADER_FILL)
+                    else:
+                        cls._set_cell_shading(cell, cls.BPA_BODY_FILL)
+                elif table_key == "fdt":
+                    if row_index == 0 and title_text:
+                        cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
+                    elif row_index in {0, 1}:
+                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
+                    elif cell == row.cells[0]:
+                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
+                    else:
+                        cls._set_cell_shading(cell, cls.FDT_BODY_FILL)
+                elif table_key in {"etdah", "scared", "srs2"}:
+                    if row_index == 0 and title_text:
+                        cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
+                    elif row_index in {0, 1} and title_text:
+                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
+                    elif row_index == 0:
+                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
+                    elif cell == row.cells[0]:
+                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
+                    else:
+                        cls._set_cell_shading(cell, cls.FDT_BODY_FILL)
                 elif row_index == 0:
                     cls._set_cell_shading(cell, cls.HEADER_FILL)
+                if table_key == "wisc" and row_index == 0:
+                    cls._set_cell_no_wrap(cell, True)
+                if table_key == "bpa" and row_index in ({0, 1} if title_text else {0}):
+                    cls._set_cell_no_wrap(cell, True)
+                if table_key == "fdt" and row_index in {0, 1}:
+                    cls._set_cell_no_wrap(cell, True)
+                if table_key in {"etdah", "scared", "srs2"} and row_index in ({0, 1} if title_text else {0}):
+                    cls._set_cell_no_wrap(cell, True)
+                if table_key == "etdah" and cell_index == 0:
+                    cls._set_cell_no_wrap(cell, True)
+                if table_key == "srs2" and cell_index == len(row.cells) - 1:
+                    cls._set_cell_no_wrap(cell, True)
                 for paragraph in cell.paragraphs:
-                    paragraph.alignment = (
-                        WD_ALIGN_PARAGRAPH.CENTER
-                        if row_index == 0
-                        else WD_ALIGN_PARAGRAPH.LEFT
-                    )
+                    if table_key == "wisc":
+                        if row_index == 0:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        elif cell_index in {0, len(row.cells) - 1}:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        else:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        paragraph.paragraph_format.space_before = Pt(0)
+                        paragraph.paragraph_format.space_after = Pt(0)
+                        paragraph.paragraph_format.line_spacing = 1.5
+                        paragraph.paragraph_format.first_line_indent = Pt(0)
+                    elif table_key == "bpa":
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 and title_text else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                        paragraph.paragraph_format.space_before = Pt(0)
+                        paragraph.paragraph_format.space_after = Pt(0)
+                        paragraph.paragraph_format.line_spacing = 1.5
+                        paragraph.paragraph_format.first_line_indent = Pt(0)
+                    elif table_key == "fdt":
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                        paragraph.paragraph_format.space_before = Pt(0)
+                        paragraph.paragraph_format.space_after = Pt(0)
+                        paragraph.paragraph_format.line_spacing = 1.5
+                        paragraph.paragraph_format.first_line_indent = Pt(0)
+                    elif table_key in {"etdah", "scared", "srs2"}:
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                        paragraph.paragraph_format.space_before = Pt(0)
+                        paragraph.paragraph_format.space_after = Pt(0)
+                        paragraph.paragraph_format.line_spacing = 1.5
+                        paragraph.paragraph_format.first_line_indent = Pt(0)
+                    else:
+                        paragraph.alignment = (
+                            WD_ALIGN_PARAGRAPH.CENTER
+                            if row_index == 0
+                            else WD_ALIGN_PARAGRAPH.LEFT
+                        )
+                        paragraph.paragraph_format.space_after = Pt(0)
+                        paragraph.paragraph_format.line_spacing = 1.5
                     paragraph.paragraph_format.space_after = Pt(0)
-                    paragraph.paragraph_format.line_spacing = 1.5
                     for run in paragraph.runs:
                         run.font.name = cls.FONT_NAME
-                        run.font.size = cls.TABLE_SIZE
-                        if row_index == 0:
+                        if table_key == "wisc":
+                            run.font.size = Pt(9)
+                        elif table_key == "bpa":
+                            run.font.size = Pt(9)
+                        elif table_key == "fdt":
+                            run.font.size = Pt(10) if row_index == 0 else Pt(9)
+                        elif table_key in {"etdah", "scared", "srs2"}:
+                            run.font.size = Pt(10) if row_index == 0 else Pt(9)
+                        else:
+                            run.font.size = cls.TABLE_SIZE
+                        if row_index == 0 or (table_key == "fdt" and row_index == 1):
                             run.bold = True
-                        if table_key == "wisc" and row_index > 0 and cell == row.cells[0]:
-                            run.font.color.rgb = RGBColor(255, 255, 255)
-                cell.vertical_alignment = None
+                        if row_index == 0:
+                            run.bold = False
+                        if row_index == 0 and title_text:
+                            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+                        if table_key == "fdt" and row_index in {0, 1}:
+                            run.bold = False
+                        if table_key in {"wisc", "bpa"} and row_index > 0 and cell == row.cells[0]:
+                            run.font.color.rgb = RGBColor(0, 0, 0)
+                        if table_key == "fdt":
+                            run.font.color.rgb = RGBColor(0, 0, 0)
+                        if table_key in {"etdah", "scared", "srs2"}:
+                            run.font.color.rgb = RGBColor(0, 0, 0)
+                        if table_key == "srs2" and row_index == len(table.rows) - 1:
+                            run.bold = True
+                        if table_key == "srs2" and row_index == len(table.rows) - 1:
+                            run.bold = True
+                cell.vertical_alignment = (
+                    WD_CELL_VERTICAL_ALIGNMENT.CENTER if table_key in {"wisc", "bpa", "fdt", "etdah", "scared", "srs2"} else None
+                )
 
             if table_key == "wisc" and row_index > 0 and row.cells[0].text == "Fala Espontânea":
+                merged_text = row.cells[1].text.strip()
                 merged = row.cells[1]
                 for idx in range(2, len(row.cells)):
                     merged = merged.merge(row.cells[idx])
+                merged.text = merged_text
                 row.cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
+                for paragraph in row.cells[1].paragraphs:
+                    paragraph.paragraph_format.space_before = Pt(0)
+                    paragraph.paragraph_format.space_after = Pt(0)
+                    paragraph.paragraph_format.line_spacing = 1.5
+                    paragraph.paragraph_format.first_line_indent = Pt(0)
+                    for run in paragraph.runs:
+                        run.font.name = cls.FONT_NAME
+                        run.font.size = Pt(9)
+                row.cells[1].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+            if title_text and row_index == 0:
+                cls._merge_title_row(row)
+                for paragraph in row.cells[0].paragraphs:
+                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    paragraph.paragraph_format.space_before = Pt(0)
+                    paragraph.paragraph_format.space_after = Pt(0)
+                    paragraph.paragraph_format.line_spacing = 1.5
+                    paragraph.paragraph_format.first_line_indent = Pt(0)
+                    for run in paragraph.runs:
+                        run.font.name = cls.FONT_NAME
+                        run.font.size = Pt(10)
+                        run.bold = False
+                        run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+                row.cells[0].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+    @classmethod
+    def _format_ravlt_table(cls, table):
+        table.style = None
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.autofit = False
+        cls._set_table_layout_fixed(table)
+        cls._clear_table_width(table)
+        cls._set_table_cell_margins(table, top=20, start=40, bottom=20, end=40)
+        cls._set_table_borders(table, color="000000", size=6)
+
+        widths = cls._table_widths("ravlt") or []
+        title_text = cls._table_title_text("ravlt")
+        if widths:
+            cls._set_table_grid_widths(table, widths)
+
+        for row_index, row in enumerate(table.rows):
+            if row_index == 0:
+                cls._set_repeat_table_header(row)
+            for cell_index, cell in enumerate(row.cells):
+                if row_index == 0 and title_text:
+                    cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
+                elif row_index in {0, 1} and title_text:
+                    cls._set_cell_shading(cell, cls.RAVLT_HEADER_FILL)
+                elif row_index == 0:
+                    cls._set_cell_shading(cell, cls.RAVLT_HEADER_FILL)
+                if widths and cell_index < len(widths):
+                    cell.width = widths[cell_index]
+                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                cls._set_cell_no_wrap(cell, True)
+
+                for paragraph in cell.paragraphs:
+                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+
+                    paragraph.paragraph_format.space_before = Pt(0)
+                    paragraph.paragraph_format.space_after = Pt(0)
+                    paragraph.paragraph_format.line_spacing = 1.5
+                    paragraph.paragraph_format.first_line_indent = Pt(0)
+                    paragraph.paragraph_format.left_indent = Pt(0)
+                    paragraph.paragraph_format.right_indent = Pt(0)
+                    for run in paragraph.runs:
+                        run.font.name = cls.FONT_NAME
+                        # Use font size 10 for RAVLT table to match requested layout
+                        run.font.size = Pt(10)
+                        run.bold = row_index > 0 and cell_index == 0
+                        if row_index == 0 and title_text:
+                            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+
+            if title_text and row_index == 0:
+                cls._merge_title_row(row)
+                for paragraph in row.cells[0].paragraphs:
+                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    paragraph.paragraph_format.space_before = Pt(0)
+                    paragraph.paragraph_format.space_after = Pt(0)
+                    paragraph.paragraph_format.line_spacing = 1.5
+                    paragraph.paragraph_format.first_line_indent = Pt(0)
+                    for run in paragraph.runs:
+                        run.font.name = cls.FONT_NAME
+                        run.font.size = Pt(10)
+                        run.bold = False
+                        run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
 
     @classmethod
     def _apply_table_widths(cls, table, table_key: str):
-        widths_map = {
-            "wisc": [
-                Inches(2.35),
-                Inches(1.05),
-                Inches(1.05),
-                Inches(1.05),
-                Inches(0.95),
-                Inches(1.35),
-            ],
-            "bpa": [Inches(2.8), Inches(1.2), Inches(1.0), Inches(1.2)],
-            "ravlt": [Inches(2.2), Inches(1.2)],
-            "fdt": [
-                Inches(2.0),
-                Inches(1.0),
-                Inches(1.0),
-                Inches(0.8),
-                Inches(0.9),
-                Inches(1.5),
-            ],
-            "etdah": [Inches(2.6), Inches(1.0), Inches(0.9), Inches(0.9), Inches(1.4)],
-            "scared": [Inches(2.3), Inches(0.9), Inches(0.9), Inches(1.1), Inches(1.1)],
-            "epq": [Inches(1.0), Inches(1.0), Inches(1.0), Inches(1.8)],
-            "srs2": [Inches(2.6), Inches(0.8), Inches(0.8), Inches(0.9), Inches(1.3)],
-            "scale_summary": [Inches(2.2), Inches(3.0)],
-        }
-        widths = widths_map.get(table_key)
+        widths = cls._table_widths(table_key)
         if not widths:
             return
+        cls._set_table_grid_widths(table, widths)
         for row in table.rows:
             for idx, cell in enumerate(row.cells[: len(widths)]):
                 cell.width = widths[idx]
+
+    @classmethod
+    def _set_table_grid_widths(cls, table, widths):
+        tbl_grid = table._tbl.tblGrid
+        if tbl_grid is None:
+            tbl_grid = OxmlElement("w:tblGrid")
+            table._tbl.insert(1, tbl_grid)
+        for child in list(tbl_grid):
+            tbl_grid.remove(child)
+        for width in widths:
+            grid_col = OxmlElement("w:gridCol")
+            grid_col.set(qn("w:w"), str(int(width.twips)))
+            tbl_grid.append(grid_col)
+
+    @classmethod
+    def _table_widths(cls, table_key: str):
+        return {
+            "wisc": [
+                Inches(1.75),
+                Inches(0.95),
+                Inches(0.95),
+                Inches(0.95),
+                Inches(0.90),
+                Inches(1.15),
+            ],
+            "bpa": [Inches(2.35), Inches(1.15), Inches(1.00), Inches(2.00)],
+            "ravlt": [
+                # Desempenho: 3.11 cm
+                Inches(3.11 / 2.54),
+                # A1..A5: 0.93 cm each
+                Inches(0.93 / 2.54), Inches(0.93 / 2.54), Inches(0.93 / 2.54), Inches(0.93 / 2.54),
+                Inches(0.93 / 2.54),
+                # B1: 0.93 cm
+                Inches(0.93 / 2.54),
+                # A6..A7: 0.93 cm each
+                Inches(0.93 / 2.54),
+                Inches(0.93 / 2.54),
+                # R: 0.82 cm
+                Inches(0.82 / 2.54),
+                # ALT: 1.36 cm
+                Inches(1.36 / 2.54),
+                # RET: 1.36 cm
+                Inches(1.36 / 2.54),
+                # I.P.: 1.2 cm
+                Inches(1.2 / 2.54),
+                # I.R.: 1.2 cm
+                Inches(1.2 / 2.54),
+            ],
+            "fdt": [
+                Inches(1295 / 1440),
+                Inches(1377 / 1440),
+                Inches(1411 / 1440),
+                Inches(673 / 1440),
+                Inches(1284 / 1440),
+                Inches(3304 / 1440),
+            ],
+            "etdah": [Inches(3.3), Inches(1.15), Inches(0.65), Inches(0.8), Inches(1.25)],
+            "scared": [Inches(2.3), Inches(0.9), Inches(0.9), Inches(1.1), Inches(1.1)],
+            "epq": [Inches(1.0), Inches(1.0), Inches(1.0), Inches(1.8)],
+            "srs2": [Inches(2.2), Inches(1.05), Inches(0.7), Inches(0.75), Inches(1.95)],
+            "scale_summary": [Inches(2.2), Inches(3.0)],
+        }.get(table_key)
+
+    @classmethod
+    def _set_table_layout_autofit(cls, table):
+        tbl_pr = table._tbl.tblPr
+        tbl_layout = tbl_pr.find(qn("w:tblLayout"))
+        if tbl_layout is None:
+            tbl_layout = OxmlElement("w:tblLayout")
+            tbl_pr.append(tbl_layout)
+        tbl_layout.set(qn("w:type"), "autofit")
+
+    @classmethod
+    def _set_table_layout_fixed(cls, table):
+        tbl_pr = table._tbl.tblPr
+        tbl_layout = tbl_pr.find(qn("w:tblLayout"))
+        if tbl_layout is None:
+            tbl_layout = OxmlElement("w:tblLayout")
+            tbl_pr.append(tbl_layout)
+        tbl_layout.set(qn("w:type"), "fixed")
+
+    @classmethod
+    def _set_table_width_pct(cls, table, width_pct: int):
+        tbl_pr = table._tbl.tblPr
+        tbl_w = tbl_pr.find(qn("w:tblW"))
+        if tbl_w is None:
+            tbl_w = OxmlElement("w:tblW")
+            tbl_pr.append(tbl_w)
+        tbl_w.set(qn("w:type"), "pct")
+        tbl_w.set(qn("w:w"), str(width_pct))
+
+    @classmethod
+    def _clear_table_width(cls, table):
+        tbl_pr = table._tbl.tblPr
+        tbl_w = tbl_pr.find(qn("w:tblW"))
+        if tbl_w is None:
+            tbl_w = OxmlElement("w:tblW")
+            tbl_pr.append(tbl_w)
+        tbl_w.set(qn("w:type"), "auto")
+        tbl_w.set(qn("w:w"), "0")
+
+    @classmethod
+    def _set_table_cell_margins(
+        cls, table, top: int = 0, start: int = 0, bottom: int = 0, end: int = 0
+    ):
+        tbl_pr = table._tbl.tblPr
+        tbl_cell_mar = tbl_pr.find(qn("w:tblCellMar"))
+        if tbl_cell_mar is None:
+            tbl_cell_mar = OxmlElement("w:tblCellMar")
+            tbl_pr.append(tbl_cell_mar)
+        for tag, value in {
+            "w:top": top,
+            "w:start": start,
+            "w:bottom": bottom,
+            "w:end": end,
+        }.items():
+            element = tbl_cell_mar.find(qn(tag))
+            if element is None:
+                element = OxmlElement(tag)
+                tbl_cell_mar.append(element)
+            element.set(qn("w:w"), str(value))
+            element.set(qn("w:type"), "dxa")
+
+    @classmethod
+    def _set_table_borders(cls, table, color: str = "000000", size: int = 4):
+        tbl_pr = table._tbl.tblPr
+        tbl_borders = tbl_pr.find(qn("w:tblBorders"))
+        if tbl_borders is None:
+            tbl_borders = OxmlElement("w:tblBorders")
+            tbl_pr.append(tbl_borders)
+        for tag in ("w:top", "w:left", "w:bottom", "w:right", "w:insideH", "w:insideV"):
+            element = tbl_borders.find(qn(tag))
+            if element is None:
+                element = OxmlElement(tag)
+                tbl_borders.append(element)
+            element.set(qn("w:val"), "single")
+            element.set(qn("w:sz"), str(size))
+            element.set(qn("w:color"), color)
+            element.set(qn("w:space"), "0")
+
+    @classmethod
+    def _set_cell_width_auto(cls, cell):
+        tc_pr = cell._tc.get_or_add_tcPr()
+        tc_w = tc_pr.find(qn("w:tcW"))
+        if tc_w is None:
+            tc_w = OxmlElement("w:tcW")
+            tc_pr.append(tc_w)
+        tc_w.set(qn("w:type"), "auto")
+        tc_w.set(qn("w:w"), "0")
+
+    @classmethod
+    def _set_cell_no_wrap(cls, cell, enabled: bool):
+        tc_pr = cell._tc.get_or_add_tcPr()
+        no_wrap = tc_pr.find(qn("w:noWrap"))
+        if enabled and no_wrap is None:
+            tc_pr.append(OxmlElement("w:noWrap"))
+        if not enabled and no_wrap is not None:
+            tc_pr.remove(no_wrap)
+
+    @classmethod
+    def _table_cell_alignment(
+        cls, table_key: str, row_index: int, cell_index: int, is_wisc_observation_row: bool = False
+    ):
+        if row_index == 0:
+            return WD_ALIGN_PARAGRAPH.CENTER
+        if is_wisc_observation_row:
+            return WD_ALIGN_PARAGRAPH.LEFT
+        return WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+
+    @classmethod
+    def _merge_wisc_observation_row(cls, row):
+        merged_text = row.cells[1].text.strip()
+        merged = row.cells[1]
+        for idx in range(2, len(row.cells)):
+            merged = merged.merge(row.cells[idx])
+        merged.text = merged_text
+
+    @classmethod
+    def _table_font_size(cls, table_key: str, row_index: int, cell_index: int):
+        if row_index == 0:
+            if table_key in {"ravlt", "fdt", "etdah", "scared", "srs2"}:
+                return Pt(7.5)
+            return cls.TABLE_HEADER_SIZE
+        if table_key in {"ravlt", "fdt", "etdah", "scared", "srs2"} and cell_index > 0:
+            return Pt(8.5)
+        return cls.TABLE_SIZE
 
     @classmethod
     def _set_repeat_table_header(cls, row):
@@ -1867,7 +2874,7 @@ class ReportExportService:
         return rows if len(rows) > 1 else None
 
     @classmethod
-    def _bpa_rows(cls, test: dict | None):
+    def _bpa_rows(cls, test: dict | None, context: dict | None = None):
         payload = (test or {}).get("classified_payload") or {}
         labels = {
             "ac": "Atenção Concentrada - AC",
@@ -1890,35 +2897,10 @@ class ReportExportService:
             )
         return rows if len(rows) > 1 else None
 
-    @classmethod
-    def _ravlt_rows(cls, test: dict | None):
-        payload = (
-            (test or {}).get("classified_payload")
-            or (test or {}).get("computed_payload")
-            or {}
-        )
-        rows = [["Item", "Pontos Brutos"]]
-        for label, key in (
-            ("A1", "a1"),
-            ("A2", "a2"),
-            ("A3", "a3"),
-            ("A4", "a4"),
-            ("A5", "a5"),
-            ("B1", "b1"),
-            ("A6", "a6"),
-            ("A7", "a7"),
-            ("R", "r"),
-            ("ALT", "alt"),
-            ("RET", "ret"),
-            ("I.P.", "ip"),
-            ("I.R.", "ir"),
-        ):
-            value = payload.get(key)
-            if value is None and key == "b1":
-                value = payload.get("b")
-            if value is not None:
-                rows.append([label, cls._num(value)])
-        return rows if len(rows) > 1 else None
+    @staticmethod
+    def _bpa_chart_bytes(test: dict | None):
+        chart_data = (test or {}).get("bpa_chart_data") or {}
+        return gerar_grafico_bpa_bytes(chart_data)
 
     @classmethod
     def _fdt_rows(cls, test: dict | None):
@@ -1930,25 +2912,52 @@ class ReportExportService:
                 "Tempo Médio",
                 "Tempo Obtido",
                 "Erros",
-                "Percentil",
+                "Desempenho",
                 "Classificação",
             ]
         ]
         for item in payload.get("metric_results") or []:
             err = errors.get((item.get("codigo") or "").lower(), {})
+            error_count = err.get("qtde_erros") if err else None
+            table_result = cls._fdt_table_result(item.get("percentil_num"))
             rows.append(
                 [
                     item.get("nome") or item.get("codigo") or "-",
                     cls._num(item.get("media")),
                     cls._num(item.get("valor")),
-                    cls._num(err.get("qtde_erros")),
-                    cls._num(item.get("percentil_num")),
-                    item.get("classificacao")
-                    or err.get("classificacao_guilmette")
-                    or "-",
+                    "" if error_count is None else cls._num(error_count),
+                    cls._num(table_result["desempenho"]),
+                    table_result["classificacao"],
                 ]
             )
         return rows if len(rows) > 1 else None
+
+    @classmethod
+    def _fdt_table_result(cls, percentile: float | int | None) -> dict[str, str | int]:
+        try:
+            percentile_value = float(percentile)
+        except (TypeError, ValueError):
+            return {"desempenho": "-", "classificacao": "-"}
+
+        if percentile_value <= 24:
+            return {
+                "desempenho": 5,
+                "classificacao": "Indicativo de Déficit",
+            }
+        if percentile_value <= 30:
+            return {
+                "desempenho": 25,
+                "classificacao": "Indicativo de Dificuldade Discreta",
+            }
+        if percentile_value > 65:
+            return {
+                "desempenho": 75,
+                "classificacao": "Sem Indicativo de Déficit",
+            }
+        return {
+            "desempenho": 50,
+            "classificacao": "Sem Indicativo de Déficit",
+        }
 
     @classmethod
     def _etdah_rows(cls, test: dict | None):
@@ -2027,7 +3036,7 @@ class ReportExportService:
     @classmethod
     def _srs2_rows(cls, test: dict | None):
         payload = (test or {}).get("classified_payload") or {}
-        rows = [["Escala", "Bruto", "T-Score", "Percentil", "Classificação"]]
+        rows = [["Escala", "Pontos Bruto", "T-Score", "Percentil", "Classificação"]]
         for item in payload.get("resultados") or []:
             rows.append(
                 [
@@ -2120,13 +3129,9 @@ class ReportExportService:
 
         errors = errors or [0.0] * len(values)
         regular_font = None
-        bold_font = None
         if cls.LOCAL_LIBERATION_SERIF.exists():
             font_manager.fontManager.addfont(str(cls.LOCAL_LIBERATION_SERIF))
             regular_font = font_manager.FontProperties(fname=str(cls.LOCAL_LIBERATION_SERIF))
-        if cls.LOCAL_LIBERATION_SERIF_BOLD.exists():
-            font_manager.fontManager.addfont(str(cls.LOCAL_LIBERATION_SERIF_BOLD))
-            bold_font = font_manager.FontProperties(fname=str(cls.LOCAL_LIBERATION_SERIF_BOLD))
         title_font = regular_font.copy() if regular_font else None
         if title_font:
             title_font.set_size(15)
@@ -2141,18 +3146,15 @@ class ReportExportService:
             y_tick_font.set_size(10)
         x = list(range(len(labels)))
 
-        fig, ax = plt.subplots(figsize=(11, 6), dpi=150)
+        fig, ax = plt.subplots(figsize=(10.2, 4.7), dpi=170)
         fig.patch.set_facecolor("white")
         ax.set_facecolor("white")
-
         bands = [
-            (130, 160, "#b8d87a"),
-            (120, 130, "#c8e08a"),
-            (110, 120, "#d8e8a0"),
-            (90, 110, "#c8d8e8"),
-            (80, 90, "#f0f0a0"),
-            (70, 80, "#f0f000"),
-            (40, 70, "#f0d080"),
+            (130, 160, "#b8e86f"),
+            (115, 130, "#c6ef72"),
+            (85, 115, "#b8c4d1"),
+            (80, 85, "#fff36a"),
+            (40, 80, "#fff97e"),
         ]
         for y0, y1, color in bands:
             ax.axhspan(y0, y1, facecolor=color, alpha=1.0, zorder=0)
@@ -2160,25 +3162,26 @@ class ReportExportService:
         ax.set_ylim(40, 160)
         ax.set_xlim(-0.5, len(labels) - 0.5)
         ax.yaxis.set_major_locator(plt.MultipleLocator(10))
-        ax.grid(axis="y", color="white", linewidth=1.2, zorder=1)
-        ax.grid(axis="x", color="white", linewidth=1.2, zorder=1)
+        ax.yaxis.set_minor_locator(plt.MultipleLocator(5))
+        ax.grid(axis="y", which="major", color="#d7e67a", linewidth=0.8, zorder=1)
+        ax.grid(axis="x", color="#e8e8e8", linewidth=0.8, zorder=1)
         ax.set_axisbelow(True)
 
         color_by_label = {
-            "ICV": "#4472C4",
-            "IOP": "#ED7D31",
-            "IMO": "#808080",
-            "IVP": "#FFC000",
-            "QI Total": "#70AD47",
-            "GAI": "#4472C4",
-            "CPI": "#843C0C",
+            "ICV": "#4d78be",
+            "IOP": "#f57f2a",
+            "IMO": "#7f7f7f",
+            "IVP": "#ffc000",
+            "QI Total": "#76b043",
+            "GAI": "#4d78be",
+            "CPI": "#b45f06",
         }
         colors = [color_by_label.get(label, "#5B9BD5") for label in labels]
 
-        bars = ax.bar(
+        ax.bar(
             x,
             values,
-            width=0.62,
+            width=0.72,
             color=colors,
             edgecolor="none",
             zorder=3,
@@ -2190,48 +3193,47 @@ class ReportExportService:
             yerr=errors,
             fmt="none",
             ecolor="black",
-            elinewidth=1.8,
-            capsize=6,
-            capthick=1.8,
+            elinewidth=1.1,
+            capsize=3,
+            capthick=1.1,
             zorder=4,
         )
 
         for xi, value in zip(x, values):
             ax.text(
                 xi,
-                42,
+                43,
                 cls._num(value),
                 ha="center",
                 va="bottom",
-                fontsize=11,
-                fontweight="bold",
-                color="white",
-                fontproperties=bold_font,
+                fontsize=10,
+                color="#1f3864",
+                fontproperties=regular_font,
                 zorder=4,
             )
 
         ax.set_title(
             "WISC-IV INDICES QIs",
-            color="#70AD47",
-            pad=12,
+            color="#5a8d2a",
+            pad=10,
             fontproperties=title_font or regular_font,
             fontweight="normal",
         )
         ax.set_ylabel(
             "Pontos Compostos",
-            color="#3a5a1a",
+            color="#444444",
             fontproperties=y_label_font or regular_font,
         )
         ax.set_xticks(x)
         ax.set_xticklabels(labels, fontsize=10, fontproperties=x_label_font or regular_font)
-        ax.tick_params(axis="y", labelsize=10, colors="#555555")
-        ax.tick_params(axis="x", pad=4, colors="#555555")
+        ax.tick_params(axis="y", labelsize=10, colors="#444444")
+        ax.tick_params(axis="x", pad=3, colors="#444444")
         if y_tick_font:
             for label in ax.get_yticklabels():
                 label.set_fontproperties(y_tick_font)
 
-        ax.spines["left"].set_color("#aaaaaa")
-        ax.spines["bottom"].set_color("#aaaaaa")
+        ax.spines["left"].set_color("#444444")
+        ax.spines["bottom"].set_visible(False)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
@@ -2243,7 +3245,7 @@ class ReportExportService:
 
     @classmethod
     def _wisc_chart(cls, test: dict | None):
-        payload = (test or {}).get("classified_payload") or {}
+        payload = cls._wisc_payload(test)
         labels, values, errors = [], [], []
         index_labels = {
             "icv": "ICV",
@@ -2286,19 +3288,6 @@ class ReportExportService:
             else:
                 errors.append(0.0)
         return cls._build_wisc_chart_png(labels, values, errors)
-
-    @classmethod
-    def _bpa_chart(cls, test: dict | None):
-        payload = (test or {}).get("classified_payload") or {}
-        labels = [
-            item.get("codigo", "").upper() for item in payload.get("subtestes") or []
-        ]
-        values = [
-            float(item.get("percentil") or 0) for item in payload.get("subtestes") or []
-        ]
-        return cls._build_chart_png(
-            "bar", "Perfil atencional no BPA-2", labels, values, "Percentil"
-        )
 
     @classmethod
     def _ravlt_chart(cls, test: dict | None):

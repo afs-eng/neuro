@@ -42,11 +42,12 @@ class SectionContextService:
         tests = context.get("validated_tests") or []
         config = get_ai_section_config(section_key)
         include_structured_results = config["kind"] == "test"
+        allowed_codes = set(config.get("codes") or [])
 
         filtered_tests = [
             cls._build_test_payload(item, section_key, include_structured_results)
             for item in tests
-            if item.get("instrument_code") in config["codes"]
+            if not allowed_codes or item.get("instrument_code") in allowed_codes
         ]
 
         progress_entries = [
@@ -79,16 +80,17 @@ class SectionContextService:
                 "validated_tests": filtered_tests,
             }
 
-        return {
+        payload = {
             "section": section_key,
             "section_kind": config["kind"],
             "report_rules": {
                 "report_language": "pt-BR",
                 "clinical_style": "tecnico_objetivo",
-                "use_first_name_only": True,
+                "use_first_name_only": False,
             },
             "patient": {
                 "first_name": (patient.get("full_name") or "").split(" ", 1)[0],
+                "full_name": patient.get("full_name") or "",
                 "age": patient.get("birth_date"),
                 "sex": patient.get("sex"),
                 "schooling": patient.get("schooling"),
@@ -102,6 +104,39 @@ class SectionContextService:
             "progress_entries": progress_entries,
             "validated_tests": filtered_tests,
         }
+
+        if section_key == "conclusao":
+            payload["generated_sections"] = cls._build_generated_sections_context(report)
+            payload["report_rules"]["use_first_name_only"] = False
+
+        return payload
+
+    @staticmethod
+    def _build_generated_sections_context(report) -> list[dict]:
+        relevant_keys = {
+            "capacidade_cognitiva_global",
+            "linguagem",
+            "funcoes_executivas",
+            "atencao",
+            "memoria_aprendizagem",
+            "gnosias_praxias",
+            "aspectos_emocionais_comportamentais",
+            "scared",
+            "srs2",
+            "epq_j",
+            "ebadep",
+            "etdah_pais",
+            "etdah_ad",
+        }
+        return [
+            {
+                "key": section.key,
+                "title": section.title,
+                "content": str(section.content_edited or section.content_generated or ""),
+            }
+            for section in report.sections.all().order_by("order")
+            if section.key in relevant_keys
+        ]
 
     @classmethod
     def _build_test_payload(

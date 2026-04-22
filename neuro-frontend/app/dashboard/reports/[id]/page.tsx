@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -38,14 +38,14 @@ const TEST_SECTION_MAP: Record<string, string> = {
   bpa2: "atencao",
   fdt: "funcoes_executivas",
   ravlt: "memoria_aprendizagem",
-  epq_j: "aspectos_emocionais_comportamentais",
-  scared: "aspectos_emocionais_comportamentais",
-  srs2: "aspectos_emocionais_comportamentais",
+  epq_j: "epq_j",
+  scared: "scared",
+  srs2: "srs2",
   ebadep_a: "aspectos_emocionais_comportamentais",
   ebadep_ij: "aspectos_emocionais_comportamentais",
   ebaped_ij: "aspectos_emocionais_comportamentais",
-  etdah_ad: "atencao",
-  etdah_pais: "atencao",
+  etdah_ad: "etdah_ad",
+  etdah_pais: "etdah_pais",
 };
 
 function formatTimestamp(value?: string | null) {
@@ -235,9 +235,11 @@ export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const reportId = params.id;
+  const autobuildTriggeredRef = useRef(false);
   const [report, setReport] = useState<any>(null);
   const [activeSectionId, setActiveSectionId] = useState<number | null>(null);
   const [editedText, setEditedText] = useState("");
+  const [selectedTests, setSelectedTests] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
@@ -252,6 +254,15 @@ export default function ReportDetailPage() {
     [report]
   );
   const isWiscSubscaleActive = Boolean(activeSection && WISC_SUBSCALE_KEYS.has(activeSection.key));
+  const completedTests = useMemo(() => getCompletedTests(report), [report]);
+  const missingSections = useMemo(
+    () => getMissingSectionsFromTests(report, completedTests),
+    [report, completedTests]
+  );
+  const sidebarSections = useMemo(
+    () => report?.sections?.filter((section: any) => !WISC_SUBSCALE_KEYS.has(section.key)) || [],
+    [report]
+  );
 
   const loadReport = useCallback(async () => {
     try {
@@ -281,6 +292,19 @@ export default function ReportDetailPage() {
       setNotice("Geracao do laudo iniciada. A pagina sera atualizada automaticamente quando as secoes ficarem prontas.");
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("autobuild") !== "1") return;
+    if (!report || report.status === "generating") return;
+    if (missingSections.length === 0) return;
+    if (autobuildTriggeredRef.current) return;
+
+    autobuildTriggeredRef.current = true;
+    setNotice("Novos testes validados foram encontrados. Reconstruindo o laudo automaticamente para incluir as secoes faltantes.");
+    handleRebuildReport().catch(() => {
+      autobuildTriggeredRef.current = false;
+    });
+  }, [missingSections, report, searchParams]);
 
   useEffect(() => {
     if (!report || report.status !== "generating") return;
@@ -496,9 +520,7 @@ export default function ReportDetailPage() {
   const generationSource = getGenerationSource(generationMetadata.provider, generationMetadata.model);
   const textStatus = getTextStatus(hasManualEdits, generationSource);
   const generationDetails = getGenerationDetails(generationMetadata);
-  const completedTests = getCompletedTests(report);
-  const missingSections = getMissingSectionsFromTests(report, completedTests);
-  const sidebarSections = report.sections?.filter((section: any) => !WISC_SUBSCALE_KEYS.has(section.key)) || [];
+  const visibleSelectedTests = completedTests.filter((test: any) => selectedTests.includes(`${test.code}:${test.name}`));
 
   return (
     <PageContainer>
@@ -594,12 +616,22 @@ export default function ReportDetailPage() {
           <div>
             <h3 className="mb-2 text-sm font-semibold text-slate-900">Testes concluidos</h3>
             <div className="space-y-2">
-              {completedTests.length > 0 ? completedTests.map((test: any) => (
-                <div key={`${test.code}-${test.name}`} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                  <div className="font-medium text-slate-800">{test.name}</div>
-                  <div className="mt-1 uppercase tracking-wide text-slate-400">{test.code || "sem-codigo"}</div>
-                </div>
-              )) : (
+              {completedTests.length > 0 ? completedTests.map((test: any) => {
+                const key = `${test.code}:${test.name}`;
+                const isSelected = selectedTests.includes(key);
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedTests((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key])}
+                    className={`w-full rounded-xl border px-3 py-2 text-xs transition text-left ${isSelected ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-100 bg-slate-50 text-slate-600 hover:bg-white"}`}
+                  >
+                    <div className="font-medium text-slate-800">{test.name}</div>
+                    <div className="mt-1 uppercase tracking-wide text-slate-400">{test.code || "sem-codigo"}</div>
+                  </button>
+                );
+              }) : (
                 <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
                   Nenhum teste concluido disponivel neste laudo.
                 </div>
@@ -706,7 +738,7 @@ export default function ReportDetailPage() {
                 </div>
               )}
 
-              {completedTests.length > 0 && (
+              {selectedTests.length > 0 && (
                 <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -714,12 +746,12 @@ export default function ReportDetailPage() {
                       <p className="mt-1 text-xs text-slate-500">Resumo estrutural usado na construcao do laudo. Mostra apenas testes validados.</p>
                     </div>
                     <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                      {completedTests.length} teste{completedTests.length > 1 ? "s" : ""}
+                      {visibleSelectedTests.length} teste{visibleSelectedTests.length > 1 ? "s" : ""}
                     </div>
                   </div>
 
                   <div className="mt-4 space-y-4">
-                    {completedTests.map((test: any) => {
+                    {visibleSelectedTests.map((test: any) => {
                       const metricRows = buildMetricRows(test);
                       const bpa2Subtests = test.code === "bpa2" ? getBpa2Subtests(test) : [];
                       const wiscChartData = test.code === "wisc4" ? getWiscChartData(test) : [];
@@ -764,27 +796,6 @@ export default function ReportDetailPage() {
                                       <div className="text-slate-600">{item.classificacao || "-"}</div>
                                     </div>
                                   ))}
-                                </div>
-                              </div>
-
-                              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                <div className="text-sm font-semibold text-slate-900">BPA - Bateria Psicologica para Avaliacao da Atencao</div>
-                                <div className="mt-4 space-y-3">
-                                  {bpa2Subtests.map((item: any, index: number) => {
-                                    const percentileWidth = getPercentileWidth(item.percentil);
-                                    return (
-                                      <div key={`chart-${item.codigo}-${index}`} className="grid gap-2 md:grid-cols-[220px_minmax(0,1fr)_80px] md:items-center">
-                                        <div className="text-sm font-medium text-slate-700">{getBpa2Label(item.codigo, item.subteste)}</div>
-                                        <div className="h-3 rounded-full bg-slate-100">
-                                          <div
-                                            className="h-3 rounded-full bg-emerald-500"
-                                            style={{ width: `${percentileWidth ?? 0}%` }}
-                                          />
-                                        </div>
-                                        <div className="text-right text-sm text-slate-600">P{item.percentil ?? "-"}</div>
-                                      </div>
-                                    );
-                                  })}
                                 </div>
                               </div>
                             </div>
@@ -894,7 +905,7 @@ export default function ReportDetailPage() {
                           {test.clinicalInterpretation && (
                             <details className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
                               <summary className="cursor-pointer font-medium text-slate-900">{test.code === "bpa2" ? "Interpretação e Observações Clínicas" : "Ver interpretacao tecnica"}</summary>
-                              <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{test.clinicalInterpretation}</pre>
+                              <pre className="mt-3 whitespace-pre-wrap hide-scrollbar text-sm leading-6 text-slate-600">{test.clinicalInterpretation}</pre>
                             </details>
                           )}
 
@@ -932,7 +943,7 @@ export default function ReportDetailPage() {
                     <div className="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-800">
                       {generationSource === "Fallback automatico" ? "Texto gerado pelo fallback automatico" : generationSource === "IA" ? "Texto gerado por IA" : "Texto gerado automaticamente"}
                     </div>
-                    <pre className="max-h-72 overflow-auto whitespace-pre-wrap px-4 py-3 text-sm leading-7 text-slate-600">{generatedText}</pre>
+                    <pre className="max-h-72 overflow-auto hide-scrollbar whitespace-pre-wrap px-4 py-3 text-sm leading-7 text-slate-600">{generatedText}</pre>
                   </div>
                   <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-900">
                     <div className="font-medium">Texto atual em edicao</div>
@@ -947,7 +958,7 @@ export default function ReportDetailPage() {
             value={editedText}
             onChange={(event) => setEditedText(event.target.value)}
             disabled={isFinalized || !activeSection}
-            className="min-h-[620px] w-full resize-none border-0 p-6 text-sm leading-7 text-slate-700 focus:ring-0"
+            className="min-h-[620px] w-full resize-none border-0 p-6 text-sm leading-7 text-slate-700 focus:ring-0 hide-scrollbar overflow-auto"
             placeholder="Selecione uma secao para revisar o conteudo..."
           />
         </main>

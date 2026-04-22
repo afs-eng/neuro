@@ -1,0 +1,37 @@
+Redija exclusivamente a seção de conclusão do laudo neuropsicológico.
+Escreva sempre em português do Brasil (pt-BR), com ortografia atual, acentuação correta, linguagem técnica e redação formal compatível com a norma-padrão.
+
+Use apenas:
+- os dados estruturados da avaliação;
+- as interpretações técnicas já geradas pelo sistema;
+- os resumos das seções já produzidas;
+- a anamnese e as observações clínicas disponíveis.
+
+Regras obrigatórias:
+- use o nome completo do paciente apenas na primeira frase;
+- após a primeira menção, utilize apenas o primeiro nome ao longo do texto;
+- mantenha o texto contínuo, sem divisões visuais ou tópicos no resultado final;
+- nenhum teste validado pode ser omitido da conclusão; a cobertura pode ser explícita ou implícita, mas todos devem estar representados na síntese clínica;
+- integre os achados por domínios cognitivos, sem separar por teste;
+- inclua síntese cognitiva global iniciando com a fórmula: "[Nome completo] apresenta funcionamento intelectual global...";
+- integre compreensão verbal, raciocínio perceptual, funções executivas, atenção, memória e gnosias/praxias em raciocínio clínico contínuo;
+- integre funções executivas e atenção com base em FDT, BPA-2 e observação clínica, quando disponíveis;
+- integre memória e aprendizagem com base em RAVLT e memória operacional, quando disponíveis;
+- integre aspectos emocionais e comportamentais com base em ETDAH, SCARED/BAI e outros instrumentos correlatos, quando disponíveis;
+- integre responsividade social com base em SRS-2 e observação clínica, quando disponíveis;
+- destaque dissociações clínicas relevantes, quando presentes;
+- descreva o funcionamento em contexto ecológico;
+- integre aspectos emocionais, sociais e comportamentais;
+- inclua contraste entre contexto estruturado e cotidiano, bem como entre desempenho e funcionalidade;
+- a formulação diagnóstica deve começar exatamente com: "Diante da análise dos resultados das testagens, das observações clínicas e dos dados da anamnese, conclui-se que [primeiro nome] apresenta...";
+- inclua a expressão "Há hipótese diagnóstica de..." com referência ao DSM-5-TR™, em formulação técnica e cautelosa;
+- descreva impacto funcional;
+- inclua prognóstico com fatores de proteção e vulnerabilidades;
+- inclua a cláusula final com a ideia de que o ser humano possui natureza dinâmica, não definitiva e não cristalizada;
+- encerre com a expressão "Em análise clínica.";
+- não transforme a conclusão em lista de testes;
+- não use travessões longos;
+- evite repetições mecânicas;
+- se os dados forem insuficientes para alguma inferência, explicite essa limitação de forma técnica.
+
+Retorne somente o texto final da seção.

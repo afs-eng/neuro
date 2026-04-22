@@ -82,6 +82,8 @@ interface TestApp {
   applied_on: string | null;
   is_validated: boolean;
   status: string;
+  raw_payload?: Record<string, unknown>;
+  classified_payload?: Record<string, unknown>;
 }
 
 interface EvaluationDocument {
@@ -864,6 +866,30 @@ export default function EvaluationDetailPage() {
     return "Faixa etária não definida";
   }
 
+  function getTestDisplayName(test: TestApp) {
+    if (test.instrument_code !== "scared") {
+      return test.instrument_name;
+    }
+
+    const classifiedForm = typeof test.classified_payload?.form_type === "string"
+      ? test.classified_payload.form_type
+      : null;
+    const rawForm = typeof test.raw_payload?.form === "string"
+      ? test.raw_payload.form
+      : null;
+    const form = classifiedForm || rawForm;
+
+    if (form === "parent") {
+      return "SCARED - Pais/Cuidadores";
+    }
+
+    if (form === "child") {
+      return "SCARED - Autorrelato";
+    }
+
+    return test.instrument_name;
+  }
+
   if (loading) {
     return (
       <PageContainer>
@@ -1247,7 +1273,7 @@ export default function EvaluationDetailPage() {
                     <tbody>
                       {evaluation.tests.map((test) => (
                         <tr key={test.id} className="group border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                          <td className="py-5 font-bold text-slate-900">{test.instrument_name}</td>
+                          <td className="py-5 font-bold text-slate-900">{getTestDisplayName(test)}</td>
                           <td className="py-5 text-sm text-slate-500 font-bold">
                             {test.applied_on ? new Date(test.applied_on).toLocaleDateString("pt-BR") : "Aguardando"}
                           </td>

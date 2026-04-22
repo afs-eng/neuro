@@ -30,7 +30,7 @@ class FDTModule(BaseTestModule):
         return computed_data
 
     def interpret(self, context: TestContext, merged_data: dict) -> str:
-        return interpret_fdt_result(merged_data)
+        return interpret_fdt_result(merged_data, patient_name=context.patient_name)
 
 
 register_test_module(FDT_CODE, FDTModule())

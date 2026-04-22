@@ -64,8 +64,6 @@ class DataPresenceGuard:
         },
         "aspectos_emocionais_comportamentais": {
             "codes": {
-                "etdah_pais",
-                "etdah_ad",
                 "scared",
                 "srs2",
                 "epq_j",

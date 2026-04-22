@@ -48,7 +48,7 @@ class ETDAHADModule(BaseTestModule):
         raw_scores = merged_data.get("raw_scores", {})
         schooling = merged_data.get("schooling", "elementary")
 
-        return generate_report(raw_scores, schooling)
+        return generate_report(raw_scores, schooling, patient_name=context.patient_name)
 
 
 register_test_module(ETDAHAD_CODE, ETDAHADModule())

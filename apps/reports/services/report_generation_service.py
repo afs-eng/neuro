@@ -1,3 +1,5 @@
+import re
+
 from django.utils import timezone
 
 from apps.evaluations.models import EvaluationStatus
@@ -5,8 +7,10 @@ from apps.reports.models import Report, ReportSection, ReportStatus
 from apps.reports.builders.references_builder import build_references_text
 from apps.reports.services.report_ai_service import ReportAIService
 from apps.reports.services.report_context_service import ReportContextService
+from apps.reports.services.ptbr_text_service import PtBrTextService
 from apps.reports.services.report_review_service import ReportReviewService
 from apps.reports.services.wisc4_standardization import WISC4StandardizationService
+from apps.tests.srs2.interpreters import interpret_srs2_results
 from apps.reports.services.section_registry import (
     get_section_config,
     list_section_configs,
@@ -16,6 +20,9 @@ from apps.reports.services.report_version_service import ReportVersionService
 
 class ReportGenerationService:
     AI_FALLBACK_WARNING = "A IA nao esta disponivel no momento; o texto foi gerado pelo fallback deterministico."
+    EMPTY_INTERPRETATION_MESSAGES = {
+        "Nenhum instrumento específico deste domínio apresentou interpretação clínica consolidada.",
+    }
 
     SECTION_GROUPS = {
         "capacidade_cognitiva_global": {"eficiencia_intelectual"},
@@ -143,7 +150,7 @@ class ReportGenerationService:
     def _generate_section_payload(cls, report: Report, key: str, context: dict):
         if WISC4StandardizationService.supports(key, context):
             return (
-                WISC4StandardizationService.build(key, context),
+                PtBrTextService.normalize(WISC4StandardizationService.build(key, context)),
                 {
                     "provider": "deterministic",
                     "model": "standardized-wisc4",
@@ -162,14 +169,14 @@ class ReportGenerationService:
                 content = generation_result.get("content") or ""
                 if content.strip():
                     return (
-                        content,
+                        PtBrTextService.normalize(content),
                         generation_result.get("metadata") or {},
                         generation_result.get("warnings") or [],
                     )
             except Exception as exc:
                 fallback_content = cls._generate_section_text(report, key, context)
                 return (
-                    fallback_content,
+                    PtBrTextService.normalize(fallback_content),
                     {
                         "provider": "deterministic",
                         "model": "rules-based",
@@ -182,7 +189,7 @@ class ReportGenerationService:
                 )
 
         return (
-            cls._generate_section_text(report, key, context),
+            PtBrTextService.normalize(cls._generate_section_text(report, key, context)),
             {
                 "provider": "deterministic",
                 "model": "rules-based",
@@ -490,6 +497,292 @@ class ReportGenerationService:
         return "\n\n".join(blocks)
 
     @staticmethod
+    def _clean_clinical_interpretation(text: str) -> str:
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return ""
+
+        for prefix in (
+            "Interpretação clínica:",
+            "Interpretação e Observações Clínicas:",
+        ):
+            if cleaned.casefold().startswith(prefix.casefold()):
+                cleaned = cleaned[len(prefix):].strip()
+
+        cleaned = re.sub(
+            r"={20,}\s*\n"
+            r"Fator\s+Pts\s*Brts\s+T-Score\s+Percentil\s+Classifica(?:ç|c)ão\s*\n"
+            r"={20,}\s*\n"
+            r".*?"
+            r"\n={20,}",
+            "",
+            cleaned,
+            flags=re.IGNORECASE | re.DOTALL,
+        ).strip()
+
+        if cleaned in ReportGenerationService.EMPTY_INTERPRETATION_MESSAGES:
+            return ""
+
+        return cleaned
+
+    @staticmethod
+    def _fallback_test_interpretation(test: dict) -> str:
+        if test.get("instrument_code") != "srs2":
+            return ""
+
+        merged_data = {
+            **(test.get("computed_payload") or {}),
+            **(test.get("classified_payload") or test.get("structured_results") or {}),
+        }
+        return (interpret_srs2_results(merged_data) or "").strip()
+
+    @staticmethod
+    def _patient_name(context: dict) -> str:
+        return ((context.get("patient") or {}).get("full_name") or "Paciente").strip() or "Paciente"
+
+    @staticmethod
+    def _patient_first_name(context: dict) -> str:
+        full_name = ReportGenerationService._patient_name(context)
+        return full_name.split(" ", 1)[0] or full_name
+
+    @staticmethod
+    def _section_text(report: Report, key: str) -> str:
+        section = report.sections.filter(key=key).first()
+        return str(section.content_edited or section.content_generated or "").strip() if section else ""
+
+    @staticmethod
+    def _has_any_keyword(text: str, keywords: tuple[str, ...]) -> bool:
+        lowered = (text or "").casefold()
+        return any(keyword.casefold() in lowered for keyword in keywords)
+
+    @classmethod
+    def _domain_clause(cls, text: str, label: str) -> str:
+        if not text:
+            return f"dados insuficientes para definição mais precisa do domínio de {label.lower()}"
+
+        if cls._has_any_keyword(text, ("preservad", "adequad", "dentro dos limites", "compatível")):
+            mapping = {
+                "Linguagem": "recursos de linguagem globalmente preservados, com boa sustentação da compreensão e da expressão verbal",
+                "Funções executivas": "funcionamento executivo globalmente preservado, com recursos adequados para planejamento, monitoramento e controle cognitivo",
+                "Atenção": "funcionamento atencional sem indicativos de comprometimento global expressivo em contexto estruturado",
+                "Memória": "recursos de memória e aprendizagem globalmente preservados para retenção, evocação e manejo de informações",
+                "Gnosias e praxias": "habilidades de gnosias e praxias preservadas, com adequada organização perceptual e construtiva",
+            }
+            return mapping.get(label, f"funcionamento de {label.lower()} globalmente preservado")
+
+        if cls._has_any_keyword(text, ("heterog", "misto", "oscil", "variável", "fragilidades pontuais")):
+            mapping = {
+                "Linguagem": "perfil de linguagem relativamente heterogêneo, com recursos preservados e fragilidades pontuais no processamento verbal",
+                "Funções executivas": "perfil executivo heterogêneo, com variabilidade entre organização, flexibilidade e controle mental",
+                "Atenção": "perfil atencional oscilante, com melhor desempenho em algumas condições e vulnerabilidade em outras",
+                "Memória": "desempenho mnésico heterogêneo, com variação entre retenção, aprendizagem e recuperação das informações",
+                "Gnosias e praxias": "perfil visuoperceptivo e praxico heterogêneo, com recursos preservados coexistindo com fragilidades específicas",
+            }
+            return mapping.get(label, f"funcionamento de {label.lower()} heterogêneo")
+
+        mapping = {
+            "Linguagem": "fragilidades no domínio da linguagem, com possível impacto sobre a compreensão, a elaboração verbal e o uso funcional da comunicação",
+            "Funções executivas": "fragilidades executivas com repercussão potencial sobre planejamento, flexibilidade cognitiva, autorregulação e organização do comportamento",
+            "Atenção": "fragilidades atencionais com potencial repercussão sobre sustentação do foco, monitoramento e consistência do desempenho",
+            "Memória": "fragilidades em memória e aprendizagem, com repercussão possível sobre retenção ativa, consolidação e evocação de conteúdos",
+            "Gnosias e praxias": "fragilidades em gnosias e praxias, com possível impacto sobre a organização visuoespacial e a execução construtiva",
+        }
+        return mapping.get(label, f"fragilidades clinicamente relevantes no domínio de {label.lower()}")
+
+    @classmethod
+    def _build_conclusion_text(cls, report: Report, context: dict) -> str:
+        name = cls._patient_name(context)
+        first_name = cls._patient_first_name(context)
+        evaluation = context.get("evaluation") or {}
+        patient = context.get("patient") or {}
+        referral_reason = (evaluation.get("referral_reason") or "").strip()
+        hypothesis = (evaluation.get("clinical_hypothesis") or "").strip()
+        validated_tests = context.get("validated_tests") or []
+
+        cognitive_text = cls._section_text(report, "capacidade_cognitiva_global")
+        language_text = cls._section_text(report, "linguagem")
+        executive_text = cls._section_text(report, "funcoes_executivas")
+        attention_text = cls._section_text(report, "atencao")
+        memory_text = cls._section_text(report, "memoria_aprendizagem")
+        praxis_text = cls._section_text(report, "gnosias_praxias")
+        emotional_text = cls._section_text(report, "aspectos_emocionais_comportamentais")
+        social_text = cls._section_text(report, "srs2")
+
+        test_names = [
+            item.get("instrument_name") or item.get("instrument") or item.get("instrument_code")
+            for item in validated_tests
+            if item.get("instrument_name") or item.get("instrument") or item.get("instrument_code")
+        ]
+        unique_test_names = list(dict.fromkeys(test_names))
+        if len(unique_test_names) == 1:
+            tests_sentence = f"Na integração dos achados, os resultados do instrumento {unique_test_names[0]} foram considerados em conjunto com a observação clínica e os dados anamnésticos."
+        elif unique_test_names:
+            tests_sentence = (
+                "Na integração dos achados, foram considerados de forma articulada os resultados de "
+                f"{', '.join(unique_test_names[:-1])} e {unique_test_names[-1]}, sempre em correlação com a observação clínica e os dados da anamnese."
+            )
+        else:
+            tests_sentence = (
+                "Na integração dos achados, os dados dos instrumentos aplicados foram considerados em conjunto com a observação clínica e as informações anamnésticas disponíveis."
+            )
+
+        if cls._has_any_keyword(cognitive_text, ("superior", "muito superior", "alta capacidade")):
+            cognitive_sentence = (
+                f"{name} apresenta funcionamento intelectual global acima do esperado, com desempenho intelectual situado em faixa superior e evidenciando recursos consistentes para raciocínio, elaboração conceitual e resolução de demandas complexas."
+            )
+        elif cls._has_any_keyword(cognitive_text, ("heterog", "variável", "misto")):
+            cognitive_sentence = (
+                f"{name} apresenta funcionamento intelectual global heterogêneo, com desempenho intelectual situado em faixa variável entre os domínios avaliados, evidenciando dissociação entre recursos preservados e áreas de maior vulnerabilidade funcional."
+            )
+        elif cls._has_any_keyword(cognitive_text, ("inferior", "limítrofe", "baixo", "fragil")):
+            cognitive_sentence = (
+                f"{name} apresenta funcionamento intelectual global com fragilidades clinicamente relevantes, com desempenho intelectual situado abaixo do esperado para parte das demandas avaliadas, evidenciando impacto potencial sobre autonomia, aprendizagem e adaptação a exigências complexas."
+            )
+        else:
+            cognitive_sentence = (
+                f"{name} apresenta funcionamento intelectual global globalmente preservado, com desempenho intelectual situado dentro da faixa esperada para o contexto avaliado, evidenciando recursos adequados para o manejo de demandas cognitivas gerais em ambiente estruturado."
+            )
+
+        domain_sentence = (
+            f"{first_name} demonstra, no plano dos domínios cognitivos específicos, "
+            f"{cls._domain_clause(language_text, 'Linguagem')}; "
+            f"{cls._domain_clause(executive_text, 'Funções executivas')}; "
+            f"{cls._domain_clause(attention_text, 'Atenção')}; "
+            f"{cls._domain_clause(memory_text, 'Memória')}; e "
+            f"{cls._domain_clause(praxis_text, 'Gnosias e praxias')}."
+        )
+
+        executive_attention_sentence = (
+            f"No eixo executivo-atencional, a integração entre dados de funções executivas, atenção sustentada e observação clínica sugere que {first_name} "
+            "responde melhor em contexto estruturado do que em situações cotidianas de maior exigência autorregulatória, especialmente quando há aumento da demanda de organização, monitoramento e flexibilidade mental."
+        )
+
+        memory_sentence = (
+            f"No campo da memória e da aprendizagem, os achados sugerem que {first_name} apresenta desempenho que deve ser compreendido de forma integrada entre retenção imediata, manipulação mental de informações e consolidação de conteúdo, sem reduzir a análise a um único instrumento isolado."
+        )
+
+        emotional_sentence = (
+            f"No âmbito emocional e comportamental, a leitura integrada dos instrumentos complementares e da observação clínica indica que fatores afetivos, sociais e autorregulatórios participam da expressão funcional do desempenho de {first_name}, modulando a adaptação às exigências escolares, sociais e cotidianas."
+        )
+
+        social_sentence = (
+            f"Na responsividade social, os achados do SRS-2 devem ser compreendidos em conjunto com a observação clínica direta, contribuindo para a análise qualitativa da interação social recíproca, da comunicação pragmática e de eventuais padrões comportamentais mais rígidos ou repetitivos apresentados por {first_name}."
+            if social_text or any(item.get("instrument_code") == "srs2" for item in validated_tests)
+            else f"Na responsividade social, os dados disponíveis sugerem que a análise do funcionamento interpessoal de {first_name} deve permanecer integrada à observação clínica e ao histórico do desenvolvimento."
+        )
+
+        if cls._has_any_keyword(emotional_text, ("ansied", "depress", "social", "comportament", "emocion")) and cls._has_any_keyword(cognitive_text, ("preservad", "esperad", "média", "adequad")):
+            dissociation_sentence = (
+                "Evidencia-se dissociação clínica entre o desempenho obtido em ambiente estruturado de avaliação e as exigências adaptativas do cotidiano, sugerindo que fatores emocionais, comportamentais e contextuais podem modular de forma relevante a expressão funcional do repertório cognitivo."
+            )
+        else:
+            dissociation_sentence = (
+                "Evidencia-se dissociação clínica entre áreas relativamente preservadas e domínios de maior vulnerabilidade, o que reforça a necessidade de leitura integrada entre desempenho psicométrico, observação comportamental e impacto funcional no cotidiano."
+            )
+
+        context_target = "escolar" if patient.get("schooling") or patient.get("school_name") else "cotidiano"
+        ecological_sentence = (
+            f"Em contexto ecológico, verifica-se que os achados descritos tendem a repercutir sobre a organização da rotina, o manejo das demandas de {context_target}, a autorregulação e a consistência do desempenho diante de situações que exigem autonomia, flexibilidade e adaptação."
+        )
+        if referral_reason:
+            ecological_sentence = (
+                f"Em contexto ecológico, verifica-se que os achados descritos dialogam diretamente com a demanda de avaliação, especialmente no que se refere a {referral_reason[0].lower() + referral_reason[1:] if len(referral_reason) > 1 else referral_reason.lower()}, com possível repercussão sobre rotina, desempenho funcional e autorregulação."
+            )
+
+        if emotional_text:
+            psycho_sentence = (
+                f"A integração dos dados psicocomportamentais indica que aspectos emocionais, sociais e comportamentais devem ser considerados como moduladores do funcionamento global de {first_name}, sobretudo na expressão cotidiana das habilidades cognitivas e na qualidade do ajustamento adaptativo."
+            )
+        else:
+            psycho_sentence = (
+                f"A integração dos dados psicocomportamentais não afasta a influência de fatores emocionais e contextuais sobre o funcionamento de {first_name}, motivo pelo qual o desempenho deve ser sempre interpretado de forma contextualizada e não exclusivamente psicométrica."
+            )
+
+        summary_profile = (
+            "um perfil neuropsicológico heterogêneo, com integração entre recursos preservados e áreas de vulnerabilidade"
+            if cls._has_any_keyword(cognitive_sentence, ("heterogêneo", "fragilidades", "dissociação"))
+            else "um perfil neuropsicológico globalmente preservado em ambiente estruturado, mas dependente de integração com os dados funcionais e comportamentais"
+        )
+        conclusion_sentence = (
+            f"Diante da análise dos resultados das testagens, das observações clínicas e dos dados da anamnese, conclui-se que {first_name} apresenta {summary_profile}."
+        )
+
+        if hypothesis:
+            hypothesis_sentence = (
+                f"Há hipótese diagnóstica de {hypothesis}, conforme critérios do DSM-5-TR™, sustentada pela integração entre o desempenho cognitivo, os achados comportamentais, o histórico do desenvolvimento e o impacto funcional descrito ao longo da avaliação."
+            )
+        else:
+            hypothesis_sentence = (
+                "Há hipótese diagnóstica em investigação clínica, conforme referenciais do DSM-5-TR™, devendo sua formulação final permanecer vinculada à integração entre achados neuropsicológicos, observação clínica, histórico do desenvolvimento e evolução funcional."
+            )
+
+        impact_sentence = (
+            f"As alterações identificadas repercutem funcionalmente sobre o contexto {context_target}, as interações sociais, a organização do comportamento e a adaptação às exigências ambientais, com intensidade dependente da complexidade das demandas e do nível de suporte disponível."
+        )
+        prognosis_sentence = (
+            f"O perfil apresentado sugere prognóstico dependente da articulação entre fatores de proteção, como recursos cognitivos preservados, possibilidade de intervenção precoce e suporte familiar/escolar, e fatores de risco, como persistência das vulnerabilidades identificadas, impacto emocional e sobrecarga adaptativa."
+        )
+        dynamic_sentence = (
+            "Ressalta-se que o ser humano possui uma natureza dinâmica, não definitiva e não cristalizada, de modo que o funcionamento descrito refere-se ao momento atual da avaliação e pode modificar-se conforme desenvolvimento, intervenções, condições contextuais e resposta terapêutica."
+        )
+
+        return "\n\n".join(
+            [
+                cognitive_sentence,
+                tests_sentence,
+                domain_sentence,
+                executive_attention_sentence,
+                memory_sentence,
+                emotional_sentence,
+                social_sentence,
+                dissociation_sentence,
+                ecological_sentence,
+                psycho_sentence,
+                conclusion_sentence,
+                hypothesis_sentence,
+                impact_sentence,
+                prognosis_sentence,
+                dynamic_sentence,
+                "Em análise clínica.",
+            ]
+        )
+
+    @classmethod
+    def _tests_interpretation_blocks(cls, tests: list[dict]) -> str:
+        if not tests:
+            return (
+                "Nenhum instrumento específico deste domínio foi validado na avaliação."
+            )
+
+        blocks = []
+        include_instrument_name = len(tests) > 1
+        for test in tests:
+            interpretation = cls._clean_clinical_interpretation(
+                test.get("clinical_interpretation") or test.get("summary") or ""
+            )
+            if not interpretation:
+                interpretation = cls._clean_clinical_interpretation(
+                    cls._fallback_test_interpretation(test)
+                )
+            if not interpretation:
+                continue
+
+            lines = []
+            if include_instrument_name:
+                lines.append(f"{test.get('instrument_name')}.")
+            lines.append(interpretation)
+
+            warnings = test.get("warnings") or []
+            if warnings:
+                lines.extend(f"Observação técnica: {warning}" for warning in warnings)
+
+            blocks.append("\n".join(lines))
+
+        return "\n\n".join(blocks) if blocks else (
+            "Nenhum instrumento específico deste domínio apresentou interpretação clínica consolidada."
+        )
+
+    @staticmethod
     def _document_summary(context: dict) -> str:
         documents = context.get("documents") or []
         if not documents:
@@ -619,7 +912,7 @@ class ReportGenerationService:
                 [
                     intro_map[key],
                     "",
-                    cls._tests_detailed_blocks(tests),
+                    cls._tests_interpretation_blocks(tests),
                     "",
                     closing_map[key],
                 ]
@@ -635,7 +928,7 @@ class ReportGenerationService:
                 [
                     "A BPA-2 foi utilizada para mensurar atenção concentrada, dividida, alternada e capacidade geral de atenção.",
                     "",
-                    cls._tests_detailed_blocks(tests),
+                    cls._tests_interpretation_blocks(tests),
                     "",
                     "Em análise clínica, o desempenho atencional deve ser integrado às demandas escolares, ao ritmo de trabalho mental e às observações comportamentais registradas nas sessões.",
                 ]
@@ -647,13 +940,10 @@ class ReportGenerationService:
                 for test in context.get("validated_tests") or []
                 if test.get("instrument_code") == "ravlt"
             ]
-            return "\n".join(
+            return "\n\n".join(
                 [
-                    "O RAVLT foi utilizado para investigar memória auditivo-verbal, curva de aprendizagem, interferência e retenção tardia.",
-                    "",
-                    cls._tests_detailed_blocks(tests),
-                    "",
-                    "A leitura clínica considera não apenas o escore bruto, mas também a forma como o paciente aprende, mantém e recupera informações ao longo da tarefa.",
+                    "O Rey Auditory Verbal Learning Test (RAVLT) e um teste neuropsicologico amplamente utilizado para avaliar a memoria verbal, a capacidade de aprendizado auditivo e a retencao de informacoes ao longo do tempo. Desenvolvido por Rey (1958). O RAVLT permite analisar diferentes aspectos da memoria, como a curva de aprendizado, interferencia, esquecimento e reconhecimento verbal (Lezak et al., 2004). Ele e frequentemente utilizado na investigacao de deficits cognitivos associados a doencas neurodegenerativas, lesoes cerebrais traumaticas e transtornos psiquiatricos (Strauss, Sherman & Spreen, 2006). Os resultados do teste auxiliam no diagnostico diferencial de condicoes como Alzheimer e TDAH, alem de fornecerem subsidios para o planejamento de intervencoes cognitivas (Salthouse, 2010). Assim, o RAVLT e uma ferramenta essencial para a avaliacao da memoria e da aprendizagem verbal.",
+                    cls._tests_interpretation_blocks(tests),
                 ]
             )
 
@@ -663,15 +953,7 @@ class ReportGenerationService:
                 for test in context.get("validated_tests") or []
                 if test.get("instrument_code") == "fdt"
             ]
-            return "\n".join(
-                [
-                    "O FDT permite observar processos automáticos e controlados, com ênfase em velocidade de processamento, inibição e flexibilidade cognitiva.",
-                    "",
-                    cls._tests_detailed_blocks(tests),
-                    "",
-                    "Em análise clínica, tempos elevados e aumento de erros em tarefas controladas sugerem maior custo executivo, especialmente em situações de mudança de regra e monitoramento da resposta.",
-                ]
-            )
+            return cls._tests_interpretation_blocks(tests)
 
         if key == "etdah_pais":
             tests = [
@@ -679,15 +961,7 @@ class ReportGenerationService:
                 for test in context.get("validated_tests") or []
                 if test.get("instrument_code") == "etdah_pais"
             ]
-            return "\n".join(
-                [
-                    "A escala E-TDAH-PAIS contribui para compreender a percepção dos responsáveis acerca de atenção, impulsividade, comportamento adaptativo e regulação emocional.",
-                    "",
-                    cls._tests_detailed_blocks(tests),
-                    "",
-                    "Os resultados devem ser correlacionados com a observação clínica direta e com o funcionamento do adolescente em casa e na escola.",
-                ]
-            )
+            return cls._tests_interpretation_blocks(tests)
 
         if key == "etdah_ad":
             tests = [
@@ -711,15 +985,7 @@ class ReportGenerationService:
                 for test in context.get("validated_tests") or []
                 if test.get("instrument_code") == "scared"
             ]
-            return "\n".join(
-                [
-                    "O SCARED investiga sintomas ansiosos por domínios, permitindo identificar rastreios positivos para ansiedade generalizada, fobia social, ansiedade de separação, pânico e evitação escolar.",
-                    "",
-                    cls._tests_detailed_blocks(tests),
-                    "",
-                    "As elevações precisam ser interpretadas à luz do contexto emocional do adolescente, do repertório de enfrentamento e dos achados observacionais.",
-                ]
-            )
+            return cls._tests_interpretation_blocks(tests)
 
         if key == "srs2":
             tests = [
@@ -727,15 +993,7 @@ class ReportGenerationService:
                 for test in context.get("validated_tests") or []
                 if test.get("instrument_code") == "srs2"
             ]
-            return "\n".join(
-                [
-                    "O SRS-2 contribui para a investigação do funcionamento social, cognição social e padrões restritos ou repetitivos, sem substituir a integração clínica ampla do caso.",
-                    "",
-                    cls._tests_detailed_blocks(tests),
-                    "",
-                    "Os achados devem ser correlacionados com adaptação social, linguagem pragmática, ansiedade e funcionamento cognitivo global antes de qualquer formulação diagnóstica.",
-                ]
-            )
+            return cls._tests_interpretation_blocks(tests)
 
         if key == "epq_j":
             tests = [
@@ -770,21 +1028,7 @@ class ReportGenerationService:
             )
 
         if key == "conclusao":
-            validated_tests = context.get("validated_tests") or []
-            main_domains = ", ".join(
-                sorted({item.get("domain") or "geral" for item in validated_tests})
-            )
-            if is_adolescent:
-                hypothesis = evaluation.get("clinical_hypothesis")
-                return (
-                    f"Considerando a integração entre anamnese, contexto familiar e escolar, observação clínica e instrumentos validados, o adolescente apresenta achados com repercussão em {main_domains or 'diferentes domínios do funcionamento cognitivo e socioemocional'}. "
-                    f"A síntese clínica sugere {hypothesis or 'necessidade de investigação diagnóstica integrada e acompanhamento multiprofissional'}, correlacionando desempenho psicométrico, funcionalidade cotidiana e recursos adaptativos. "
-                    "A presente conclusão não deve ser interpretada isoladamente, exigindo leitura conjunta com a história do desenvolvimento, comorbidades e resposta do adolescente às demandas ambientais."
-                )
-            return (
-                f"Considerando a integração entre anamnese, evolução clínica, documentos e instrumentos validados, o caso sugere alterações com impacto nos domínios de {main_domains or 'funcionamento cognitivo geral'}. "
-                "Os resultados não devem ser interpretados isoladamente, mas como parte de um raciocínio clínico integrado e sujeito à revisão profissional."
-            )
+            return cls._build_conclusion_text(report, context)
 
         if key == "hipotese_diagnostica":
             hypothesis = evaluation.get("clinical_hypothesis")

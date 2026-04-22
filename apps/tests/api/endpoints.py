@@ -1300,6 +1300,8 @@ def etdah_pais_submit(request, payload: ETDAHPAISSubmitIn) -> tuple[int, dict]:
     auth=bearer_auth,
 )
 def etdah_pais_result(request, application_id: int) -> tuple[int, dict]:
+    from apps.tests.etdah_pais.interpreters import generate_report
+
     application = get_test_application_by_id(application_id)
     if not application:
         return 404, {"message": "Aplicação de teste não encontrada."}
@@ -1308,6 +1310,23 @@ def etdah_pais_result(request, application_id: int) -> tuple[int, dict]:
         return 404, {"message": "Aplicação não é do tipo ETDAH-PAIS."}
 
     classified = application.classified_payload or {}
+    computed = application.computed_payload or {}
+    interpretation = application.interpretation_text or ""
+
+    if not interpretation:
+        raw_scores = classified.get("raw_scores") or computed.get("raw_scores") or {}
+        age = classified.get("age") or computed.get("age") or (application.raw_payload or {}).get("age")
+        sex = classified.get("sex") or computed.get("sex") or (application.raw_payload or {}).get("sex")
+
+        if raw_scores and age and sex:
+            interpretation = generate_report(
+                raw_scores,
+                int(age),
+                str(sex),
+                patient_name=application.evaluation.patient.full_name,
+            )
+            application.interpretation_text = interpretation
+            application.save(update_fields=["interpretation_text"])
 
     return 200, {
         "application_id": application.pk,
@@ -1316,9 +1335,9 @@ def etdah_pais_result(request, application_id: int) -> tuple[int, dict]:
         "applied_on": application.applied_on,
         "raw_scores": classified.get("raw_scores", {}),
         "results": classified.get("results", {}),
-        "interpretation": application.interpretation_text or "",
+        "interpretation": interpretation,
         "raw_payload": application.raw_payload or {},
-        "computed_payload": application.computed_payload or {},
+        "computed_payload": computed,
         "classified_payload": application.classified_payload or {},
     }
 
@@ -1593,6 +1612,30 @@ def srs2_result(request, application_id: int) -> tuple[int, dict]:
 # --- SCARED ---
 
 
+@router.get(
+    "/scared/items",
+    response={200: dict, 403: MessageOut},
+    auth=bearer_auth,
+)
+def scared_get_items(request) -> tuple[int, dict]:
+    from apps.tests.scared.config import SCARED_FORMS, SCARED_ITEMS_BY_FORM
+
+    if not can_view_tests(request.auth):
+        return 403, {"message": "User not authorized"}
+
+    result = {}
+    for form_key, items in SCARED_ITEMS_BY_FORM.items():
+        result[form_key] = {
+            "label": SCARED_FORMS.get(form_key, form_key),
+            "items": [
+                {"item": item_number, "pergunta": question}
+                for item_number, question in items.items()
+            ],
+        }
+
+    return 200, result
+
+
 @router.post(
     "/scared/submit",
     response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
@@ -1603,8 +1646,8 @@ def scared_submit(request, payload: SCAREDSubmitIn) -> tuple[int, dict]:
     from apps.tests.base.types import TestContext
     from apps.tests.models.applications import TestApplication
 
-    if not can_view_tests(request.auth):
-        return 403, {"message": "User not authorized"}
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
 
     evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
     if not evaluation:
@@ -1649,11 +1692,17 @@ def scared_submit(request, payload: SCAREDSubmitIn) -> tuple[int, dict]:
         )
 
     reference_date = get_reference_date(evaluation, payload.applied_on)
-    application, _ = TestApplication.objects.get_or_create(
-        evaluation=evaluation,
-        instrument=instrument,
-        defaults={"applied_on": reference_date},
-    )
+
+    if payload.application_id:
+        application = TestApplication.objects.filter(
+            pk=payload.application_id,
+            evaluation=evaluation,
+            instrument=instrument,
+        ).first()
+        if not application:
+            return 404, {"message": "Aplicação SCARED não encontrada."}
+    else:
+        application = TestApplication(evaluation=evaluation, instrument=instrument)
 
     application.raw_payload = raw_scores
     application.computed_payload = computed

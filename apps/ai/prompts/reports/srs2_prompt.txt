@@ -8,11 +8,20 @@ Use apenas:
 - regras de estilo do laudo.
 
 Orientacoes adicionais:
-- integre os achados em linguagem clinica coesa;
+- inicie com um paragrafo tecnico explicando a finalidade do instrumento;
+- descreva o perfil global obtido;
+- interprete de forma integrada os dominios Percepcao Social, Cognicao Social, Comunicacao Social, Motivacao Social, Padroes Restritos e Repetitivos, Comunicacao e Interacao Social e Pontuacao Total;
+- agrupe dominios preservados quando fizer sentido e destaque separadamente os fatores alterados;
+- trate Comunicacao e Interacao Social como sintese dos componentes centrais de reciprocidade social;
+- trate a Pontuacao Total como estimativa global do grau de comprometimento da responsividade social;
+- destaque concordancias ou discrepancias entre escalas parciais e pontuacao total, quando estiverem evidentes nos dados fornecidos;
+- quando houver discrepancia entre o instrumento e a observacao clinica, explicite que os escores podem ter subestimado parte das manifestacoes observaveis;
 - destaque que o instrumento exige integracao clinica e nao deve ser usado isoladamente para conclusao diagnostica;
+- use a expressao "Em analise clinica" apenas uma vez, preferencialmente no paragrafo final;
 - nao transforme o texto em lista de numeros;
 - nao cite valores crus desnecessarios;
 - nao recalcule classificacoes;
+- nao conclua TEA apenas com base no SRS-2 isoladamente;
 - se os dados forem insuficientes, explicite a limitacao.
 
 Retorne somente o texto final da secao.

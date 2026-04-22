@@ -1,6 +1,8 @@
 from collections.abc import Iterable
 from datetime import date
 
+from apps.tests.bpa2.calculators import get_age_group as _get_bpa2_age_group
+from apps.tests.bpa2.calculators import load_table as _load_bpa2_table
 from apps.tests.base.types import TestContext
 from apps.tests.registry import get_test_module
 from apps.tests.selectors import get_validated_test_applications_by_evaluation
@@ -20,6 +22,14 @@ SECTION_MAP = {
     "etdah_ad": "atencao",
     "etdah_pais": "atencao",
 }
+
+BPA2_SERIES_META = {
+    "ac": ("ATENÇÃO CONCENTRADA", "#E67E22"),
+    "ad": ("ATENÇÃO DIVIDIDA", "#F1B500"),
+    "aa": ("ATENÇÃO ALTERNADA", "#7BAE45"),
+    "ag": ("ATENÇÃO GERAL", "#A94F0B"),
+}
+
 
 
 def _clean_text(value) -> str:
@@ -140,6 +150,81 @@ def _build_bpa2_rows(payload: dict) -> list[str]:
             )
         )
     return rows
+
+
+def _bpa2_age_group_for_application(evaluation, applied_on) -> str | None:
+    birth_date = getattr(getattr(evaluation, "patient", None), "birth_date", None)
+    if not birth_date:
+        return None
+    reference_date = applied_on or evaluation.start_date
+    if not reference_date:
+        return None
+    if isinstance(reference_date, str):
+        reference_date = date.fromisoformat(reference_date[:10])
+    age = reference_date.year - birth_date.year
+    if (reference_date.month, reference_date.day) < (birth_date.month, birth_date.day):
+        age -= 1
+    return _get_bpa2_age_group(age)
+
+
+def _bpa2_reference_scores(code: str, age_group: str | None) -> tuple[float, float, float]:
+    if not age_group:
+        return (0.0, 0.0, 0.0)
+
+    try:
+        table = _load_bpa2_table(code, "idade")
+    except Exception:
+        return (0.0, 0.0, 0.0)
+
+    values_by_percentile: dict[int, float] = {}
+    for row in table:
+        try:
+            percentile = int(row.get("Percentil") or 0)
+            value = float(str(row.get(age_group) or "0").replace(",", "."))
+        except ValueError:
+            continue
+        values_by_percentile[percentile] = value
+
+    return (
+        values_by_percentile.get(99, 0.0),
+        values_by_percentile.get(40, 0.0),
+        values_by_percentile.get(10, 0.0),
+    )
+
+
+def _build_bpa2_chart_data(payload: dict, evaluation, applied_on) -> dict:
+    age_group = _bpa2_age_group_for_application(evaluation, applied_on)
+    subtests = {
+        str(item.get("codigo") or "").lower(): item for item in payload.get("subtestes") or []
+    }
+    domains = []
+
+    for code in ("ac", "ad", "aa", "ag"):
+        item = subtests.get(code)
+        if not item:
+            continue
+        maximo, medio, minimo = _bpa2_reference_scores(code, age_group)
+        label, color = BPA2_SERIES_META[code]
+        domains.append(
+            {
+                "label": label,
+                "color": color,
+                "values": {
+                    "maximo": maximo,
+                    "medio": medio,
+                    "minimo": minimo,
+                    "bruto": float(item.get("total") or item.get("brutos") or 0),
+                    "percentil": float(item.get("percentil") or 0),
+                },
+            }
+        )
+
+    return {
+        "title": "BPA - BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO",
+        "domains": domains,
+    }
+
+
 
 
 def _build_fdt_rows(payload: dict) -> list[str]:
@@ -376,7 +461,11 @@ def build_validated_tests_snapshot(evaluation) -> list[dict]:
             if item.instrument.code == "wisc4"
             else {}
         )
-
+        bpa_chart_data = (
+            _build_bpa2_chart_data(structured_results, item.evaluation, item.applied_on)
+            if item.instrument.code == "bpa2"
+            else {}
+        )
         snapshots.append(
             {
                 "id": item.id,
@@ -397,6 +486,7 @@ def build_validated_tests_snapshot(evaluation) -> list[dict]:
                 "interpretation_text": clinical_interpretation,
                 "result_rows": result_rows,
                 "wisc_tables": wisc_tables,
+                "bpa_chart_data": bpa_chart_data,
                 "warnings": warnings,
             }
         )

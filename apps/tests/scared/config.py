@@ -3,6 +3,11 @@ SCARED_NAME = "SCARED - Screen for Child Anxiety Related Emotional Disorders"
 
 CHILD_MAX_AGE = 12
 
+SCARED_FORMS = {
+    "child": "Autorrelato",
+    "parent": "Pais/Cuidadores",
+}
+
 OPCOES_RESPOSTA = {
     0: "Nunca ou raramente verdadeiro",
     1: "Algumas vezes verdadeiro",
@@ -116,6 +121,15 @@ FATORES_DISPLAY_NAMES = {
     "total": "Total",
 }
 
+FATORES_ANALISE = [
+    "panico_sintomas_somaticos",
+    "ansiedade_generalizada",
+    "ansiedade_separacao",
+    "fobia_social",
+    "evitacao_escolar",
+    "total",
+]
+
 PAIS_MAXIMOS = {
     "panico_sintomas_somaticos": 26,
     "ansiedade_generalizada": 18,
@@ -123,4 +137,9 @@ PAIS_MAXIMOS = {
     "fobia_social": 14,
     "evitacao_escolar": 8,
     "total": 82,
+}
+
+SCARED_ITEMS_BY_FORM = {
+    "child": ITENS_AUTORRELATO,
+    "parent": ITENS_PAIS,
 }

@@ -1,6 +1,7 @@
 import json
 
 from apps.ai.services.text_generation_service import TextGenerationService
+from apps.reports.services.ptbr_text_service import PtBrTextService
 
 from .section_context_service import SectionContextService
 from .section_registry import get_ai_section_config, list_section_configs
@@ -49,6 +50,7 @@ class ReportAIService:
             raise ValueError(
                 "A IA retornou uma resposta vazia para a secao solicitada."
             )
+        content = PtBrTextService.normalize(content)
 
         return {
             "content": content,
@@ -79,7 +81,7 @@ class ReportAIService:
             "Baseie a redacao prioritariamente nas interpretacoes tecnicas ja geradas "
             "pelos interpreters.py do sistema e persistidas em 'clinical_interpretation' ou 'technical_basis'. "
             "Use os resultados estruturados apenas para sustentar e organizar essa redacao, "
-            "sem recalcular classificacoes.\n\n"
+            "sem recalcular classificacoes. Escreva sempre em portugues do Brasil, com ortografia atual, acentuacao correta e redacao formal compativel com a norma-padrao e o estilo tecnico de laudo clinico.\n\n"
             "Dados clinicos estruturados para a secao solicitada:\n"
             f"{json.dumps(filtered_context, ensure_ascii=False, indent=2)}"
         )

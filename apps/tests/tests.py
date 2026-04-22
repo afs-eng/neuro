@@ -5,9 +5,15 @@ from apps.tests.base.types import TestContext
 from apps.tests.cars2_hf import CARS2HFModule
 from apps.tests.cars2_hf.classifiers import classify_cars2_hf
 from apps.tests.cars2_hf.loaders import load_cars2_hf_norms
+from apps.tests.etdah_ad import ETDAHADModule
+from apps.tests.etdah_pais import ETDAHPAISModule
+from apps.tests.fdt import FDTModule
 from apps.tests.mchat import MCHATModule
 from apps.tests.mchat.constants import FAILURE_RULES, ITEMS
 from apps.tests.norms.bai import get_norms_metadata, lookup_t_score
+from apps.tests.scared import SCAREDModule
+from apps.tests.srs2 import SRS2Module
+from apps.tests.srs2.norms import get_norm_data
 
 
 class BAINormsTests(SimpleTestCase):
@@ -187,3 +193,282 @@ class MCHATModuleTests(SimpleTestCase):
         interpretation = module.interpret(context, {**computed, **classified})
         self.assertIn("Triagem positiva", interpretation)
         self.assertIn("itens críticos", interpretation)
+
+
+class FDTModuleTests(SimpleTestCase):
+    def test_interpretation_for_preserved_profile_mentions_absence_of_errors(self):
+        module = FDTModule()
+        context = TestContext(
+            patient_name="Larissa Souza",
+            evaluation_id=1,
+            instrument_code="fdt",
+        )
+        merged_data = {
+            "metric_results": [
+                {"codigo": "leitura", "classificacao": "Media", "categoria": "Processos Automaticos"},
+                {"codigo": "contagem", "classificacao": "Superior", "categoria": "Processos Automaticos"},
+                {"codigo": "escolha", "classificacao": "Media", "categoria": "Processos Controlados"},
+                {"codigo": "alternancia", "classificacao": "Media Superior", "categoria": "Processos Controlados"},
+                {"codigo": "inibicao", "classificacao": "Media", "categoria": "Processos Controlados"},
+                {"codigo": "flexibilidade", "classificacao": "Superior", "categoria": "Processos Controlados"},
+            ],
+            "erros": {
+                "leitura": {"qtde_erros": 0},
+                "contagem": {"qtde_erros": 0},
+                "escolha": {"qtde_erros": 0},
+                "alternancia": {"qtde_erros": 0},
+            },
+        }
+
+        interpretation = module.interpret(context, merged_data)
+
+        self.assertIn("Larissa", interpretation)
+        self.assertIn("A ausência de erros em todas as etapas", interpretation)
+        self.assertIn("Em análise clínica", interpretation)
+
+    def test_interpretation_for_altered_profile_mentions_controlled_errors(self):
+        module = FDTModule()
+        context = TestContext(
+            patient_name="Bruno Lima",
+            evaluation_id=1,
+            instrument_code="fdt",
+        )
+        merged_data = {
+            "metric_results": [
+                {"codigo": "leitura", "classificacao": "Media", "categoria": "Processos Automaticos"},
+                {"codigo": "contagem", "classificacao": "Media Inferior", "categoria": "Processos Automaticos"},
+                {"codigo": "escolha", "classificacao": "Inferior", "categoria": "Processos Controlados"},
+                {"codigo": "alternancia", "classificacao": "Muito Inferior", "categoria": "Processos Controlados"},
+                {"codigo": "inibicao", "classificacao": "Inferior", "categoria": "Processos Controlados"},
+                {"codigo": "flexibilidade", "classificacao": "Media", "categoria": "Processos Controlados"},
+            ],
+            "erros": {
+                "leitura": {"qtde_erros": 0},
+                "contagem": {"qtde_erros": 1},
+                "escolha": {"qtde_erros": 3},
+                "alternancia": {"qtde_erros": 4},
+            },
+        }
+
+        interpretation = module.interpret(context, merged_data)
+
+        self.assertIn("A frequência elevada de erros", interpretation)
+        self.assertIn("controle inibitório", interpretation)
+        self.assertIn("Em análise clínica", interpretation)
+
+
+class ETDAHPAISModuleTests(SimpleTestCase):
+    def test_non_clinical_classifications_are_not_treated_as_deficit(self):
+        module = ETDAHPAISModule()
+        context = TestContext(
+            patient_name="Debora Silva",
+            evaluation_id=1,
+            instrument_code="etdah_pais",
+            raw_scores={
+                "age": 10,
+                "sex": "F",
+                "responses": {},
+            },
+        )
+        merged_data = {
+            "raw_scores": {
+                "fator_1": 40,
+                "fator_2": 35,
+                "fator_3": 45,
+                "fator_4": 24,
+                "escore_geral": 150,
+            },
+            "age": 10,
+            "sex": "F",
+        }
+
+        interpretation = module.interpret(context, merged_data)
+
+        self.assertIn("não indica prejuízo clínico", interpretation)
+        self.assertEqual(interpretation.count("Em análise clínica"), 1)
+
+    def test_focal_elevation_is_described_without_automatic_diagnostic_hypothesis(self):
+        module = ETDAHPAISModule()
+        context = TestContext(
+            patient_name="Debora Silva",
+            evaluation_id=1,
+            instrument_code="etdah_pais",
+            raw_scores={
+                "age": 10,
+                "sex": "F",
+                "responses": {},
+            },
+        )
+        merged_data = {
+            "raw_scores": {
+                "fator_1": 40,
+                "fator_2": 70,
+                "fator_3": 45,
+                "fator_4": 45,
+                "escore_geral": 150,
+            },
+            "age": 10,
+            "sex": "F",
+        }
+
+        interpretation = module.interpret(context, merged_data)
+
+        self.assertIn("Hiperatividade / Impulsividade", interpretation)
+        self.assertIn("Atenção", interpretation)
+        self.assertIn("Embora o escore global não indique comprometimento clínico amplo", interpretation)
+        self.assertNotIn("Há hipótese diagnóstica de Transtorno do Déficit de Atenção e Hiperatividade", interpretation)
+
+
+class ETDAHADModuleTests(SimpleTestCase):
+    def test_non_clinical_classifications_are_not_treated_as_deficit(self):
+        module = ETDAHADModule()
+        context = TestContext(
+            patient_name="Marina Costa",
+            evaluation_id=1,
+            instrument_code="etdah_ad",
+            raw_scores={
+                "schooling": "higher",
+                "responses": {},
+            },
+        )
+        merged_data = {
+            "raw_scores": {
+                "D": 30,
+                "I": 30,
+                "AE": 4,
+                "AAMA": 18,
+                "H": 10,
+            },
+            "schooling": "higher",
+        }
+
+        interpretation = module.interpret(context, merged_data)
+
+        self.assertIn("não configurando prejuízo clínico", interpretation)
+        self.assertEqual(interpretation.count("Em análise clínica"), 1)
+
+    def test_elevated_domains_are_summarized_without_automatic_diagnostic_hypothesis(self):
+        module = ETDAHADModule()
+        context = TestContext(
+            patient_name="Marina Costa",
+            evaluation_id=1,
+            instrument_code="etdah_ad",
+            raw_scores={
+                "schooling": "higher",
+                "responses": {},
+            },
+        )
+        merged_data = {
+            "raw_scores": {
+                "D": 60,
+                "I": 55,
+                "AE": 10,
+                "AAMA": 25,
+                "H": 18,
+            },
+            "schooling": "higher",
+        }
+
+        interpretation = module.interpret(context, merged_data)
+
+        self.assertIn("Fator 1 - Desatenção", interpretation)
+        self.assertIn("Fator 4 - Autorregulação da Atenção, da Motivação e da Ação", interpretation)
+        self.assertIn("Análise Integrada", interpretation)
+        self.assertNotIn("Há hipótese diagnóstica de Transtorno do Déficit de Atenção e Hiperatividade", interpretation)
+
+
+class SRS2ModuleTests(SimpleTestCase):
+    def test_female_school_age_norms_are_available(self):
+        self.assertEqual(get_norm_data(17, "idade_escolar", "F", "percepcao_social"), (78.0, 99.0))
+        self.assertEqual(get_norm_data(54, "idade_escolar", "F", "cis"), (61.0, 87.0))
+        self.assertEqual(get_norm_data(80, "idade_escolar", "F", "total"), (65.0, 93.0))
+
+    def test_classify_uses_female_school_age_norms(self):
+        module = SRS2Module()
+        computed = {
+            "form": "idade_escolar",
+            "percepcao_social": {"nome": "Percepção Social", "escore": 17, "max": 21},
+            "cognicao_social": {"nome": "Cognição Social", "escore": 26, "max": 24},
+            "comunicacao_social": {"nome": "Comunicação Social", "escore": 49, "max": 33},
+            "motivacao_social": {"nome": "Motivação Social", "escore": 28, "max": 33},
+            "padroes_restritos": {"nome": "Padrões Restritos e Repetitivos", "escore": 31, "max": 24},
+            "cis": {"nome": "Comunicação e Interação Social", "escore": 54, "max": 111},
+            "total": {"nome": "Pontuação SRS-2 Total", "escore": 80, "max": 195},
+        }
+
+        classified = module.classify(computed, gender="F", age=10)
+
+        self.assertEqual(classified["faixa_etaria"], "6 a 18 anos")
+        self.assertEqual(classified["resultados"][0]["tscore"], 78.0)
+        self.assertEqual(classified["resultados"][0]["percentil"], 99.0)
+        self.assertEqual(classified["resultados"][0]["classificacao"], "Grave")
+
+
+class SCAREDModuleTests(SimpleTestCase):
+    def test_autorrelato_classification_uses_norms(self):
+        module = SCAREDModule()
+        context = TestContext(
+            patient_name="Paciente SCARED",
+            evaluation_id=1,
+            instrument_code="scared",
+            patient_age=10,
+            raw_scores={
+                "form": "child",
+                "gender": "F",
+                "age": 10,
+                "responses": {str(i): 2 for i in range(1, 42)},
+            },
+        )
+
+        self.assertEqual(module.validate(context), [])
+
+        computed = module.compute(context)
+        classified = module.classify(computed, idade=10)
+        interpretation = module.interpret(context, classified)
+
+        self.assertEqual(classified["form_type"], "child")
+        self.assertEqual(classified["sexo"], "feminino")
+        self.assertTrue(any(item.get("percentil") is not None for item in classified["analise_geral"]))
+        self.assertIn("SCARED - Autorrelato", interpretation)
+
+    def test_parent_classification_uses_cutoffs(self):
+        module = SCAREDModule()
+        context = TestContext(
+            patient_name="Paciente SCARED",
+            evaluation_id=1,
+            instrument_code="scared",
+            patient_age=10,
+            raw_scores={
+                "form": "parent",
+                "gender": "M",
+                "age": 10,
+                "responses": {str(i): 2 for i in range(1, 42)},
+            },
+        )
+
+        self.assertEqual(module.validate(context), [])
+
+        computed = module.compute(context)
+        classified = module.classify(computed, idade=10)
+        interpretation = module.interpret(context, classified)
+
+        self.assertEqual(classified["form_type"], "parent")
+        self.assertTrue(all(item.get("nota_corte") is not None for item in classified["analise_geral"]))
+        self.assertTrue(any(item.get("classificacao") == "Clínico" for item in classified["analise_geral"]))
+        self.assertIn("SCARED - Pais/Cuidadores", interpretation)
+
+    def test_validate_rejects_invalid_form(self):
+        module = SCAREDModule()
+        context = TestContext(
+            patient_name="Paciente SCARED",
+            evaluation_id=1,
+            instrument_code="scared",
+            patient_age=10,
+            raw_scores={
+                "form": "invalid",
+                "responses": {str(i): 0 for i in range(1, 42)},
+            },
+        )
+
+        errors = module.validate(context)
+        self.assertIn("Formulário SCARED inválido.", errors)

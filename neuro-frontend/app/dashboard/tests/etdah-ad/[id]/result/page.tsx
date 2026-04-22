@@ -12,6 +12,25 @@ const FACTOR_NAMES: Record<string, string> = {
   H: "Fator 5 - Hiperatividade (H)",
 }
 
+const CLINICAL_BADGE_STYLES: Record<string, string> = {
+  Superior: 'bg-red-100 text-red-700 border-red-200',
+  'Média Superior': 'bg-amber-100 text-amber-700 border-amber-200',
+  Média: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'Média Inferior': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  Inferior: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+}
+
+function getClinicalBadgeStyle(classification: string) {
+  return CLINICAL_BADGE_STYLES[classification] || 'bg-slate-100 text-slate-700 border-slate-200'
+}
+
+function formatAppliedOn(value: string) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return value
+  return date.toLocaleDateString('pt-BR')
+}
+
 export default function ETDAHADResultPage() {
   const params = useParams()
   const [result, setResult] = useState<any>(null)
@@ -76,6 +95,11 @@ export default function ETDAHADResultPage() {
   }
 
   const factorOrder = ["D", "I", "AE", "AAMA", "H"]
+  const interpretationText = result.interpretation || ''
+  const interpretationParagraphs = interpretationText
+    .split(/\n\s*\n/)
+    .map((paragraph: string) => paragraph.trim())
+    .filter(Boolean)
 
   return (
     <div className="min-h-screen bg-slate-300 p-6 md:p-10">
@@ -97,7 +121,7 @@ export default function ETDAHADResultPage() {
             <div>
               <h1 className="text-3xl font-medium tracking-tight text-zinc-900">ETDAH-AD - Resultado</h1>
               <p className="mt-1 text-sm text-zinc-600">
-                {result.patient_name} • Aplicado em {result.applied_on}
+                {result.patient_name} • Aplicado em {formatAppliedOn(result.applied_on)}
               </p>
             </div>
             <div className="flex gap-3">
@@ -115,6 +139,24 @@ export default function ETDAHADResultPage() {
 
           <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5 mb-6">
             <h3 className="mb-4 text-lg font-semibold text-zinc-900">Escores por Fator</h3>
+            <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+              {factorOrder.map((factor) => {
+                const r = results[factor] || {}
+                const classification = r.classification || '—'
+                return (
+                  <div key={factor} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="text-sm font-semibold text-slate-900">{FACTOR_NAMES[factor]}</div>
+                    <div className="mt-3 text-3xl font-bold text-slate-900">{r.raw_score ?? rawScores[factor] ?? '—'}</div>
+                    <div className="mt-2 text-sm text-slate-500">Percentil: {r.percentile_text ?? '—'}</div>
+                    <div className="mt-3">
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${getClinicalBadgeStyle(classification)}`}>
+                        {classification}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -202,7 +244,15 @@ export default function ETDAHADResultPage() {
 
           {results && Object.keys(results).length > 0 && (
             <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
-              <h3 className="mb-4 text-lg font-semibold text-zinc-900">Interpretação</h3>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-zinc-900">Interpretação Clínica</h3>
+                  <p className="text-sm text-zinc-600">Síntese estruturada por fator, panorama global e análise integrada.</p>
+                </div>
+                <div className="rounded-2xl bg-slate-100 px-4 py-2 text-xs font-medium text-slate-600">
+                  {interpretationParagraphs.length} blocos clínicos
+                </div>
+              </div>
               
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
                 <p className="text-sm text-amber-800">
@@ -221,42 +271,11 @@ export default function ETDAHADResultPage() {
               </div>
 
               <div className="space-y-4">
-                {factorOrder.map((factor) => {
-                  const r = results[factor] || {}
-                  const classification = r.classification || ''
-                  const bgClass = classification.includes('Superior') ? 'bg-emerald-50 border-emerald-200' 
-                    : classification.includes('Média') || classification.includes('Médio') ? 'bg-blue-50 border-blue-200'
-                    : 'bg-red-50 border-red-200'
-                  
-                  return (
-                    <div key={factor} className={`rounded-xl p-4 border ${bgClass}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-zinc-900">{FACTOR_NAMES[factor]}</h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          classification.includes('Superior') ? 'bg-emerald-100 text-emerald-700'
-                          : classification.includes('Média') || classification.includes('Médio') ? 'bg-blue-100 text-blue-700'
-                          : 'bg-red-100 text-red-700'
-                        }`}>
-                          {classification}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-zinc-500">Escore Bruto:</span>
-                          <span className="ml-2 font-medium text-zinc-900">{r.raw_score ?? '—'}</span>
-                        </div>
-                        <div>
-                          <span className="text-zinc-500">Média:</span>
-                          <span className="ml-2 font-medium text-zinc-900">{r.mean ?? '—'}</span>
-                        </div>
-                        <div>
-                          <span className="text-zinc-500">Percentil:</span>
-                          <span className="ml-2 font-medium text-zinc-900">{r.percentile_text ?? '—'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                {interpretationParagraphs.map((paragraph: string, index: number) => (
+                  <div key={index} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-zinc-700 shadow-sm whitespace-pre-wrap">
+                    {paragraph}
+                  </div>
+                ))}
               </div>
             </div>
           )}

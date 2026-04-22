@@ -506,6 +506,7 @@ class SRS2SubmitIn(Schema):
 
 
 class SCAREDSubmitIn(Schema):
+    application_id: Optional[int] = None
     evaluation_id: int
     applied_on: Optional[date] = None
     form: str = "child"  # child or parent
