@@ -173,3 +173,17 @@ Aplicar migrations pendentes:
 3. Recriar o backend com `docker compose up -d --build backend`
 4. Rodar `./test_ia_suite.sh` quando quiser validar tudo rapido
 5. Testar a rota `/api/reports/1/regenerate-section/fdt` quando quiser validar o fluxo HTTP
+
+---
+
+## 12. Producao
+
+Em producao, o sistema nao deve depender do IP local do seu Windows.
+
+Use uma destas abordagens:
+
+1. Manter `AI_PROVIDER=openai` em producao.
+2. Instalar Ollama no proprio servidor de producao.
+3. Expor um endpoint Ollama acessivel com seguranca pelo servidor.
+
+Se a producao usar OpenRouter e o ambiente local usar Ollama, o projeto ja suporta essa separacao por variaveis de ambiente.

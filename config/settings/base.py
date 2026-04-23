@@ -210,7 +210,8 @@ OPENAI_MODEL_REASONING = os.getenv("OPENAI_MODEL_REASONING", "gpt-4o")
 OPENAI_FALLBACK_MODELS = env_list("OPENAI_FALLBACK_MODELS")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL_TEXT = os.getenv("ANTHROPIC_MODEL_TEXT", "claude-3-7-sonnet-latest")
-AI_PROVIDER = os.getenv("AI_PROVIDER", "ollama")
+DEFAULT_AI_PROVIDER = "ollama" if os.getenv("DJANGO_ENV", "local") == "local" else "openai"
+AI_PROVIDER = os.getenv("AI_PROVIDER", DEFAULT_AI_PROVIDER)
 OLLAMA_BASE_URL = os.getenv(
     "OLLAMA_BASE_URL",
     os.getenv("DOCKER_OLLAMA_BASE_URL", "http://localhost:11434"),

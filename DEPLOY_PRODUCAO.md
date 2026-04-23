@@ -61,6 +61,19 @@ No painel do Web Service → **Environment**, adicione:
 | `RESEND_API_KEY` | Chave Resend (opcional) | `re_xxx` |
 | `RESEND_FROM_EMAIL` | Email remetente | `NeuroAvalia <noreply@meudominio.com.br>` |
 
+### Exemplo para domínio único
+
+Se frontend e backend estiverem publicados no mesmo domínio, como em `https://sistema.lapidarpsicologia.com.br`, use:
+
+| Variável | Valor |
+|----------|-------|
+| `ALLOWED_HOSTS` | `sistema.lapidarpsicologia.com.br` |
+| `CSRF_TRUSTED_ORIGINS` | `https://sistema.lapidarpsicologia.com.br` |
+| `CORS_ALLOWED_ORIGINS` | `https://sistema.lapidarpsicologia.com.br` |
+| `FRONTEND_BASE_URL` | `https://sistema.lapidarpsicologia.com.br` |
+| `BACKEND_PUBLIC_URL` | `https://sistema.lapidarpsicologia.com.br` |
+| `OPENAI_REFERER` | `https://sistema.lapidarpsicologia.com.br` |
+
 > **Nota**: O backend já suporta automaticamente domínios Vercel via regex (`ALLOW_VERCEL_PREVIEWS=True`).
 > **Nota**: A chave do OpenRouter fica somente no Render. O Vercel aponta para o backend e nunca deve receber `OPENAI_API_KEY`.
 
@@ -101,6 +114,8 @@ No painel do Vercel → **Settings → Environment Variables**, adicione:
 | `NEXT_PUBLIC_APP_URL` | URL do Vercel | `https://neuro-app.vercel.app` |
 
 > **Importante**: Não adicione `/api` no final das URLs.
+
+Se o frontend estiver servido no mesmo domínio do backend por proxy reverso, mantenha `NEXT_PUBLIC_API_BASE_URL` apontando para a raiz pública do domínio, por exemplo `https://sistema.lapidarpsicologia.com.br`.
 
 #### 2.3 Deploy
 1. Clique em **Deploy**
