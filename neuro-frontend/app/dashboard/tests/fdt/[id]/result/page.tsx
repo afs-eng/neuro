@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
+import { FDTChart } from "@/components/charts/FDTChart";
+
 const CLASSIFICATION_STYLES: Record<string, string> = {
   "Muito Superior": "bg-emerald-600 text-white",
   Superior: "bg-emerald-100 text-emerald-700",
@@ -78,6 +80,7 @@ export default function FDTResultPage() {
   const metricResults = classified.metric_results || [];
   const derivedScores = classified.derived_scores || {};
   const stageTotals = classified.stage_totals || {};
+  const chartData = classified.charts || {};
   const errorResults = Object.entries(classified.erros || {}) as [string, any][];
   const interpretationParagraphs = String(result.interpretation_text || "")
     .split(/\n\s*\n/)
@@ -208,6 +211,19 @@ export default function FDTResultPage() {
               ))}
             </div>
           </div>
+
+          {(chartData.automaticos || chartData.controlados) && (
+            <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <div>
+                <h3 className="mb-3 text-lg font-semibold text-zinc-900">Processos automáticos</h3>
+                <FDTChart data={chartData.automaticos} />
+              </div>
+              <div>
+                <h3 className="mb-3 text-lg font-semibold text-zinc-900">Processos controlados</h3>
+                <FDTChart data={chartData.controlados} />
+              </div>
+            </div>
+          )}
 
           {errorResults.length > 0 && (
             <div className="mb-6 rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">

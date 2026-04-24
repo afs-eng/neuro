@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function WISC4ResultPage() {
+  const subtestOrder = ['CB', 'SM', 'DG', 'CN', 'CD', 'VC', 'SNL', 'RM', 'CO', 'PS']
   const params = useParams()
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -46,7 +47,16 @@ export default function WISC4ResultPage() {
   const computed = result.computed_payload || {}
   const classified = result.classified_payload || {}
   const indices = classified.indices || []
-  const subtestes = classified.subtestes || []
+  const subtestes = [...(classified.subtestes || [])].sort((a: any, b: any) => {
+    const aIndex = subtestOrder.indexOf(a.codigo)
+    const bIndex = subtestOrder.indexOf(b.codigo)
+
+    if (aIndex === -1 && bIndex === -1) return 0
+    if (aIndex === -1) return 1
+    if (bIndex === -1) return -1
+
+    return aIndex - bIndex
+  })
 
   const getClassificationColor = (classificacao: string) => {
     if (classificacao?.includes('Baixo') || classificacao?.includes('Muito')) {

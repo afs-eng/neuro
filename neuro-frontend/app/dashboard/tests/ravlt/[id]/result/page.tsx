@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { api } from '@/lib/api'
 import { PageContainer, PageHeader, SectionCard } from '@/components/ui/page'
 import { Button } from '@/components/ui/button'
+import { RAVLTChart } from '@/components/charts/RAVLTChart'
 import { ArrowLeft, Edit2, FileText, Activity, Brain, Target, Calendar, User, Clock } from 'lucide-react'
 
 export default function RAVLTResultPage() {
@@ -55,6 +56,7 @@ export default function RAVLTResultPage() {
   const rawPayload = result.raw_payload || {}
   const resultsData = result.results || {}
   const items = resultsData.resultados || []
+  const chartData = resultsData.chart || result.classified_payload?.chart || null
   
   const formatNumber = (num: any) => {
     if (num === null || num === undefined) return '-'
@@ -179,6 +181,12 @@ export default function RAVLTResultPage() {
               </div>
             </div>
           </SectionCard>
+
+          {chartData && (
+            <SectionCard title="Curva de Aprendizagem" description="Séries esperada, mínima e obtida no formato gráfico do RAVLT.">
+              <RAVLTChart data={chartData} />
+            </SectionCard>
+          )}
           
           {/* Summary Text (If provided by backend) */}
           {result.interpretation && (

@@ -12,7 +12,13 @@ def find_strengths_weaknesses(
 ) -> tuple[list[str], list[str]]:
     if not subtest_results:
         return [], []
-    scores = [(r["subteste"], r["escore_padrao"]) for r in subtest_results]
+    scores = [
+        (r["subteste"], r["escore_padrao"])
+        for r in subtest_results
+        if r.get("escore_padrao") is not None
+    ]
+    if not scores:
+        return [], []
     media = sum(s for _, s in scores) / len(scores)
     strengths = [name for name, score in scores if score > media + 3]
     weaknesses = [name for name, score in scores if score < media - 3]
@@ -22,7 +28,11 @@ def find_strengths_weaknesses(
 def find_significant_differences(indices: list[dict], qi_total: int) -> list[str]:
     differences = []
     for i, idx1 in enumerate(indices):
+        if idx1["soma_ponderados"] is None:
+            continue
         for idx2 in indices[i + 1 :]:
+            if idx2["soma_ponderados"] is None:
+                continue
             diff = abs(idx1["soma_ponderados"] - idx2["soma_ponderados"])
             if diff >= SIGNIFICANT_DIFFERENCE_THRESHOLDS["index_vs_index"]:
                 differences.append(
@@ -30,7 +40,7 @@ def find_significant_differences(indices: list[dict], qi_total: int) -> list[str
                 )
     for idx in indices:
         escore_composto = idx.get("escore_composto")
-        if escore_composto is None:
+        if escore_composto is None or qi_total is None:
             continue
         diff = abs(escore_composto - qi_total)
         if diff >= SIGNIFICANT_DIFFERENCE_THRESHOLDS["index_vs_qi"]:

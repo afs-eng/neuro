@@ -106,13 +106,13 @@ class SectionContextService:
         }
 
         if section_key == "conclusao":
-            payload["generated_sections"] = cls._build_generated_sections_context(report)
+            payload["generated_sections"] = cls.build_generated_sections_context(report)
             payload["report_rules"]["use_first_name_only"] = False
 
         return payload
 
-    @staticmethod
-    def _build_generated_sections_context(report) -> list[dict]:
+    @classmethod
+    def build_generated_sections_context(cls, report) -> list[dict]:
         relevant_keys = {
             "capacidade_cognitiva_global",
             "linguagem",
@@ -137,6 +137,38 @@ class SectionContextService:
             for section in report.sections.all().order_by("order")
             if section.key in relevant_keys
         ]
+
+    @classmethod
+    def build_for_audit(cls, report, context: dict) -> dict:
+        patient = context.get("patient") or {}
+        evaluation = context.get("evaluation") or {}
+        tests = context.get("validated_tests") or []
+
+        return {
+            "patient": {
+                "first_name": (patient.get("full_name") or "").split(" ", 1)[0],
+                "full_name": patient.get("full_name") or "",
+                "sex": patient.get("sex"),
+                "schooling": patient.get("schooling") or "",
+            },
+            "evaluation": {
+                "referral_reason": evaluation.get("referral_reason") or "",
+                "evaluation_purpose": evaluation.get("evaluation_purpose") or "",
+                "clinical_hypothesis": evaluation.get("clinical_hypothesis") or "",
+            },
+            "anamnesis": (context.get("anamnesis") or {}).get("current_response") or {},
+            "generated_sections": cls.build_generated_sections_context(report),
+            "validated_tests": [
+                {
+                    "instrument_code": item.get("instrument_code"),
+                    "instrument_name": item.get("instrument_name") or item.get("instrument"),
+                    "clinical_interpretation": (item.get("clinical_interpretation") or "").strip(),
+                    "summary": item.get("summary") or "",
+                    "warnings": item.get("warnings") or [],
+                }
+                for item in tests
+            ],
+        }
 
     @classmethod
     def _build_test_payload(

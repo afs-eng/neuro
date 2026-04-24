@@ -1,11 +1,4 @@
-from django.utils import timezone
-
-from apps.reports.models import Report, ReportSection, ReportVersion
-from apps.reports.builders.snapshot_builder import build_report_snapshot
-from apps.reports.services.ptbr_text_service import PtBrTextService
-from apps.reports.services.report_ai_service import ReportAIService
-from apps.reports.services.report_generation_service import ReportGenerationService
-from apps.reports.services.report_version_service import ReportVersionService
+from apps.reports.models import Report, ReportSection
 
 
 class ReportSectionService:
@@ -25,59 +18,13 @@ class ReportSectionService:
         Regenera o texto de uma única seção baseando-se no snapshot de contexto original do laudo.
         Cria uma nova entrada de histórico no ReportVersion se houver mudanças significativas.
         """
-        section = report.sections.filter(key=section_key).first()
-        if not section or section.is_locked:
-            return None
-
-        context = build_report_snapshot(report.evaluation)
-        report.context_payload = context
-
-        if ReportAIService.supports_section(section_key):
-            generation_result = ReportAIService.generate_section(report, section_key, context)
-            new_text = PtBrTextService.normalize(generation_result.get("content") or "")
-            if not new_text.strip():
-                raise ValueError("A IA retornou uma resposta vazia para esta seção.")
-            generation_metadata = generation_result.get("metadata") or {}
-            warnings = generation_result.get("warnings") or []
-        else:
-            new_text, generation_metadata, warnings = (
-                ReportGenerationService._generate_section_payload(
-                    report, section_key, context
-                )
-            )
-
-        generation_metadata = {
-            **generation_metadata,
-            "used_fallback": bool(generation_metadata.get("used_fallback")),
-            "generated_at": timezone.now().isoformat(),
-        }
-
-        previous_generated = section.content_generated
-        previous_edited = section.content_edited
-
-        section.content_generated = new_text
-        section.generation_metadata = generation_metadata
-        section.warnings_payload = warnings
-        if previous_edited == previous_generated:
-            section.content_edited = new_text
-
-        section.save(
-            update_fields=[
-                "content_generated",
-                "content_edited",
-                "generation_metadata",
-                "warnings_payload",
-                "updated_at",
-            ]
+        from apps.reports.services.section_regeneration_service import (
+            SectionRegenerationService,
         )
-        report.ai_metadata = {
-            **(report.ai_metadata or {}),
-            "last_generation": generation_metadata,
-        }
-        report.save(update_fields=["context_payload", "ai_metadata", "updated_at"])
-        ReportSectionService._rebuild_report_text(report)
-        ReportVersionService.create_version(report, user=user)
-        return section
+
+        return SectionRegenerationService.regenerate_section(
+            report, section_key, user=user
+        )
 
     @staticmethod
     def update_manual_content(section: ReportSection, new_content: str):

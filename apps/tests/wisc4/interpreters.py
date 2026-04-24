@@ -126,11 +126,18 @@ def _index_map(merged_data: dict) -> dict:
     return {item.get("indice"): item for item in merged_data.get("indices", [])}
 
 
+def _available_core_indices(indices: dict) -> dict:
+    return {
+        key: item
+        for key, item in indices.items()
+        if key in {"icv", "iop", "imt", "ivp"} and item.get("escore_composto") is not None
+    }
+
+
 def _max_difference(indices: dict) -> int:
     scores = [
         item.get("escore_composto")
-        for key, item in indices.items()
-        if key in {"icv", "iop", "imt", "ivp"} and item.get("escore_composto")
+        for key, item in _available_core_indices(indices).items()
     ]
     if len(scores) < 2:
         return 0
@@ -181,6 +188,8 @@ def _profile_analysis(indices: dict) -> str:
 
 
 def _index_paragraph(index_code: str, index_data: dict) -> str:
+    if index_data.get("escore_composto") is None or not index_data.get("classificacao"):
+        return ""
     classificacao = index_data.get("classificacao", "Média")
     score = index_data.get("escore_composto", 0)
     template = INDEX_TEMPLATES[index_code][classificacao]
@@ -226,6 +235,9 @@ def _integrated_closing(merged_data: dict) -> str:
     qit = (merged_data.get("qit_data") or {}).get("classificacao", "Média")
     difference = _max_difference(_index_map(merged_data))
 
+    if not qit:
+        return "A integração clínica do WISC-IV permanece limitada porque há subtestes sem pontuação informada, o que impede o cálculo completo dos índices compostos e do QI Total."
+
     if qit in {"Muito Superior", "Superior", "Média Superior"} and difference < 15:
         return "Em análise clínica, os resultados do WISC-IV sugerem funcionamento cognitivo global preservado ou acima da média, com recursos intelectuais consistentes e boa capacidade para responder às demandas de raciocínio verbal, não verbal e eficiência cognitiva, sem discrepâncias internas relevantes."
     if qit in {"Muito Superior", "Superior", "Média Superior"}:
@@ -261,17 +273,23 @@ def interpret_wisc4_profile(merged_data: dict, patient_name: str) -> str:
     name = _first_name(patient_name)
     indices = _index_map(merged_data)
     qit_data = merged_data.get("qit_data") or {}
-    qit_classificacao = qit_data.get("classificacao", "Média")
+    qit_classificacao = qit_data.get("classificacao")
     qit_score = qit_data.get("escore_composto", merged_data.get("qi_total", 0))
 
     parts = [TITLE]
-    parts.append(
-        f"{INDEX_DEFINITIONS['qit']} {QIT_TEMPLATES[qit_classificacao].format(score=qit_score)} {_profile_analysis(indices)}"
-    )
-    parts.append(_index_paragraph("icv", indices.get("icv") or {}))
-    parts.append(_index_paragraph("iop", indices.get("iop") or {}))
-    parts.append(_index_paragraph("imt", indices.get("imt") or {}))
-    parts.append(_index_paragraph("ivp", indices.get("ivp") or {}))
+    if qit_classificacao and qit_score is not None:
+        parts.append(
+            f"{INDEX_DEFINITIONS['qit']} {QIT_TEMPLATES[qit_classificacao].format(score=qit_score)} {_profile_analysis(indices)}"
+        )
+    else:
+        parts.append(
+            f"{name} apresentou protocolo parcial no WISC-IV. Como há subtestes sem pontuação informada, o QI Total e parte das composições derivadas não puderam ser estimados com segurança."
+        )
+
+    for index_code in ("icv", "iop", "imt", "ivp"):
+        paragraph = _index_paragraph(index_code, indices.get(index_code) or {})
+        if paragraph:
+            parts.append(paragraph)
 
     gai_cpi = _gai_cpi_paragraph(merged_data)
     if gai_cpi:

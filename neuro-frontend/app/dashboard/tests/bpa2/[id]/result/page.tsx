@@ -69,7 +69,7 @@ export default function BPA2ResultPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Link href={`/dashboard/tests/bpa2?evaluation_id=${result.evaluation_id}&application_id=${params.id}`} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50">
+              <Link href={`/dashboard/tests/bpa2?evaluation_id=${result.evaluation_id}&application_id=${params.id}&edit=true`} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50">
                 Editar
               </Link>
               <button className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm">

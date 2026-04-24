@@ -23,6 +23,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "5. Capacidade Cognitiva Global",
         "order": 5,
         "supports_ai": True,
+        "stage": "domain",
+        "depends_on": [],
         "prompt_name": "reports/capacidade_cognitiva_global_prompt.txt",
         "codes": {"wisc4", "wasi", "wais3"},
         "kind": "section",
@@ -37,6 +39,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "6. Funções Executivas",
         "order": 6,
         "supports_ai": True,
+        "stage": "domain",
+        "depends_on": ["fdt"],
         "prompt_name": "reports/funcoes_executivas_prompt.txt",
         "codes": {"fdt", "wisc4", "wasi", "wais3"},
         "kind": "section",
@@ -51,6 +55,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "7. Linguagem",
         "order": 7,
         "supports_ai": True,
+        "stage": "domain",
+        "depends_on": [],
         "prompt_name": "reports/linguagem_prompt.txt",
         "codes": {"wisc4", "wasi", "wais3"},
         "kind": "section",
@@ -65,6 +71,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "8. Gnosias e Praxias",
         "order": 8,
         "supports_ai": True,
+        "stage": "domain",
+        "depends_on": [],
         "prompt_name": "reports/gnosias_praxias_prompt.txt",
         "codes": {"wisc4", "wasi", "wais3"},
         "kind": "section",
@@ -79,6 +87,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "9. Memória e Aprendizagem",
         "order": 9,
         "supports_ai": True,
+        "stage": "domain",
+        "depends_on": ["ravlt"],
         "prompt_name": "reports/memoria_aprendizagem_prompt.txt",
         "codes": {"ravlt", "wisc4"},
         "kind": "section",
@@ -93,6 +103,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "10. BPA-2",
         "order": 10,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/bpa2_prompt.txt",
         "codes": {"bpa2"},
         "kind": "test",
@@ -107,6 +119,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "11. RAVLT",
         "order": 11,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/ravlt_prompt.txt",
         "codes": {"ravlt"},
         "kind": "test",
@@ -121,6 +135,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "12. FDT",
         "order": 12,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/fdt_prompt.txt",
         "codes": {"fdt"},
         "kind": "test",
@@ -135,6 +151,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "13. E-TDAH-PAIS",
         "order": 13,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/etdah_pais_prompt.txt",
         "codes": {"etdah_pais"},
         "kind": "test",
@@ -149,6 +167,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "14. E-TDAH-AD",
         "order": 14,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/etdah_ad_prompt.txt",
         "codes": {"etdah_ad"},
         "kind": "test",
@@ -163,6 +183,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "15. SCARED",
         "order": 15,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/scared_prompt.txt",
         "codes": {"scared"},
         "kind": "test",
@@ -177,6 +199,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "16. EPQ-J",
         "order": 16,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/epq_j_prompt.txt",
         "codes": {"epq_j"},
         "kind": "test",
@@ -191,6 +215,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "17. SRS-2",
         "order": 17,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/srs2_prompt.txt",
         "codes": {"srs2"},
         "kind": "test",
@@ -205,6 +231,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "18. EBADEP",
         "order": 18,
         "supports_ai": True,
+        "stage": "test",
+        "depends_on": [],
         "prompt_name": "reports/ebadep_prompt.txt",
         "codes": {"ebadep_a", "ebadep_ij", "ebaped_ij"},
         "kind": "test",
@@ -224,6 +252,8 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "19. Aspectos Emocionais, Comportamentais e Escalas Complementares",
         "order": 19,
         "supports_ai": True,
+        "stage": "domain",
+        "depends_on": ["scared", "srs2", "epq_j", "ebadep"],
         "prompt_name": "reports/aspectos_emocionais_comportamentais_prompt.txt",
         "codes": {
             "scared",
@@ -260,6 +290,15 @@ SECTION_REGISTRY: dict[str, dict] = {
         "title": "20. Conclusão",
         "order": 20,
         "supports_ai": True,
+        "stage": "conclusion",
+        "depends_on": [
+            "capacidade_cognitiva_global",
+            "funcoes_executivas",
+            "linguagem",
+            "gnosias_praxias",
+            "memoria_aprendizagem",
+            "aspectos_emocionais_comportamentais",
+        ],
         "prompt_name": "reports/conclusao_prompt.txt",
         "kind": "section",
         "timeout": 2400,
@@ -296,6 +335,16 @@ def get_ai_section_config(section_key: str) -> dict:
 
 def get_section_validation(section_key: str) -> dict:
     return get_section_config(section_key).get("validation") or {}
+
+
+def get_section_dependencies(section_key: str) -> list[str]:
+    return list(get_section_config(section_key).get("depends_on") or [])
+
+
+def get_sections_by_stage(stage: str) -> list[tuple[str, dict]]:
+    return [
+        item for item in list_section_configs() if item[1].get("stage") == stage
+    ]
 
 
 def list_section_configs() -> list[tuple[str, dict]]:

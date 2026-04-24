@@ -19,6 +19,39 @@ from .norms import (
 from datetime import date
 
 
+RAVLT_CHART_LABELS = [
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5",
+    "B1",
+    "A6",
+    "A7",
+    "R",
+    "ALT",
+    "RET",
+    "I.P.",
+    "I.R.",
+]
+
+RAVLT_CHART_NORM_KEYS = {
+    "A1": "A1",
+    "A2": "A2",
+    "A3": "A3",
+    "A4": "A4",
+    "A5": "A5",
+    "B1": "B1",
+    "A6": "A6",
+    "A7": "A7",
+    "R": "Reconhecimento Lista A",
+    "ALT": "Aprend. longo das Tentativas",
+    "RET": "Velocidade de Esquecimento",
+    "I.P.": "Interferência Proativa",
+    "I.R.": "Interferência Retroativa",
+}
+
+
 def _first_name(name: str) -> str:
     return (name or "Paciente").split(" ", 1)[0]
 
@@ -33,6 +66,46 @@ def _format_score(value) -> str:
 
 def _result_map(merged_data: dict) -> dict:
     return {item.get("variavel"): item for item in merged_data.get("resultados", [])}
+
+
+def _ravlt_obtained_chart_values(computed_data: dict) -> list[float]:
+    return [
+        float(computed_data.get("a1", {}).get("escore") or 0),
+        float(computed_data.get("a2", {}).get("escore") or 0),
+        float(computed_data.get("a3", {}).get("escore") or 0),
+        float(computed_data.get("a4", {}).get("escore") or 0),
+        float(computed_data.get("a5", {}).get("escore") or 0),
+        float(computed_data.get("b", {}).get("escore") or 0),
+        float(computed_data.get("a6", {}).get("escore") or 0),
+        float(computed_data.get("a7", {}).get("escore") or 0),
+        float(computed_data.get("reconhecimento", {}).get("escore") or 0),
+        float(computed_data.get("aprend_longo", {}).get("escore") or 0),
+        float(computed_data.get("velocidade_esquecimento", {}).get("escore") or 0),
+        float(computed_data.get("interferencia_proativa", {}).get("escore") or 0),
+        float(computed_data.get("interferencia_retroativa", {}).get("escore") or 0),
+    ]
+
+
+def _build_ravlt_chart_payload(computed_data: dict, band: str) -> dict:
+    norms = NORMS.get(band, NORMS["21-30"])
+    esperado = []
+    minimo = []
+
+    for label in RAVLT_CHART_LABELS:
+        norm = norms.get(RAVLT_CHART_NORM_KEYS[label])
+        esperado.append(float(norm.p50) if norm else 0.0)
+        minimo.append(float(norm.p25) if norm else 0.0)
+
+    return {
+        "title": "RAVLT - Quantidade de palavras evocadas",
+        "labels": RAVLT_CHART_LABELS,
+        "series": [
+            {"key": "esperado", "label": "Esperado", "color": "#ED7D31", "values": esperado},
+            {"key": "minimo", "label": "Mínimo", "color": "#FFC000", "values": minimo},
+            {"key": "obtido", "label": "Obtido", "color": "#70AD47", "values": _ravlt_obtained_chart_values(computed_data)},
+        ],
+        "y_axis": {"min": 0, "max": 21, "ticks": [0, 5, 10, 15, 20]},
+    }
 
 
 def _expected_phrase(classification: str) -> str:
@@ -279,6 +352,7 @@ class RAVLTModule(BaseTestModule):
             "faixa_etaria": band,
             "idade": idade,
             "resultados": results,
+            "chart": _build_ravlt_chart_payload(computed_data, band),
         }
 
     def interpret(self, context: TestContext, merged_data: dict) -> str:

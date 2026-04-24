@@ -10,6 +10,7 @@ from apps.tests.etdah_pais import ETDAHPAISModule
 from apps.tests.fdt import FDTModule
 from apps.tests.mchat import MCHATModule
 from apps.tests.mchat.constants import FAILURE_RULES, ITEMS
+from apps.tests.ravlt import RAVLTModule
 from apps.tests.norms.bai import get_norms_metadata, lookup_t_score
 from apps.tests.scared import SCAREDModule
 from apps.tests.srs2 import SRS2Module
@@ -196,6 +197,34 @@ class MCHATModuleTests(SimpleTestCase):
 
 
 class FDTModuleTests(SimpleTestCase):
+    def test_compute_exposes_dynamic_chart_payload(self):
+        module = FDTModule()
+        context = TestContext(
+            patient_name="Larissa Souza",
+            evaluation_id=1,
+            instrument_code="fdt",
+            raw_scores={
+                "leitura": {"tempo": 18, "erros": 0},
+                "contagem": {"tempo": 22, "erros": 1},
+                "escolha": {"tempo": 26, "erros": 2},
+                "alternancia": {"tempo": 35, "erros": 3},
+            },
+            reviewed_scores={"age": 9},
+        )
+
+        computed = module.compute(context)
+
+        automaticos = computed["charts"]["automaticos"]
+        controlados = computed["charts"]["controlados"]
+
+        self.assertEqual(automaticos["categories"][0], "Sem Indicativo de Déficit")
+        self.assertEqual(automaticos["series"][0]["label"], "CONTAGEM")
+        self.assertEqual(automaticos["series"][0]["values"][4], 1)
+        self.assertEqual(automaticos["series"][1]["values"][5], 18.0)
+        self.assertEqual(controlados["series"][0]["label"], "FLEXIBILIDADE")
+        self.assertEqual(controlados["series"][0]["values"][4], 0)
+        self.assertEqual(controlados["series"][2]["values"][4], 3)
+
     def test_interpretation_for_preserved_profile_mentions_absence_of_errors(self):
         module = FDTModule()
         context = TestContext(
@@ -255,6 +284,39 @@ class FDTModuleTests(SimpleTestCase):
         self.assertIn("A frequência elevada de erros", interpretation)
         self.assertIn("controle inibitório", interpretation)
         self.assertIn("Em análise clínica", interpretation)
+
+
+class RAVLTModuleTests(SimpleTestCase):
+    def test_classify_exposes_dynamic_chart_payload(self):
+        module = RAVLTModule()
+        context = TestContext(
+            patient_name="Ana Souza",
+            evaluation_id=1,
+            instrument_code="ravlt",
+            raw_scores={
+                "a1": 7,
+                "a2": 8,
+                "a3": 12,
+                "a4": 13,
+                "a5": 13,
+                "b": 5,
+                "a6": 12,
+                "a7": 11,
+                "reconhecimento": 14,
+            },
+        )
+
+        computed = module.compute(context)
+        classified = module.classify(computed, idade=21)
+
+        chart = classified["chart"]
+        self.assertEqual(chart["labels"][0], "A1")
+        self.assertEqual(chart["labels"][-1], "I.R.")
+        self.assertEqual(chart["series"][0]["label"], "Esperado")
+        self.assertEqual(chart["series"][1]["label"], "Mínimo")
+        self.assertEqual(chart["series"][2]["label"], "Obtido")
+        self.assertEqual(chart["series"][2]["values"][:4], [7.0, 8.0, 12.0, 13.0])
+        self.assertEqual(chart["series"][2]["values"][8], -21.0)
 
 
 class ETDAHPAISModuleTests(SimpleTestCase):

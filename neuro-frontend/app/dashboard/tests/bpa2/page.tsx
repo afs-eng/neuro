@@ -27,6 +27,7 @@ function BPA2TestPageContent() {
 
   const evaluationId = searchParams.get("evaluation_id");
   const applicationId = searchParams.get("application_id");
+  const isEditMode = searchParams.get("edit") === "true";
 
   useEffect(() => {
     async function fetchEvaluation() {
@@ -38,7 +39,7 @@ function BPA2TestPageContent() {
             router.replace(`/dashboard/tests/bpa2?application_id=${applicationId}&evaluation_id=${newEvalId}&edit=true`)
             return
           }
-          if (result && result.is_validated) {
+          if (result && result.is_validated && !isEditMode) {
             const resultEvaluationId = result.evaluation_id ? `?evaluation_id=${result.evaluation_id}` : ""
             router.push(`/dashboard/tests/bpa2/${applicationId}/result${resultEvaluationId}`)
             return
@@ -77,7 +78,7 @@ function BPA2TestPageContent() {
       }
     }
     fetchEvaluation();
-  }, [evaluationId, applicationId, router]);
+  }, [evaluationId, applicationId, isEditMode, router]);
 
   const domains = [
     { name: "Atenção Concentrada (AC)", fields: ["ac_brutos", "ac_erros", "ac_omissoes"] },

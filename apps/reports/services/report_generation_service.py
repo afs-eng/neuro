@@ -71,79 +71,11 @@ class ReportGenerationService:
 
     @classmethod
     def generate_full_report(cls, report: Report, user=None):
-        report.status = ReportStatus.GENERATING
-        report.save(update_fields=["status", "updated_at"])
-
         context = cls.construct_clinical_context(report.evaluation)
-        report.context_payload = context
-        if not report.interested_party:
-            report.interested_party = context["patient"]["full_name"]
-        if not report.purpose:
-            report.purpose = (
-                context["evaluation"].get("evaluation_purpose")
-                or context["evaluation"].get("referral_reason")
-                or "Auxílio diagnóstico e planejamento clínico."
-            )
+        from apps.reports.services.report_pipeline_service import ReportPipelineService
 
-        sections_config = cls._enabled_sections_config(context)
-        full_markdown_text = []
-        ai_sections = []
-        fallback_sections = []
-
-        report.sections.exclude(key__in=[key for key, _ in sections_config]).delete()
-
-        for order, (key, title) in enumerate(sections_config):
-            generated_content, generation_metadata, warnings = (
-                cls._generate_section_payload(report, key, context)
-            )
-            if generation_metadata.get("provider") in {"ollama", "openai", "anthropic"}:
-                ai_sections.append(key)
-            else:
-                fallback_sections.append(key)
-            ReportSection.objects.update_or_create(
-                report=report,
-                key=key,
-                defaults={
-                    "title": title,
-                    "order": order,
-                    "content_generated": generated_content,
-                    "content_edited": generated_content,
-                    "generation_metadata": generation_metadata,
-                    "warnings_payload": warnings,
-                },
-            )
-            full_markdown_text.append(f"# {title}\n\n{generated_content}")
-
-        report.generated_text = "\n\n".join(full_markdown_text)
-        report.edited_text = report.generated_text
-        report.status = ReportStatus.IN_REVIEW
-        report.generated_at = timezone.now()
-        report.ai_metadata = {
-            "mode": "hybrid"
-            if ai_sections and fallback_sections
-            else ("ai" if ai_sections else "deterministic"),
-            "ai_sections": ai_sections,
-            "fallback_sections": fallback_sections,
-        }
-        report.ai_metadata["review"] = ReportReviewService.review(report)
-        report.save(
-            update_fields=[
-                "context_payload",
-                "interested_party",
-                "purpose",
-                "generated_text",
-                "edited_text",
-                "ai_metadata",
-                "status",
-                "generated_at",
-                "updated_at",
-            ]
-        )
-
-        ReportVersionService.create_version(report, user=user)
-
-        report.evaluation.status = EvaluationStatus.WRITING_REPORT
-        report.evaluation.save(update_fields=["status"])
+        ReportPipelineService.generate_full_report(report, context, user=user)
+        report.refresh_from_db()
         return report
 
     @classmethod

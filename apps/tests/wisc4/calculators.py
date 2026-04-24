@@ -22,22 +22,33 @@ WISC4_SUBTESTS = {
     "procura_simbolos": {"name": "Procura de Símbolos", "code": "PS", "max": 60},
 }
 
+WISC4_SUPPLEMENTAL_SUBTESTS = {
+    "cf": {"name": "Completar Figuras", "code": "CF", "max": 38},
+    "ca": {"name": "Cancelamento", "code": "CA", "max": 60},
+    "in": {"name": "Informação", "code": "IN", "max": 30},
+    "rp": {"name": "Raciocínio com Palavras", "code": "RP", "max": 32},
+}
+
 WISC4_INDICES = {
     "icv": {
         "name": "Índice de Compreensão Verbal",
         "subtests": ["semelhancas", "vocabulario", "compreensao"],
+        "supplemental": ["in", "rp"],
     },
     "iop": {
         "name": "Índice de Organização Perceptual",
         "subtests": ["cubos", "conceitos", "matricial"],
+        "supplemental": ["cf"],
     },
     "imt": {
         "name": "Índice de Memória de Trabalho",
         "subtests": ["digitos", "sequencias"],
+        "supplemental": [],
     },
     "ivp": {
         "name": "Índice de Velocidade de Processamento",
         "subtests": ["codigos", "procura_simbolos"],
+        "supplemental": ["ca"],
     },
 }
 

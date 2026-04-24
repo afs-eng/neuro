@@ -39,7 +39,7 @@ const indices = [
 function WISC4FormPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [scores, setScores] = useState<Record<string, number>>({})
+  const [scores, setScores] = useState<Record<string, number | null>>({})
   const [evaluation, setEvaluation] = useState<any>(null)
   const [loadingEvaluation, setLoadingEvaluation] = useState(true)
 
@@ -97,8 +97,15 @@ function WISC4FormPageContent() {
   }, [evaluationId, applicationId, isEditMode, router])
 
   const handleScoreChange = (code: string, value: string) => {
-    const numValue = parseInt(value) || 0
-    setScores(prev => ({ ...prev, [code]: numValue }))
+    if (value === '') {
+      setScores(prev => ({ ...prev, [code]: null }))
+      return
+    }
+
+    const numValue = parseInt(value, 10)
+    if (!Number.isNaN(numValue)) {
+      setScores(prev => ({ ...prev, [code]: numValue }))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,20 +118,20 @@ function WISC4FormPageContent() {
 
     const payload = {
       evaluation_id: parseInt(evaluationId),
-      cb: String(scores['CB'] || ''),
-      sm: String(scores['SM'] || ''),
-      dg: String(scores['DG'] || ''),
-      cn: String(scores['CN'] || ''),
-      cd: String(scores['CD'] || ''),
-      vc: String(scores['VC'] || ''),
-      snl: String(scores['SNL'] || ''),
-      rm: String(scores['RM'] || ''),
-      co: String(scores['CO'] || ''),
-      ps: String(scores['PS'] || ''),
-      cf: String(scores['CF'] || ''),
-      ca: String(scores['CA'] || ''),
-      in_: String(scores['IN'] || ''),
-      rp: String(scores['RP'] || ''),
+      cb: scores['CB'] == null ? '' : String(scores['CB']),
+      sm: scores['SM'] == null ? '' : String(scores['SM']),
+      dg: scores['DG'] == null ? '' : String(scores['DG']),
+      cn: scores['CN'] == null ? '' : String(scores['CN']),
+      cd: scores['CD'] == null ? '' : String(scores['CD']),
+      vc: scores['VC'] == null ? '' : String(scores['VC']),
+      snl: scores['SNL'] == null ? '' : String(scores['SNL']),
+      rm: scores['RM'] == null ? '' : String(scores['RM']),
+      co: scores['CO'] == null ? '' : String(scores['CO']),
+      ps: scores['PS'] == null ? '' : String(scores['PS']),
+      cf: scores['CF'] == null ? '' : String(scores['CF']),
+      ca: scores['CA'] == null ? '' : String(scores['CA']),
+      in_: scores['IN'] == null ? '' : String(scores['IN']),
+      rp: scores['RP'] == null ? '' : String(scores['RP']),
     }
 
     console.log('Payload WISC-IV:', payload)
@@ -210,7 +217,7 @@ function WISC4FormPageContent() {
                       type="number"
                       min="0"
                       max={subtest.maxScore}
-                      value={scores[subtest.code] || ''}
+                      value={scores[subtest.code] ?? ''}
                       onChange={(e) => handleScoreChange(subtest.code, e.target.value)}
                       placeholder={`0 - ${subtest.maxScore}`}
                       className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
@@ -228,8 +235,9 @@ function WISC4FormPageContent() {
               <h3 className="mb-4 text-lg font-semibold text-zinc-900">Índices</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {indices.map((idx) => {
-                  const subtestScores = idx.subtests.map(code => scores[code] || 0)
-                  const sum = subtestScores.reduce((a, b) => a + b, 0)
+                  const subtestScores = idx.subtests.map(code => scores[code])
+                  const hasMissingScores = subtestScores.some(score => score == null)
+                  const sum = hasMissingScores ? null : subtestScores.reduce((a, b) => a + (b ?? 0), 0)
                   return (
                     <div key={idx.code} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                       <div className="flex items-center justify-between">
@@ -237,10 +245,10 @@ function WISC4FormPageContent() {
                         <span className="text-sm text-zinc-500">({idx.code})</span>
                       </div>
                       <div className="mt-2 text-2xl font-semibold text-zinc-900">
-                        {sum > 0 ? sum : '—'}
+                        {sum != null ? sum : '—'}
                       </div>
                       <div className="mt-1 text-xs text-zinc-500">
-                        Soma dos escores: {subtestScores.join(' + ')}
+                        Soma dos escores: {subtestScores.map(score => score ?? '—').join(' + ')}
                       </div>
                     </div>
                   )

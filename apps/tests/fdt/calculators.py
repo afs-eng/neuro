@@ -3,6 +3,30 @@ import math
 from .config import FDT_NORMS, FDT_PROCESS_GROUPS, FDT_STAGE_LABELS
 
 
+FDT_CHART_CATEGORIES = [
+    "Sem Indicativo de Déficit",
+    "Indicativo de Dificuldade Discreta",
+    "Indicativo de Déficit",
+    "Desempenho %",
+    "Erros",
+    "Tempo Obtido",
+    "Tempo Médio",
+]
+
+FDT_CHART_SERIES = {
+    "automaticos": [
+        ("contagem", "CONTAGEM", "#4472C4"),
+        ("leitura", "LEITURA", "#70AD47"),
+    ],
+    "controlados": [
+        ("flexibilidade", "FLEXIBILIDADE", "#4F772D"),
+        ("inibicao", "INIBIÇÃO", "#FFC000"),
+        ("alternancia", "ALTERNÂNCIA", "#4472C4"),
+        ("escolha", "ESCOLHA", "#70AD47"),
+    ],
+}
+
+
 def select_norm_by_age(age: int) -> dict:
     for group in FDT_NORMS:
         if group["idade_min"] <= age <= group["idade_max"]:
@@ -138,6 +162,74 @@ def calculate_derived_scores(stage_totals: dict) -> dict:
     }
 
 
+def _classification_signal(classification: str) -> tuple[int, int, int]:
+    if classification == "Media Inferior":
+        return 0, 25, 0
+    if classification in {"Inferior", "Muito Inferior", "Deficitario"}:
+        return 0, 0, 5
+    return 50, 0, 0
+
+
+def _build_chart_series_item(
+    code: str,
+    label: str,
+    color: str,
+    metric_map: dict,
+    error_results: dict,
+    stage_totals: dict,
+) -> dict:
+    metric = metric_map[code]
+    signal_ok, signal_discrete, signal_deficit = _classification_signal(
+        metric["classificacao"]
+    )
+    stage_data = stage_totals.get(code) or {}
+    error_data = error_results.get(code) or {}
+
+    return {
+        "key": code,
+        "label": label,
+        "color": color,
+        "classification": metric["classificacao"],
+        "values": [
+            signal_ok,
+            signal_discrete,
+            signal_deficit,
+            round(float(metric.get("percentil_num") or 0), 1),
+            int(error_data.get("qtde_erros") or stage_data.get("erros") or 0),
+            round(float(metric.get("valor") or 0), 2),
+            round(float(metric.get("media") or 0), 2),
+        ],
+    }
+
+
+def build_fdt_charts(metrics: list[dict], error_results: dict, stage_totals: dict) -> dict:
+    metric_map = {metric["codigo"]: metric for metric in metrics}
+    charts = {}
+
+    for chart_key, title in (
+        ("automaticos", "FDT Processos Automáticos"),
+        ("controlados", "FDT Processos Controlados"),
+    ):
+        charts[chart_key] = {
+            "title": title,
+            "categories": FDT_CHART_CATEGORIES,
+            "series": [
+                _build_chart_series_item(
+                    code=code,
+                    label=label,
+                    color=color,
+                    metric_map=metric_map,
+                    error_results=error_results,
+                    stage_totals=stage_totals,
+                )
+                for code, label, color in FDT_CHART_SERIES[chart_key]
+                if code in metric_map
+            ],
+        }
+
+    return charts
+
+
 def calculate_fdt_results(stage_totals: dict, age: int) -> dict:
     norm_group = select_norm_by_age(age)
     time_norms = norm_group["tempos"]
@@ -174,6 +266,8 @@ def calculate_fdt_results(stage_totals: dict, age: int) -> dict:
         for code in ("leitura", "contagem", "escolha", "alternancia")
     }
 
+    charts = build_fdt_charts(metrics, error_results, stage_totals)
+
     return {
         "faixa": norm_group["faixa"],
         "titulo": norm_group.get("titulo", ""),
@@ -183,4 +277,5 @@ def calculate_fdt_results(stage_totals: dict, age: int) -> dict:
         "derived_scores": derived_scores,
         "metric_results": metrics,
         "erros": error_results,
+        "charts": charts,
     }

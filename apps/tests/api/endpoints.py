@@ -924,20 +924,20 @@ def wisc4_submit(request, payload: WISC4SubmitIn) -> tuple[int, dict]:
             "message": "WISC-IV é indicado para pacientes de até 16 anos e 11 meses."
         }
     raw_scores = {
-        "cubos": int(payload.cb) if payload.cb else 0,
-        "semelhancas": int(payload.sm) if payload.sm else 0,
-        "digitos": int(payload.dg) if payload.dg else 0,
-        "conceitos": int(payload.cn) if payload.cn else 0,
-        "codigos": int(payload.cd) if payload.cd else 0,
-        "vocabulario": int(payload.vc) if payload.vc else 0,
-        "sequencias": int(payload.snl) if payload.snl else 0,
-        "matricial": int(payload.rm) if payload.rm else 0,
-        "compreensao": int(payload.co) if payload.co else 0,
-        "procura_simbolos": int(payload.ps) if payload.ps else 0,
-        "cf": int(payload.cf) if payload.cf else 0,
-        "ca": int(payload.ca) if payload.ca else 0,
-        "in": int(payload.in_) if payload.in_ else 0,
-        "rp": int(payload.rp) if payload.rp else 0,
+        "cubos": int(payload.cb) if payload.cb else None,
+        "semelhancas": int(payload.sm) if payload.sm else None,
+        "digitos": int(payload.dg) if payload.dg else None,
+        "conceitos": int(payload.cn) if payload.cn else None,
+        "codigos": int(payload.cd) if payload.cd else None,
+        "vocabulario": int(payload.vc) if payload.vc else None,
+        "sequencias": int(payload.snl) if payload.snl else None,
+        "matricial": int(payload.rm) if payload.rm else None,
+        "compreensao": int(payload.co) if payload.co else None,
+        "procura_simbolos": int(payload.ps) if payload.ps else None,
+        "cf": int(payload.cf) if payload.cf else None,
+        "ca": int(payload.ca) if payload.ca else None,
+        "in": int(payload.in_) if payload.in_ else None,
+        "rp": int(payload.rp) if payload.rp else None,
     }
 
     faixa = get_faixa_wisc(age)

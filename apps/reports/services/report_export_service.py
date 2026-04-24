@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from io import BytesIO
+import math
 import logging
 import re
 from pathlib import Path
@@ -12,6 +13,7 @@ matplotlib.use("Agg")
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import font_manager
 from django.conf import settings
 from docx import Document
@@ -65,6 +67,7 @@ class ReportExportService:
     FDT_HEADER_FILL = "A8D08D"
     FDT_BODY_FILL = "E2EFD9"
     TABLE_TITLE_FILL = "538135"
+    LOCAL_TIMES_NEW_ROMAN = Path("/mnt/c/Windows/Fonts/times.ttf")
     LOCAL_LIBERATION_SERIF = Path.home() / ".local/share/fonts/liberation/LiberationSerif-Regular.ttf"
     INTERPRETATION_LABELS = (
         "Interpretação clínica:",
@@ -195,6 +198,14 @@ class ReportExportService:
             "descricao": "Técnica projetiva gráfica utilizada para investigação de aspectos emocionais, vivenciais e da dinâmica da personalidade, por meio da interpretação dos desenhos da casa, árvore e pessoa.",
         },
     }
+
+    @classmethod
+    def _chart_font(cls):
+        if cls.LOCAL_TIMES_NEW_ROMAN.exists():
+            return font_manager.FontProperties(fname=str(cls.LOCAL_TIMES_NEW_ROMAN))
+        if cls.LOCAL_LIBERATION_SERIF.exists():
+            return font_manager.FontProperties(fname=str(cls.LOCAL_LIBERATION_SERIF))
+        return font_manager.FontProperties(family=cls.FONT_NAME)
     PROCEDURES_ORDER = [
         "anamnese",
         "wisc4",
@@ -548,31 +559,20 @@ class ReportExportService:
             document,
             "7. RAVLT – REY AUDITORY VERBAL LEARNING TEST",
         )
-        cls._append_paragraph(
-            document,
-            "O RAVLT avalia memória verbal, capacidade de aprendizado auditivo e retenção de informações ao longo do tempo.",
-        )
         ravlt_interpretation = sections.get("ravlt") or sections.get("memoria_aprendizagem")
+        cls._append_ravlt_conceptual_paragraph(document)
+        append_chart("RAVLT Resultados", cls._ravlt_chart(cls._find_test(context, "ravlt")))
         append_table_with_interpretation(
             cls._ravlt_rows(cls._find_test(context, "ravlt"), context),
             "ravlt",
-            None,
+            ravlt_interpretation,
             cls._ravlt_table_caption(),
         )
-        cls._append_ravlt_conceptual_paragraph(document)
-        if ravlt_interpretation:
-            cls._append_interpretation_block(
-                document, cls._normalize_interpretation_text(ravlt_interpretation)
-            )
-        append_chart("RAVLT Resultados", cls._ravlt_chart(cls._find_test(context, "ravlt")))
 
         cls._append_heading(
             document, "8. FDT – TESTE DOS CINCO DÍGITOS"
         )
-        cls._append_paragraph(
-            document,
-            "O FDT avalia processos automáticos e controlados, incluindo velocidade de processamento, controle inibitório, alternância e flexibilidade cognitiva.",
-        )
+        cls._append_paragraph(document, cls._fdt_description_text())
         append_table_with_interpretation(
             cls._fdt_rows(cls._find_test(context, "fdt")),
             "fdt",
@@ -951,6 +951,9 @@ class ReportExportService:
             if not image_bytes:
                 return
             anchor = cls._insert_paragraph_after(anchor, "")
+            anchor.paragraph_format.first_line_indent = Pt(0)
+            anchor.paragraph_format.left_indent = Pt(0)
+            anchor.paragraph_format.space_before = Pt(0)
             run = anchor.runs[0] if anchor.runs else anchor.add_run()
             run.add_picture(BytesIO(image_bytes), width=width or cls.IMAGE_WIDTH)
             anchor.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1018,25 +1021,30 @@ class ReportExportService:
                 cls._bpa_chart_bytes(tests.get("bpa2")),
             )
 
-            add_title("7. RAVLT Rey Auditory Verbal Learning Test")
+            add_title("7. RAVLT – REY AUDITORY VERBAL LEARNING TEST")
             ravlt_interpretation = sections.get("ravlt", sections.get("memoria_aprendizagem", ""))
+            anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
+            add_chart("RAVLT Resultados", cls._ravlt_chart(tests.get("ravlt")))
             add_table(
                 cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
             )
-            anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
             if ravlt_interpretation:
                 anchor = cls._insert_interpretation_block_after(
                     anchor, cls._normalize_interpretation_text(ravlt_interpretation)
                 )
-            add_chart("RAVLT Resultados", cls._ravlt_chart(tests.get("ravlt")))
 
-            add_title("8. FDT - Teste dos Cinco Dígitos")
-            add_text(sections.get("fdt", sections.get("funcoes_executivas", "")))
+            add_title("8. FDT – TESTE DOS CINCO DÍGITOS")
+            add_text(cls._fdt_description_text())
             add_table(
                 "TABELA FDT- PROCESSOS AUTOMÁTICOS E CONTROLADOS",
                 cls._fdt_rows(tests.get("fdt")),
                 "fdt",
             )
+            fdt_interpretation = sections.get("fdt", sections.get("funcoes_executivas", ""))
+            if fdt_interpretation:
+                anchor = cls._insert_interpretation_block_after(
+                    anchor, cls._normalize_interpretation_text(fdt_interpretation)
+                )
             add_chart(
                 "FDT - Processos Automático",
                 cls._fdt_chart(tests.get("fdt"), automatic=True),
@@ -1134,19 +1142,24 @@ class ReportExportService:
             )
 
             add_title("5.2. Memória e Aprendizagem")
-            add_text(sections.get("memoria_aprendizagem", ""))
+            anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
+            add_chart("RAVLT Resultados", cls._ravlt_chart(tests.get("ravlt")))
             add_table(
                 cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
             )
-            add_chart("RAVLT Resultados", cls._ravlt_chart(tests.get("ravlt")))
 
             add_title("5.3. Funções Executivas")
-            add_text(sections.get("funcoes_executivas", ""))
+            add_text(cls._fdt_description_text())
             add_table(
                 "TABELA FDT- PROCESSOS AUTOMÁTICOS E CONTROLADOS",
                 cls._fdt_rows(tests.get("fdt")),
                 "fdt",
             )
+            fdt_interpretation = sections.get("funcoes_executivas", "")
+            if fdt_interpretation:
+                anchor = cls._insert_interpretation_block_after(
+                    anchor, cls._normalize_interpretation_text(fdt_interpretation)
+                )
             add_chart(
                 "FDT - Processos Automático",
                 cls._fdt_chart(tests.get("fdt"), automatic=True),
@@ -1823,7 +1836,13 @@ class ReportExportService:
     @classmethod
     def _ravlt_conceptual_text(cls) -> str:
         return (
-            "O Rey Auditory Verbal Learning Test (RAVLT) é um teste neuropsicológico amplamente utilizado para avaliar a memória verbal, a capacidade de aprendizado auditivo e a retenção de informações ao longo do tempo. Desenvolvido por Rey (1958). O RAVLT permite analisar diferentes aspectos da memória, como a curva de aprendizado, interferência, esquecimento e reconhecimento verbal (Lezak et al., 2004). Ele é frequentemente utilizado na investigação de déficits cognitivos associados a doenças neurodegenerativas, lesões cerebrais traumáticas e transtornos psiquiátricos (Strauss, Sherman & Spreen, 2006). Os resultados do teste auxiliam no diagnóstico diferencial de condições como Alzheimer e TDAH, além de fornecerem subsídios para o planejamento de intervenções cognitivas (Salthouse, 2010). Assim, o RAVLT é uma ferramenta essencial para a avaliação da memória e da aprendizagem verbal."
+            "O Rey Auditory Verbal Learning Test (RAVLT) é um instrumento neuropsicológico destinado à avaliação da memória episódica auditivo-verbal, permitindo investigar a aprendizagem verbal, a retenção, a evocação tardia, o reconhecimento e a resistência à interferência. Seu desempenho oferece indicadores relevantes sobre os processos de codificação, consolidação e recuperação de informações verbais."
+        )
+
+    @classmethod
+    def _fdt_description_text(cls) -> str:
+        return (
+            "O Teste dos Cinco Dígitos (FDT) permite avaliar tantos processos automáticos, de baixa demanda executiva, quanto processos controlados, que exigem regulação intencional, inibição de respostas e flexibilidade cognitiva. Esses sistemas estão relacionados ao funcionamento coordenado entre redes temporais e pré-frontais, fundamentais para a autorregulação e o controle executivo (Norman & Shallice, 1986; Miyake et al., 2000; Diamond, 2013)."
         )
 
     @classmethod
@@ -1832,6 +1851,9 @@ class ReportExportService:
             return
         img = document.add_paragraph()
         img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        img.paragraph_format.first_line_indent = Pt(0)
+        img.paragraph_format.left_indent = Pt(0)
+        img.paragraph_format.space_before = Pt(0)
         img.add_run().add_picture(BytesIO(image_bytes), width=width or cls.IMAGE_WIDTH)
         if caption:
             p = document.add_paragraph()
@@ -3128,53 +3150,52 @@ class ReportExportService:
             return None
 
         errors = errors or [0.0] * len(values)
-        regular_font = None
-        if cls.LOCAL_LIBERATION_SERIF.exists():
-            font_manager.fontManager.addfont(str(cls.LOCAL_LIBERATION_SERIF))
-            regular_font = font_manager.FontProperties(fname=str(cls.LOCAL_LIBERATION_SERIF))
+        regular_font = cls._chart_font()
         title_font = regular_font.copy() if regular_font else None
         if title_font:
-            title_font.set_size(15)
+            title_font.set_size(23)
         x_label_font = regular_font.copy() if regular_font else None
         if x_label_font:
-            x_label_font.set_size(11)
+            x_label_font.set_size(13)
         y_label_font = regular_font.copy() if regular_font else None
         if y_label_font:
-            y_label_font.set_size(11)
+            y_label_font.set_size(16)
         y_tick_font = regular_font.copy() if regular_font else None
         if y_tick_font:
-            y_tick_font.set_size(10)
+            y_tick_font.set_size(12)
         x = list(range(len(labels)))
 
-        fig, ax = plt.subplots(figsize=(10.2, 4.7), dpi=170)
-        fig.patch.set_facecolor("white")
+        fig, ax = plt.subplots(figsize=(10.2, 5.1), dpi=150)
+        fig.patch.set_facecolor("#FFFFFF")
+        fig.patch.set_edgecolor("#D9D9D9")
+        fig.patch.set_linewidth(1.0)
         ax.set_facecolor("white")
+        fig.subplots_adjust(left=0.09, right=0.965, bottom=0.15, top=0.87)
         bands = [
-            (130, 160, "#b8e86f"),
-            (115, 130, "#c6ef72"),
-            (85, 115, "#b8c4d1"),
-            (80, 85, "#fff36a"),
-            (40, 80, "#fff97e"),
+            (40, 84, "#FFF86B"),
+            (84, 116, "#9DB9DE"),
+            (116, 160, "#B8EB70"),
         ]
         for y0, y1, color in bands:
             ax.axhspan(y0, y1, facecolor=color, alpha=1.0, zorder=0)
 
         ax.set_ylim(40, 160)
-        ax.set_xlim(-0.5, len(labels) - 0.5)
+        ax.set_xlim(-0.45, len(labels) - 0.55)
         ax.yaxis.set_major_locator(plt.MultipleLocator(10))
         ax.yaxis.set_minor_locator(plt.MultipleLocator(5))
-        ax.grid(axis="y", which="major", color="#d7e67a", linewidth=0.8, zorder=1)
-        ax.grid(axis="x", color="#e8e8e8", linewidth=0.8, zorder=1)
+        ax.grid(axis="y", which="major", color="#D9D9D9", linewidth=0.9, zorder=1)
+        ax.grid(axis="y", which="minor", color="#EDEDED", linewidth=0.5, zorder=1)
+        ax.grid(axis="x", color="#E6E6E6", linewidth=0.8, zorder=1)
         ax.set_axisbelow(True)
 
         color_by_label = {
-            "ICV": "#4d78be",
-            "IOP": "#f57f2a",
-            "IMO": "#7f7f7f",
-            "IVP": "#ffc000",
-            "QI Total": "#76b043",
-            "GAI": "#4d78be",
-            "CPI": "#b45f06",
+            "ICV": "#4F81BD",
+            "IOP": "#C0504D",
+            "IMO": "#76933C",
+            "IVP": "#8064A2",
+            "QI Total": "#F79646",
+            "GAI": "#4A76AF",
+            "CPI": "#7F2A24",
         }
         colors = [color_by_label.get(label, "#5B9BD5") for label in labels]
 
@@ -3184,62 +3205,60 @@ class ReportExportService:
             width=0.72,
             color=colors,
             edgecolor="none",
-            zorder=3,
-        )
-
-        ax.errorbar(
-            x,
-            values,
             yerr=errors,
-            fmt="none",
             ecolor="black",
-            elinewidth=1.1,
             capsize=3,
-            capthick=1.1,
-            zorder=4,
+            zorder=3,
         )
 
         for xi, value in zip(x, values):
             ax.text(
                 xi,
-                43,
+                46,
                 cls._num(value),
                 ha="center",
-                va="bottom",
-                fontsize=10,
-                color="#1f3864",
+                va="center",
+                fontsize=12,
+                color="#FFFFFF",
                 fontproperties=regular_font,
                 zorder=4,
             )
 
-        ax.set_title(
-            "WISC-IV INDICES QIs",
-            color="#5a8d2a",
-            pad=10,
-            fontproperties=title_font or regular_font,
-            fontweight="normal",
-        )
+        title_kwargs = {
+            "color": "#70AD47",
+            "pad": 2,
+            "fontweight": "normal",
+        }
+        if title_font:
+            title_kwargs["fontproperties"] = title_font
+        else:
+            title_kwargs["fontsize"] = 23
+        ax.set_title("WISC-IV INDICES QIs", **title_kwargs)
         ax.set_ylabel(
             "Pontos Compostos",
-            color="#444444",
+            color="#000000",
             fontproperties=y_label_font or regular_font,
         )
-        ax.set_xticks(x)
-        ax.set_xticklabels(labels, fontsize=10, fontproperties=x_label_font or regular_font)
-        ax.tick_params(axis="y", labelsize=10, colors="#444444")
-        ax.tick_params(axis="x", pad=3, colors="#444444")
+        ax.set_xticks(x, labels)
+        for label in ax.get_xticklabels():
+            label.set_fontsize(13)
+            if x_label_font:
+                label.set_fontproperties(x_label_font)
+        ax.tick_params(axis="y", labelsize=12, colors="#444444")
+        ax.tick_params(axis="x", pad=1, colors="#444444")
         if y_tick_font:
             for label in ax.get_yticklabels():
                 label.set_fontproperties(y_tick_font)
 
-        ax.spines["left"].set_color("#444444")
-        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_color("black")
+        ax.spines["left"].set_linewidth(0.9)
+        ax.spines["bottom"].set_color("#666666")
+        ax.spines["bottom"].set_linewidth(0.6)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
         output = BytesIO()
-        plt.tight_layout()
-        fig.savefig(output, format="png", bbox_inches="tight", facecolor="white")
+        fig.savefig(output, format="png", facecolor="white")
         plt.close(fig)
         return output.getvalue()
 
@@ -3291,50 +3310,171 @@ class ReportExportService:
 
     @classmethod
     def _ravlt_chart(cls, test: dict | None):
-        payload = (
-            (test or {}).get("classified_payload")
-            or (test or {}).get("computed_payload")
-            or {}
-        )
-        labels = ["A1", "A2", "A3", "A4", "A5", "B1", "A6", "A7"]
-        values = [
-            float(payload.get("a1") or 0),
-            float(payload.get("a2") or 0),
-            float(payload.get("a3") or 0),
-            float(payload.get("a4") or 0),
-            float(payload.get("a5") or 0),
-            float(payload.get("b1") or payload.get("b") or 0),
-            float(payload.get("a6") or 0),
-            float(payload.get("a7") or 0),
-        ]
-        expected = [6, 8, 10, 11, 12, 5, 10, 10]
-        minimum = [5, 7, 8, 9, 10, 4, 8, 7]
-        return cls._build_chart_png(
-            "line",
-            "Curva de aprendizagem no RAVLT",
-            labels,
-            values,
-            "Pontos",
-            {"expected": expected, "minimum": minimum},
-        )
+        payload = (test or {}).get("classified_payload") or {}
+        chart = payload.get("chart") or {}
+
+        labels = chart.get("labels") or []
+        series = chart.get("series") or []
+        y_axis = chart.get("y_axis") or {}
+        if not labels or not series:
+            return None
+
+        regular_font = cls._chart_font()
+
+        fig, ax = plt.subplots(figsize=(10.8, 4.6), dpi=120)
+        background = "#ffffff"
+        fig.patch.set_facecolor(background)
+        ax.set_facecolor(background)
+
+        for item in series:
+            values = [float(value or 0) for value in item.get("values") or []]
+            if len(values) != len(labels):
+                continue
+            ax.plot(
+                labels,
+                values,
+                linewidth=3,
+                color=item.get("color") or "#70AD47",
+                solid_capstyle="round",
+                label=item.get("label") or "Serie",
+            )
+
+        title_kwargs = {"color": "#5B8A3C", "pad": 18}
+        title_font = regular_font.copy()
+        title_font.set_size(24)
+        title_kwargs["fontproperties"] = title_font
+        ax.set_title(chart.get("title") or "RAVLT", **title_kwargs)
+
+        ax.set_ylim(float(y_axis.get("min") or 0), float(y_axis.get("max") or 21))
+        ax.set_yticks(y_axis.get("ticks") or [0, 5, 10, 15, 20])
+        ax.tick_params(axis="y", labelsize=12, colors="#555555", length=0, pad=10)
+        ax.tick_params(axis="x", labelsize=13, colors="#555555", length=0, pad=10)
+
+        y_tick_font = regular_font.copy()
+        y_tick_font.set_size(12)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(y_tick_font)
+        x_tick_font = regular_font.copy()
+        x_tick_font.set_size(13)
+        for label in ax.get_xticklabels():
+            label.set_fontproperties(x_tick_font)
+
+        ax.grid(axis="y", color="#c9c9c9", linewidth=1)
+        ax.grid(axis="x", visible=False)
+
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        legend_kwargs = {
+            "loc": "lower center",
+            "bbox_to_anchor": (0.5, -0.35),
+            "ncol": 3,
+            "frameon": False,
+            "handlelength": 2.0,
+            "handletextpad": 0.4,
+            "columnspacing": 1.2,
+        }
+        legend_font = regular_font.copy()
+        legend_font.set_size(13)
+        legend_kwargs["prop"] = legend_font
+        legend = ax.legend(**legend_kwargs)
+        for text in legend.get_texts():
+            text.set_color("#666666")
+
+        plt.subplots_adjust(left=0.06, right=0.98, top=0.83, bottom=0.28)
+        output = BytesIO()
+        fig.savefig(output, format="png", bbox_inches="tight", facecolor=background)
+        plt.close(fig)
+        return output.getvalue()
 
     @classmethod
     def _fdt_chart(cls, test: dict | None, automatic: bool):
         payload = (test or {}).get("classified_payload") or {}
-        target = "Processos Automaticos" if automatic else "Processos Controlados"
-        items = [
-            item
-            for item in payload.get("metric_results") or []
-            if item.get("categoria") == target
-        ]
-        labels = [item.get("nome") or item.get("codigo") or "FDT" for item in items]
-        values = [float(item.get("percentil_num") or 0) for item in items]
-        title = (
-            "FDT - Processos Automáticos"
-            if automatic
-            else "FDT - Processos Controlados"
-        )
-        return cls._build_chart_png("bar", title, labels, values, "Percentil")
+        charts = payload.get("charts") or {}
+        chart_key = "automaticos" if automatic else "controlados"
+        chart = charts.get(chart_key) or {}
+
+        categories = chart.get("categories") or []
+        series = chart.get("series") or []
+        if not categories or not series:
+            return None
+
+        regular_font = cls._chart_font()
+
+        fig, ax = plt.subplots(figsize=(8.4, 5.6), dpi=140)
+        background = "#ffffff"
+        grid_color = "#c9c9c9"
+        title_color = "#5f8f3a"
+        fig.patch.set_facecolor(background)
+        ax.set_facecolor(background)
+
+        y = np.arange(len(categories))
+        bar_height = 0.34 if automatic else 0.18
+        offsets = [0.5 - (len(series) / 2) + index for index in range(len(series))]
+
+        for offset, item in zip(offsets, series):
+            values = [float(value or 0) for value in item.get("values") or []]
+            if len(values) != len(categories):
+                continue
+            ax.barh(
+                y + (offset * bar_height),
+                values,
+                height=bar_height,
+                color=item.get("color") or "#4472C4",
+                label=item.get("label") or "FDT",
+            )
+
+        title_kwargs = {"color": title_color, "pad": 20, "fontweight": "normal"}
+        title_font = regular_font.copy()
+        title_font.set_size(18)
+        title_kwargs["fontproperties"] = title_font
+        ax.set_title(chart.get("title") or "FDT", **title_kwargs)
+
+        ax.set_xlim(0, max(80, int(math.ceil(max(max(float(v or 0) for v in item.get("values") or [0]) for item in series) / 10.0) * 10)))
+        ax.set_xticks(np.arange(0, ax.get_xlim()[1] + 1, 10))
+        ax.set_yticks(y)
+        ax.set_yticklabels(categories)
+        ax.invert_yaxis()
+
+        for label in ax.get_yticklabels():
+            tick_font = regular_font.copy()
+            tick_font.set_size(12)
+            label.set_fontproperties(tick_font)
+        for label in ax.get_xticklabels():
+            tick_font = regular_font.copy()
+            tick_font.set_size(10)
+            label.set_fontproperties(tick_font)
+
+        ax.tick_params(axis="x", colors="#555555", length=0)
+        ax.tick_params(axis="y", colors="#555555", length=0, pad=8)
+        ax.xaxis.grid(True, color=grid_color, linewidth=1)
+        ax.yaxis.grid(False)
+        ax.set_axisbelow(True)
+
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        legend_kwargs = {
+            "loc": "upper center",
+            "bbox_to_anchor": (0.5, -0.12 if automatic else -0.09),
+            "ncol": 2 if automatic else 4,
+            "frameon": False,
+            "handlelength": 0.6 if automatic else 0.5,
+            "handletextpad": 0.3 if automatic else 0.25,
+            "columnspacing": 1.5 if automatic else 1.2,
+        }
+        legend_font = regular_font.copy()
+        legend_font.set_size(11)
+        legend_kwargs["prop"] = legend_font
+        legend = ax.legend(**legend_kwargs)
+        for text in legend.get_texts():
+            text.set_color("#666666")
+
+        plt.tight_layout(rect=[0.2 if not automatic else 0.12, 0.08 if not automatic else 0.06, 0.98, 0.96])
+        output = BytesIO()
+        fig.savefig(output, format="png", bbox_inches="tight", facecolor=background)
+        plt.close(fig)
+        return output.getvalue()
 
     @classmethod
     def _etdah_chart(cls, test: dict | None):
