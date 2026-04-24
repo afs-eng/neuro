@@ -3174,9 +3174,12 @@ class ReportExportService:
         ax.set_title(title, **title_kwargs)
         ax.set_ylabel(ylabel, fontproperties=label_font or None, fontsize=None if label_font else 9)
         ax.grid(axis="y", color="#BFBFBF", linewidth=1)
-        for spine in ("top", "right"):
-            ax.spines[spine].set_visible(False)
-        ax.spines["left"].set_color("#94A3B8")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(True)
+        ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["right"].set_color("#BFBFBF")
+        ax.spines["left"].set_linewidth(0.8)
+        ax.spines["right"].set_linewidth(0.8)
         ax.spines["bottom"].set_color("#94A3B8")
 
         if kind == "bar":
@@ -3340,12 +3343,14 @@ class ReportExportService:
             for label in ax.get_yticklabels():
                 label.set_fontproperties(y_tick_font)
 
-        ax.spines["left"].set_color("black")
-        ax.spines["left"].set_linewidth(0.9)
+        ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["left"].set_linewidth(0.8)
+        ax.spines["right"].set_color("#BFBFBF")
+        ax.spines["right"].set_linewidth(0.8)
         ax.spines["bottom"].set_color("#666666")
         ax.spines["bottom"].set_linewidth(0.6)
         ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
+        ax.spines["right"].set_visible(True)
 
         output = BytesIO()
         fig.savefig(output, format="png", facecolor="white")
@@ -3452,8 +3457,14 @@ class ReportExportService:
         ax.grid(axis="y", color="#c9c9c9", linewidth=1)
         ax.grid(axis="x", visible=False)
 
-        for spine in ax.spines.values():
-            spine.set_visible(False)
+        ax.spines["top"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_visible(True)
+        ax.spines["right"].set_visible(True)
+        ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["right"].set_color("#BFBFBF")
+        ax.spines["left"].set_linewidth(0.8)
+        ax.spines["right"].set_linewidth(0.8)
 
         legend_kwargs = {
             "loc": "lower center",
@@ -3541,8 +3552,14 @@ class ReportExportService:
         ax.yaxis.grid(False)
         ax.set_axisbelow(True)
 
-        for spine in ax.spines.values():
-            spine.set_visible(False)
+        ax.spines["top"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_visible(True)
+        ax.spines["right"].set_visible(True)
+        ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["right"].set_color("#BFBFBF")
+        ax.spines["left"].set_linewidth(0.8)
+        ax.spines["right"].set_linewidth(0.8)
 
         legend_kwargs = {
             "loc": "upper center",
@@ -3693,8 +3710,9 @@ class ReportExportService:
         ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
         ax.grid(axis="x", visible=False)
         ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
+        ax.spines["right"].set_visible(True)
         ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["right"].set_color("#BFBFBF")
         ax.spines["bottom"].set_color("#BFBFBF")
         ax.tick_params(axis="y", colors="#404040")
         ax.tick_params(axis="x", length=0, colors="#2F4F1F")
@@ -3810,8 +3828,9 @@ class ReportExportService:
         ax.grid(axis="x", visible=False)
 
         ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
+        ax.spines["right"].set_visible(True)
         ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["right"].set_color("#BFBFBF")
         ax.spines["bottom"].set_color("#BFBFBF")
 
         ax.tick_params(axis="y", colors="#404040")
@@ -3930,8 +3949,14 @@ class ReportExportService:
         ax.grid(True, axis="y", color="#BFBFBF", linewidth=1)
         ax.grid(False, axis="x")
 
-        for spine in ("top", "right", "left", "bottom"):
-            ax.spines[spine].set_visible(False)
+        ax.spines["top"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_visible(True)
+        ax.spines["right"].set_visible(True)
+        ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["right"].set_color("#BFBFBF")
+        ax.spines["left"].set_linewidth(0.8)
+        ax.spines["right"].set_linewidth(0.8)
 
         ax.tick_params(axis="x", length=0)
         ax.tick_params(axis="y", length=0)
