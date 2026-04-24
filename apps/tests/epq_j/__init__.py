@@ -59,7 +59,7 @@ class EPQJModule(BaseTestModule):
 
     def interpret(self, context: TestContext, merged_data: dict) -> str:
         fatores = merged_data.get("fatores", {})
-        return get_report_interpretation(fatores)
+        return get_report_interpretation(fatores, context.patient_name)
 
 
 register_test_module(EPQJ_CODE, EPQJModule())

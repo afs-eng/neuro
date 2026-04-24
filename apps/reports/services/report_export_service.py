@@ -668,7 +668,7 @@ class ReportExportService:
                 "Resultados do E-TDAH-PAIS",
             )
             append_chart(
-                "E-TDAH-PAIS Resultados",
+                "E-TDAH-PAIS - Percentis",
                 cls._etdah_chart(cls._find_test(context, "etdah_pais")),
             )
 
@@ -687,7 +687,7 @@ class ReportExportService:
                 "Resultados do E-TDAH-AD",
             )
             append_chart(
-                "E-TDAH-AD Resultados",
+                "E-TDAH-AD - Percentis",
                 cls._etdah_chart(cls._find_test(context, "etdah_ad")),
             )
 
@@ -706,15 +706,11 @@ class ReportExportService:
                 append_table_with_interpretation(
                     cls._scared_rows(scared_test),
                     "scared",
-                    section_or_test_interpretation(
-                        "scared",
-                        None,
-                        scared_test,
-                    ),
+                    cls._resolve_interpretation_text(None, None, scared_test),
                     f"SCARED - Resultados {form_label}",
                 )
                 append_chart(
-                    f"SCARED Resultados {form_label}",
+                    cls._scared_form_title(scared_test),
                     cls._scared_chart(scared_test),
                 )
 
@@ -732,7 +728,7 @@ class ReportExportService:
                 "EPQ-J Resultados da personalidade",
             )
             append_chart(
-                "EPQ-J Resultados dos percentis",
+                "EPQ-J - Percentis",
                 cls._epq_chart(cls._find_test(context, "epq_j")),
             )
 
@@ -1132,7 +1128,7 @@ class ReportExportService:
                     "etdah",
                 )
                 add_chart(
-                    "E-TDAH-PAIS Resultados",
+                    "E-TDAH-PAIS - Percentis",
                     cls._etdah_chart(tests.get("etdah_pais")),
                 )
 
@@ -1148,16 +1144,11 @@ class ReportExportService:
                     cls._etdah_rows(tests.get("etdah_ad")),
                     "etdah",
                 )
-                add_chart("E-TDAH-AD Resultados", cls._etdah_chart(tests.get("etdah_ad")))
+                add_chart("E-TDAH-AD - Percentis", cls._etdah_chart(tests.get("etdah_ad")))
 
             scared_tests = cls._find_tests(context, "scared")
             if scared_tests:
                 add_title("11. SCARED")
-                add_text(
-                    section_or_test_interpretation(
-                        "scared", None, scared_tests[0]
-                    )
-                )
                 for scared_test in scared_tests:
                     form_label = cls._scared_form_label(scared_test)
                     add_table(
@@ -1165,8 +1156,14 @@ class ReportExportService:
                         cls._scared_rows(scared_test),
                         "scared"
                     )
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor,
+                        cls._normalize_interpretation_text(
+                            cls._resolve_interpretation_text(None, None, scared_test)
+                        ),
+                    )
                     add_chart(
-                        f"SCARED Resultados {form_label}",
+                        cls._scared_form_title(scared_test),
                         cls._scared_chart(scared_test),
                     )
 
@@ -1183,7 +1180,7 @@ class ReportExportService:
                     "epq",
                 )
                 add_chart(
-                    "EPQ-J Resultados dos percentis",
+                    "EPQ-J - Percentis",
                     cls._epq_chart(tests.get("epq_j")),
                 )
 
@@ -1252,8 +1249,14 @@ class ReportExportService:
                     cls._scared_rows(scared_test),
                     "scared"
                 )
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        cls._resolve_interpretation_text(None, None, scared_test)
+                    ),
+                )
                 add_chart(
-                    f"SCARED Resultados {form_label}",
+                    cls._scared_form_title(scared_test),
                     cls._scared_chart(scared_test),
                 )
             add_table(
@@ -1262,7 +1265,7 @@ class ReportExportService:
                 "epq",
             )
             add_chart(
-                "EPQ-J Resultados dos percentis",
+                "EPQ-J - Percentis",
                 cls._epq_chart(tests.get("epq_j")),
             )
             add_table("SRS-2 Resultados", cls._srs2_rows(tests.get("srs2")), "srs2")
@@ -1978,7 +1981,11 @@ class ReportExportService:
     @staticmethod
     def _scared_form_label(test: dict | None) -> str:
         form_type = ((test or {}).get("classified_payload") or {}).get("form_type") or ((test or {}).get("raw_payload") or {}).get("form")
-        return "Pais/Cuidadores" if form_type == "parent" else "Autorrelato"
+        return "Mãe" if form_type == "parent" else "Autorrelato"
+
+    @classmethod
+    def _scared_form_title(cls, test: dict | None) -> str:
+        return f"SCARED - {cls._scared_form_label(test)}"
 
     @classmethod
     def _format_date_display(cls, value: str | None) -> str:
@@ -3149,12 +3156,24 @@ class ReportExportService:
         if not labels or not values:
             return None
         extra = extra or {}
+        regular_font = cls._chart_font()
+        title_font = regular_font.copy() if regular_font else None
+        if title_font:
+            title_font.set_size(16)
+        label_font = regular_font.copy() if regular_font else None
+        if label_font:
+            label_font.set_size(10)
         fig, ax = plt.subplots(figsize=(8, 4.5), dpi=180)
         fig.patch.set_facecolor("white")
         ax.set_facecolor("white")
-        ax.set_title(title, fontsize=11, fontweight="bold", color="#23374D")
-        ax.set_ylabel(ylabel, fontsize=9)
-        ax.grid(axis="y", linestyle="--", alpha=0.25)
+        title_kwargs = {"color": "#3D5F2A", "pad": 10, "fontweight": "normal"}
+        if title_font:
+            title_kwargs["fontproperties"] = title_font
+        else:
+            title_kwargs["fontsize"] = 16
+        ax.set_title(title, **title_kwargs)
+        ax.set_ylabel(ylabel, fontproperties=label_font or None, fontsize=None if label_font else 9)
+        ax.grid(axis="y", color="#BFBFBF", linewidth=1)
         for spine in ("top", "right"):
             ax.spines[spine].set_visible(False)
         ax.spines["left"].set_color("#94A3B8")
@@ -3174,32 +3193,38 @@ class ReportExportService:
                     fontsize=8,
                 )
         else:
-            ax.plot(labels, values, marker="o", color="#2F6DB3", linewidth=2.2)
+            x_positions = np.arange(1, len(labels) + 1)
+            ax.plot(x_positions, values, marker="o", color="#5E8E3E", linewidth=3)
             if extra.get("expected"):
                 ax.plot(
-                    labels,
+                    x_positions,
                     extra["expected"],
                     linestyle="--",
-                    color="#4caf50",
+                    color="#8FBC6B",
                     linewidth=1.5,
                     label="Esperado",
                 )
             if extra.get("minimum"):
                 ax.plot(
-                    labels,
+                    x_positions,
                     extra["minimum"],
                     linestyle=":",
-                    color="#f59e0b",
+                    color="#D6A85C",
                     linewidth=1.5,
                     label="Mínimo",
                 )
             if extra.get("expected") or extra.get("minimum"):
                 ax.legend(fontsize=8)
+            ax.set_xticks(x_positions)
+            ax.set_xticklabels(labels)
 
         ymax = max(values + extra.get("expected", []) + extra.get("minimum", []) + [1])
         ax.set_ylim(0, ymax * 1.2)
-        ax.tick_params(axis="x", labelrotation=0, labelsize=8)
-        ax.tick_params(axis="y", labelsize=8)
+        ax.tick_params(axis="x", labelrotation=0, labelsize=8, length=0)
+        ax.tick_params(axis="y", labelsize=8, length=0)
+        if label_font:
+            for tick in ax.get_xticklabels() + ax.get_yticklabels():
+                tick.set_fontproperties(label_font)
         plt.tight_layout()
 
         output = BytesIO()
@@ -3545,18 +3570,283 @@ class ReportExportService:
     def _etdah_chart(cls, test: dict | None):
         payload = (test or {}).get("classified_payload") or {}
         results = payload.get("results") or {}
+        if any(key in results for key in ("D", "I", "AE", "AAMA", "H")):
+            labels = []
+            values = []
+            label_map = {
+                "D": "F1 - D",
+                "I": "F2 - I",
+                "AE": "F3 - AE",
+                "AAMA": "F4 - AMAA",
+                "H": "F5 - H",
+            }
+            for key in ("D", "I", "AE", "AAMA", "H"):
+                item = results.get(key)
+                if not item:
+                    continue
+                labels.append(label_map[key])
+                values.append(
+                    cls._extract_percentile_value(
+                        item.get("percentile_text") or item.get("percentil")
+                    )
+                )
+            return cls._build_etdah_ad_chart_png(labels, values)
+
         labels = []
         values = []
-        for item in results.values():
-            labels.append((item.get("name") or "Escala")[:12])
+        label_map = {
+            "fator_1": "F1 - RE",
+            "fator_2": "F2 - H/I",
+            "fator_3": "F3 - CA",
+            "fator_4": "F4 - A",
+            "escore_geral": "EG",
+        }
+        for key in ("fator_1", "fator_2", "fator_3", "fator_4", "escore_geral"):
+            item = results.get(key)
+            if not item:
+                continue
+            labels.append(label_map[key])
             values.append(
                 cls._extract_percentile_value(
                     item.get("percentile_text") or item.get("percentil")
                 )
             )
-        return cls._build_chart_png(
-            "bar", "Perfil no E-TDAH", labels, values, "Percentil"
+        return cls._build_etdah_pais_chart_png(labels, values)
+
+    @classmethod
+    def _build_etdah_ad_chart_png(
+        cls, labels: list[str], values: list[float]
+    ) -> bytes | None:
+        if not labels or not values:
+            return None
+
+        regular_font = cls._chart_font()
+        title_font = regular_font.copy() if regular_font else None
+        if title_font:
+            title_font.set_size(22)
+        axis_font = regular_font.copy() if regular_font else None
+        if axis_font:
+            axis_font.set_size(12)
+        note_font = regular_font.copy() if regular_font else None
+        if note_font:
+            note_font.set_size(9)
+
+        x = np.arange(len(labels))
+        fig, ax = plt.subplots(figsize=(10, 4.5), dpi=150)
+        fig.patch.set_facecolor("#FFFFFF")
+        ax.set_facecolor("#FFFFFF")
+
+        ax.axhspan(0, 25, color="#EAF4E2", alpha=0.8)
+        ax.axhspan(25, 45, color="#F6F1D5", alpha=0.8)
+        ax.axhspan(45, 65, color="#FCE8C8", alpha=0.8)
+        ax.axhspan(65, 85, color="#F5D1C8", alpha=0.8)
+        ax.axhspan(85, 100, color="#E8B6B0", alpha=0.8)
+
+        ax.plot(
+            x,
+            values,
+            color="#375623",
+            linewidth=3,
+            marker="o",
+            markersize=8,
+            markerfacecolor="#FFFFFF",
+            markeredgecolor="#375623",
+            markeredgewidth=2.2,
         )
+
+        for xi, yi in zip(x, values):
+            text_kwargs = {
+                "ha": "center",
+                "va": "bottom",
+                "fontsize": 11,
+                "color": "#375623",
+                "fontweight": "bold",
+            }
+            if axis_font:
+                text_kwargs["fontproperties"] = axis_font
+            ax.text(xi, yi + 3, cls._num(yi), **text_kwargs)
+
+        title_kwargs = {"color": "#2F4F1F", "pad": 18}
+        if title_font:
+            title_kwargs["fontproperties"] = title_font
+        else:
+            title_kwargs["fontsize"] = 22
+        ax.set_title("E-TDAH-AD", **title_kwargs)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
+        ax.set_xlabel(
+            "Fator",
+            fontsize=12,
+            color="#2F4F1F",
+            labelpad=14,
+            fontproperties=axis_font or None,
+        )
+        ax.set_ylim(0, 105)
+        ax.set_ylabel(
+            "Percentil",
+            fontsize=13,
+            color="#2F4F1F",
+            labelpad=12,
+            fontproperties=axis_font or None,
+        )
+        ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
+        ax.grid(axis="x", visible=False)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["bottom"].set_color("#BFBFBF")
+        ax.tick_params(axis="y", colors="#404040")
+        ax.tick_params(axis="x", length=0, colors="#2F4F1F")
+        if axis_font:
+            for tick in ax.get_xticklabels() + ax.get_yticklabels():
+                tick.set_fontproperties(axis_font)
+
+        note_kwargs = {
+            "transform": ax.transAxes,
+            "ha": "center",
+            "va": "center",
+            "fontsize": 9,
+            "color": "#404040",
+        }
+        if note_font:
+            note_kwargs["fontproperties"] = note_font
+        ax.text(
+            0.5,
+            -0.23,
+            "F1-D: Desatenção   |   F2-I: Impulsividade   |   F3-AE: Aspectos Emocionais   |   F4-AMAA: Autorregulação   |   F5-H: Hiperatividade",
+            **note_kwargs,
+        )
+
+        plt.tight_layout()
+        output = BytesIO()
+        fig.savefig(
+            output,
+            format="png",
+            dpi=300,
+            facecolor=fig.get_facecolor(),
+            bbox_inches="tight",
+        )
+        plt.close(fig)
+        return output.getvalue()
+
+    @classmethod
+    def _build_etdah_pais_chart_png(
+        cls, labels: list[str], values: list[float]
+    ) -> bytes | None:
+        if not labels or not values:
+            return None
+
+        regular_font = cls._chart_font()
+        title_font = regular_font.copy() if regular_font else None
+        if title_font:
+            title_font.set_size(22)
+        axis_font = regular_font.copy() if regular_font else None
+        if axis_font:
+            axis_font.set_size(12)
+        note_font = regular_font.copy() if regular_font else None
+        if note_font:
+            note_font.set_size(9)
+
+        x = np.arange(len(labels))
+        fig, ax = plt.subplots(figsize=(10, 4.5), dpi=150)
+        fig.patch.set_facecolor("#FFFFFF")
+        ax.set_facecolor("#FFFFFF")
+
+        ax.axhspan(0, 25, color="#EAF4E2", alpha=0.8)
+        ax.axhspan(25, 45, color="#F6F1D5", alpha=0.8)
+        ax.axhspan(45, 65, color="#FCE8C8", alpha=0.8)
+        ax.axhspan(65, 85, color="#F5D1C8", alpha=0.8)
+        ax.axhspan(85, 100, color="#E8B6B0", alpha=0.8)
+
+        ax.plot(
+            x,
+            values,
+            color="#375623",
+            linewidth=3,
+            marker="o",
+            markersize=8,
+            markerfacecolor="#FFFFFF",
+            markeredgecolor="#375623",
+            markeredgewidth=2.2,
+        )
+
+        for xi, yi in zip(x, values):
+            text_kwargs = {
+                "ha": "center",
+                "va": "bottom",
+                "fontsize": 11,
+                "color": "#375623",
+                "fontweight": "bold",
+            }
+            if axis_font:
+                text_kwargs["fontproperties"] = axis_font
+            ax.text(xi, yi + 3, cls._num(yi), **text_kwargs)
+
+        title_kwargs = {"color": "#2F4F1F", "pad": 18}
+        if title_font:
+            title_kwargs["fontproperties"] = title_font
+        else:
+            title_kwargs["fontsize"] = 22
+        ax.set_title("E-TDAH-PAIS", **title_kwargs)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
+        ax.set_xlabel(
+            "Fator",
+            color="#2F4F1F",
+            labelpad=14,
+            fontproperties=axis_font or None,
+        )
+        ax.set_ylim(0, 105)
+        ax.set_ylabel(
+            "Percentil",
+            color="#2F4F1F",
+            labelpad=12,
+            fontproperties=axis_font or None,
+        )
+
+        ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
+        ax.grid(axis="x", visible=False)
+
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_color("#BFBFBF")
+        ax.spines["bottom"].set_color("#BFBFBF")
+
+        ax.tick_params(axis="y", colors="#404040")
+        ax.tick_params(axis="x", length=0, colors="#2F4F1F")
+        if axis_font:
+            for tick in ax.get_xticklabels() + ax.get_yticklabels():
+                tick.set_fontproperties(axis_font)
+
+        note_kwargs = {
+            "transform": ax.transAxes,
+            "ha": "center",
+            "va": "center",
+            "fontsize": 9,
+            "color": "#404040",
+        }
+        if note_font:
+            note_kwargs["fontproperties"] = note_font
+        ax.text(
+            0.5,
+            -0.23,
+            "F1-RE: Regulação Emocional   |   F2-H/I: Hiperatividade/Impulsividade   |   F3-CA: Comportamento Adaptativo   |   F4-A: Atenção   |   EG: Escore Geral",
+            **note_kwargs,
+        )
+
+        plt.tight_layout()
+        output = BytesIO()
+        fig.savefig(
+            output,
+            format="png",
+            dpi=300,
+            facecolor=fig.get_facecolor(),
+            bbox_inches="tight",
+        )
+        plt.close(fig)
+        return output.getvalue()
 
     @classmethod
     def _scared_chart(cls, test: dict | None):
@@ -3582,9 +3872,75 @@ class ReportExportService:
                 continue
             labels.append(key)
             values.append(float(item.get("percentil") or 0))
-        return cls._build_chart_png(
-            "bar", "Perfil de personalidade no EPQ-J", labels, values, "Percentil"
-        )
+        return cls._build_epq_chart_png(labels, values)
+
+    @classmethod
+    def _build_epq_chart_png(cls, labels: list[str], values: list[float]) -> bytes | None:
+        if not labels or not values:
+            return None
+
+        regular_font = cls._chart_font()
+        title_font = regular_font.copy() if regular_font else None
+        if title_font:
+            title_font.set_size(18)
+        label_font = regular_font.copy() if regular_font else None
+        if label_font:
+            label_font.set_size(11)
+
+        x = np.arange(1, len(labels) + 1)
+
+        fig, ax = plt.subplots(figsize=(7.5, 4), dpi=200)
+        fig.patch.set_facecolor("#FFFFFF")
+        ax.set_facecolor("#FFFFFF")
+
+        ax.plot(x, values, color="#5E8E3E", linewidth=3)
+        ax.scatter(x, values, color="#5E8E3E", s=40)
+
+        for xi, yi in zip(x, values):
+            text_kwargs = {
+                "ha": "center",
+                "fontsize": 11,
+                "color": "#404040",
+            }
+            if label_font:
+                text_kwargs["fontproperties"] = label_font
+            ax.text(xi, yi + 3, cls._num(yi), **text_kwargs)
+
+        title_kwargs = {
+            "color": "#3D5F2A",
+            "pad": 10,
+        }
+        if title_font:
+            title_kwargs["fontproperties"] = title_font
+        else:
+            title_kwargs["fontsize"] = 18
+        ax.set_title("PERCENTIL - EPQ-J", **title_kwargs)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
+        if label_font:
+            for tick in ax.get_xticklabels() + ax.get_yticklabels():
+                tick.set_fontproperties(label_font)
+        else:
+            ax.tick_params(axis="x", labelsize=11)
+            ax.tick_params(axis="y", labelsize=11)
+
+        ax.set_ylim(0, 90)
+        ax.set_yticks(np.arange(0, 91, 10))
+        ax.grid(True, axis="y", color="#BFBFBF", linewidth=1)
+        ax.grid(False, axis="x")
+
+        for spine in ("top", "right", "left", "bottom"):
+            ax.spines[spine].set_visible(False)
+
+        ax.tick_params(axis="x", length=0)
+        ax.tick_params(axis="y", length=0)
+        plt.tight_layout()
+
+        output = BytesIO()
+        fig.savefig(output, format="png", facecolor=fig.get_facecolor())
+        plt.close(fig)
+        return output.getvalue()
 
     @classmethod
     def _srs2_chart(cls, test: dict | None):

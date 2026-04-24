@@ -8,11 +8,25 @@ Use apenas:
 - regras de estilo do laudo.
 
 Orientacoes adicionais:
+- apresente o EPQ-J como instrumento de avaliacao de tracos de personalidade, e nao como ferramenta diagnostica isolada;
+- siga esta estrutura obrigatoria: introducao do instrumento, analise fator por fator (P, E, N, S), bloco "Em analise clinica", bloco "Analise Clinica" e fechamento com hipotese diagnostica;
+- nao omita nenhum dos quatro fatores;
+- em cada fator, informe classificacao, percentil e interpretacao clinica em linguagem inferencial;
+- interprete Psicoticismo em termos de impulsividade, empatia e sensibilidade social;
+- interprete Extroversao em termos de sociabilidade ou introspeccao;
+- interprete Neuroticismo em termos de estabilidade ou instabilidade emocional e vulnerabilidade ansiosa;
+- interprete Sinceridade em termos de desejabilidade social ou espontaneidade, incluindo cautela sobre validade do protocolo quando estiver elevada;
+- sempre comente a validade do protocolo a partir da escala de Sinceridade;
 - integre os achados em linguagem clinica coesa;
+- nao interpretar fatores isoladamente; combine os achados entre si e com o contexto clinico;
+- relacione os resultados a comportamento, emocao e contexto, evitando descricoes mecanicas fator a fator;
+- quando pertinente, relacione o perfil com achados de ansiedade, depressao, funcionamento social e autorregulacao, sem inventar dados ausentes;
 - mantenha linguagem tecnica e prudente, sem tratar tracos isolados como diagnostico;
+- use formulacoes como "os resultados indicaram", "esse padrao sugere", "Em analise clinica" e "ha hipotese diagnostica de...";
 - nao transforme o texto em lista de numeros;
 - nao cite valores crus desnecessarios;
 - nao recalcule classificacoes;
+- se os dados nao sustentarem formulacao clinica especifica, explicite que nao ha elementos suficientes para sustentar hipotese diagnostica especifica a partir do EPQ-J isoladamente;
 - se os dados forem insuficientes, explicite a limitacao.
 
 Retorne somente o texto final da secao.

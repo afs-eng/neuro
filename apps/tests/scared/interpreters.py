@@ -14,17 +14,17 @@ def _is_clinical(row: dict, form_type: str) -> bool:
 
 def _source_phrase(form_type: str) -> str:
     if form_type == "parent":
-        return "segundo a percepção dos responsáveis"
+        return "segundo o relato dos pais/cuidadores"
     return "no autorrelato"
 
 
 def _opening_paragraph(form_type: str) -> str:
     if form_type == "parent":
         return (
-            "Interpretação e Observações Clínicas: O SCARED é um instrumento destinado à investigação de sintomas ansiosos em crianças e adolescentes, a partir da percepção dos pais ou responsáveis, abrangendo diferentes manifestações de ansiedade, como ansiedade de separação, ansiedade generalizada, sintomas de pânico/somáticos, fobia social e evitação escolar."
+            "Interpretação e Observações Clínicas: A Escala SCARED foi aplicada com o objetivo de rastrear sintomas ansiosos em crianças e adolescentes, a partir do relato dos pais/cuidadores, investigando manifestações relacionadas à ansiedade generalizada, ansiedade de separação, ansiedade social, sintomas de pânico/somatização e evitação escolar."
         )
     return (
-        "Interpretação e Observações Clínicas: O SCARED é um instrumento destinado à investigação de sintomas ansiosos em crianças e adolescentes, a partir do autorrelato, abrangendo diferentes manifestações de ansiedade, como ansiedade de separação, ansiedade generalizada, sintomas de pânico/somáticos, fobia social e evitação escolar."
+        "Interpretação e Observações Clínicas: A Escala SCARED foi aplicada com o objetivo de rastrear sintomas ansiosos em crianças e adolescentes, a partir do autorrelato, investigando manifestações relacionadas à ansiedade generalizada, ansiedade de separação, ansiedade social, sintomas de pânico/somatizacao e evitacao escolar."
     )
 
 

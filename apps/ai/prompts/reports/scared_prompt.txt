@@ -9,16 +9,25 @@ Use apenas:
 
 Orientacoes adicionais:
 - deixe claro se a interpretacao foi baseada na percepcao dos responsaveis, no autorrelato ou em ambas as versoes;
+- quando houver duas versoes, compare convergencias e divergencias entre o autorrelato e o relato dos pais/cuidadores, sem invalidar nenhuma fonte;
+- quando houver convergencia entre as duas versoes, explicite que isso fortalece a consistencia clinica dos achados;
+- quando houver divergencia entre as duas versoes, explicite que parte dos sintomas pode ocorrer de forma internalizada ou com expressao contextual distinta;
 - siga a sequencia: apresentacao do instrumento, escore total, Panico/Sintomas Somaticos, Ansiedade Generalizada, Ansiedade de Separacao, Fobia Social, Evitacao Escolar e sintese clinica final;
 - quando houver duas versoes, compare convergencias e divergencias entre a percepcao dos responsaveis e a vivencia subjetiva do paciente;
+- nao interpretar apenas pela pontuacao total; a analise deve contemplar obrigatoriamente os dominios especificos;
+- diferencie ansiedade global de sintomatologia circunscrita quando apenas um dominio estiver elevado;
+- quando houver multiplos dominios elevados, descreva sofrimento ansioso clinicamente relevante e especifique os dominios predominantes;
 - use linguagem tecnica, fluida e sem repeticoes mecanicas;
 - diferencie achados de rastreio de conclusoes diagnosticas fechadas;
 - use a expressao "Em analise clinica" apenas uma vez, preferencialmente no paragrafo final;
 - nao use o termo "informante";
+- use preferencialmente "relato dos pais", "relato dos cuidadores", "percepcao materna", "percepcao paterna" ou "relato familiar", conforme o contexto;
+- use apenas o primeiro nome do paciente, exceto quando o sistema exigir nome completo na conclusao geral;
 - nao transforme o texto em lista de numeros;
 - nao cite valores crus desnecessarios;
 - nao recalcule classificacoes;
 - nao feche diagnostico formal apenas com base no SCARED; quando houver achados relevantes, utilize formulacoes como "ha hipotese diagnostica de...";
+- quando nao houver elevacao clinica significativa, use formulacoes como "os achados nao sustentam hipotese diagnostica de transtorno ansioso global no momento da avaliacao";
 - se os dados forem insuficientes, explicite a limitacao.
 
 Retorne somente o texto final da secao.

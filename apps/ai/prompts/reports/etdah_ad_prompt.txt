@@ -8,6 +8,18 @@ Use apenas:
 - regras de estilo do laudo.
 
 Orientacoes adicionais:
+- apresente o instrumento como avaliacao comportamental autorreferida, e nao como ferramenta diagnostica isolada;
+- siga esta ordem: introducao do instrumento, Fator 1 Desatencao, Fator 2 Impulsividade, Fator 3 Aspectos Emocionais, Fator 4 Autorregulacao da Atencao, Motivacao e Acao, Fator 5 Hiperatividade, Escore Geral, bloco "Em analise integrada" e hipotese diagnostica quando aplicavel;
+- classificacoes inferior, media inferior e media nao indicam prejuizo clinico;
+- somente media superior e superior indicam dificuldade clinica relevante;
+- por se tratar de autorrelato, considere nivel de autopercepcao, possivel subestimacao ou superestimacao dos sintomas e coerencia com observacao clinica;
+- nao diga que o autorrelato comprova TDAH;
+- use formulacoes como "os resultados sugerem", "o perfil indica", "ha indicadores compativeis com" e "ha hipotese diagnostica de";
+- para o fator Desatencao, integre o achado aos testes objetivos de atencao quando existirem;
+- quando houver desatencao elevada e hiperatividade elevada, use formulacao compativel com apresentacao combinada;
+- quando houver desatencao elevada sem hiperatividade/impulsividade elevadas, use formulacao compativel com apresentacao predominantemente desatenta;
+- quando houver hiperatividade ou impulsividade elevadas sem desatencao elevada, use formulacao compativel com apresentacao predominantemente hiperativa/impulsiva;
+- quando houver elevacao apenas em aspectos emocionais, destaque sofrimento emocional sem configurar perfil tipico de TDAH pelo instrumento isolado;
 - integre os achados em linguagem clinica coesa;
 - deixe claro que se trata de autorrelato do adolescente;
 - nao transforme o texto em lista de numeros;

@@ -8,11 +8,25 @@ Use apenas:
 - regras de estilo do laudo.
 
 Orientacoes adicionais:
+- apresente o instrumento como avaliacao comportamental a partir da percepcao dos responsaveis, e nao como instrumento diagnostico isolado;
+- siga esta ordem: introducao do instrumento, Fator 1 Regulação Emocional, Fator 2 Hiperatividade/Impulsividade, Fator 3 Comportamento Adaptativo, Fator 4 Atenção, Escore Geral, bloco "Em analise clinica" e hipotese diagnostica quando aplicavel;
+- classificacoes inferior, media inferior e media nao indicam prejuizo clinico;
+- somente media superior e superior indicam dificuldade clinica relevante;
+- deixe explicito quando o resultado indica prejuizo grave, prejuizo moderado ou ausencia de prejuizo clinico significativo;
+- use sempre a expressao "a partir da percepcao dos responsaveis";
+- nunca diga que resultado inferior, media inferior ou media indicam deficit;
+- para o fator Atenção, integre o resultado aos achados objetivos das testagens neuropsicologicas;
+- para o Escore Geral, evite concluir prejuizo global se o escore total nao estiver clinicamente elevado;
+- quando houver atenção e hiperatividade/impulsividade elevadas, use formulacoes compatíveis com hipotese diagnostica de TDAH apresentacao combinada;
+- quando houver apenas atenção elevada, use formulacao compatível com TDAH apresentacao predominantemente desatenta;
+- quando houver apenas hiperatividade/impulsividade elevada, use formulacao compatível com TDAH apresentacao predominantemente hiperativa/impulsiva;
+- quando houver elevacoes em regulacao emocional e comportamento adaptativo sem atenção/hiperatividade clinicamente elevadas, destaque prejuizos emocionais/adaptativos sem configurar perfil tipico de TDAH;
 - integre os achados em linguagem clinica coesa;
 - deixe claro que se trata da perspectiva dos responsaveis;
 - nao transforme o texto em lista de numeros;
 - nao cite valores crus desnecessarios;
 - nao recalcule classificacoes;
+- prefira formulacoes como "os resultados sugerem", "o perfil indica" e "ha hipotese diagnostica de";
 - se os dados forem insuficientes, explicite a limitacao.
 
 Retorne somente o texto final da secao.

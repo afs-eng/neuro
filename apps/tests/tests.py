@@ -7,6 +7,7 @@ from apps.tests.cars2_hf.classifiers import classify_cars2_hf
 from apps.tests.cars2_hf.loaders import load_cars2_hf_norms
 from apps.tests.etdah_ad import ETDAHADModule
 from apps.tests.etdah_pais import ETDAHPAISModule
+from apps.tests.epq_j import EPQJModule
 from apps.tests.fdt import FDTModule
 from apps.tests.mchat import MCHATModule
 from apps.tests.mchat.constants import FAILURE_RULES, ITEMS
@@ -346,7 +347,8 @@ class ETDAHPAISModuleTests(SimpleTestCase):
 
         interpretation = module.interpret(context, merged_data)
 
-        self.assertIn("não indica prejuízo clínico", interpretation)
+        self.assertIn("Fator 1 — Regulação Emocional", interpretation)
+        self.assertIn("funcionamento dentro dos limites esperados", interpretation)
         self.assertEqual(interpretation.count("Em análise clínica"), 1)
 
     def test_focal_elevation_is_described_without_automatic_diagnostic_hypothesis(self):
@@ -375,10 +377,10 @@ class ETDAHPAISModuleTests(SimpleTestCase):
 
         interpretation = module.interpret(context, merged_data)
 
-        self.assertIn("Hiperatividade / Impulsividade", interpretation)
-        self.assertIn("Atenção", interpretation)
-        self.assertIn("Embora o escore global não indique comprometimento clínico amplo", interpretation)
-        self.assertNotIn("Há hipótese diagnóstica de Transtorno do Déficit de Atenção e Hiperatividade", interpretation)
+        self.assertIn("Fator 2 — Hiperatividade/Impulsividade", interpretation)
+        self.assertIn("Fator 4 — Atenção", interpretation)
+        self.assertIn("sem configuração de comprometimento global amplo", interpretation)
+        self.assertIn("Há hipótese diagnóstica de Transtorno do Déficit de Atenção e Hiperatividade, apresentação combinada", interpretation)
 
 
 class ETDAHADModuleTests(SimpleTestCase):
@@ -406,8 +408,9 @@ class ETDAHADModuleTests(SimpleTestCase):
 
         interpretation = module.interpret(context, merged_data)
 
-        self.assertIn("não configurando prejuízo clínico", interpretation)
-        self.assertEqual(interpretation.count("Em análise clínica"), 1)
+        self.assertIn("Fator 1 — Desatenção", interpretation)
+        self.assertIn("funcionamento dentro dos limites esperados", interpretation)
+        self.assertEqual(interpretation.count("Em análise integrada"), 1)
 
     def test_elevated_domains_are_summarized_without_automatic_diagnostic_hypothesis(self):
         module = ETDAHADModule()
@@ -433,10 +436,10 @@ class ETDAHADModuleTests(SimpleTestCase):
 
         interpretation = module.interpret(context, merged_data)
 
-        self.assertIn("Fator 1 - Desatenção", interpretation)
-        self.assertIn("Fator 4 - Autorregulação da Atenção, da Motivação e da Ação", interpretation)
-        self.assertIn("Análise Integrada", interpretation)
-        self.assertNotIn("Há hipótese diagnóstica de Transtorno do Déficit de Atenção e Hiperatividade", interpretation)
+        self.assertIn("Fator 1 — Desatenção", interpretation)
+        self.assertIn("Fator 4 — Autorregulação da Atenção, Motivação e Ação", interpretation)
+        self.assertIn("Em análise integrada", interpretation)
+        self.assertIn("há hipótese diagnóstica de Transtorno do Déficit de Atenção e Hiperatividade (TDAH), apresentação combinada", interpretation)
 
 
 class SRS2ModuleTests(SimpleTestCase):
@@ -534,3 +537,80 @@ class SCAREDModuleTests(SimpleTestCase):
 
         errors = module.validate(context)
         self.assertIn("Formulário SCARED inválido.", errors)
+
+
+class EPQJModuleTests(SimpleTestCase):
+    def test_interpretation_mentions_desirability_when_sincerity_is_high(self):
+        module = EPQJModule()
+        context = TestContext(
+            patient_name="Marina Costa",
+            evaluation_id=1,
+            instrument_code="epq_j",
+        )
+
+        interpretation = module.interpret(
+            context,
+            {
+                "fatores": {
+                    "P": {"escore": 2, "percentil": 40, "classificacao": "MEDIO"},
+                    "E": {"escore": 10, "percentil": 50, "classificacao": "MEDIO"},
+                    "N": {"escore": 8, "percentil": 50, "classificacao": "MEDIO"},
+                    "S": {"escore": 16, "percentil": 99, "classificacao": "MUITO ALTO"},
+                }
+            },
+        )
+
+        self.assertIn("Sinceridade apresentou classificação muito alto (percentil 99)", interpretation)
+        self.assertIn("desejabilidade social", interpretation)
+        self.assertIn("não há elementos suficientes para sustentar hipótese diagnóstica específica", interpretation)
+
+    def test_interpretation_builds_internalizing_profile(self):
+        module = EPQJModule()
+        context = TestContext(
+            patient_name="Lucas Almeida",
+            evaluation_id=1,
+            instrument_code="epq_j",
+        )
+
+        interpretation = module.interpret(
+            context,
+            {
+                "fatores": {
+                    "P": {"escore": 1, "percentil": 20, "classificacao": "BAIXO"},
+                    "E": {"escore": 6, "percentil": 10, "classificacao": "BAIXO"},
+                    "N": {"escore": 16, "percentil": 90, "classificacao": "ALTO"},
+                    "S": {"escore": 10, "percentil": 50, "classificacao": "MEDIO"},
+                }
+            },
+        )
+
+        self.assertIn("O escore alto em Neuroticismo (percentil 90)", interpretation)
+        self.assertIn("funcionamento mais introspectivo", interpretation)
+        self.assertIn("Em análise clínica, o perfil de Lucas no EPQ-J", interpretation)
+        self.assertIn("há hipótese diagnóstica de vulnerabilidade emocional e sintomatologia ansiosa ou internalizante", interpretation)
+
+    def test_interpretation_covers_all_required_sections(self):
+        module = EPQJModule()
+        context = TestContext(
+            patient_name="Ana Silva",
+            evaluation_id=1,
+            instrument_code="epq_j",
+        )
+
+        interpretation = module.interpret(
+            context,
+            {
+                "fatores": {
+                    "P": {"escore": 0, "percentil": 5, "classificacao": "MUITO BAIXO"},
+                    "E": {"escore": 12, "percentil": 90, "classificacao": "ALTO"},
+                    "N": {"escore": 3, "percentil": 10, "classificacao": "BAIXO"},
+                    "S": {"escore": 8, "percentil": 30, "classificacao": "MEDIO"},
+                }
+            },
+        )
+
+        self.assertIn("O resultado de Ana nesse fator", interpretation)
+        self.assertIn("O fator Extroversão apresentou classificação alto (percentil 90)", interpretation)
+        self.assertIn("O fator Sinceridade apresentou classificação médio (percentil 30)", interpretation)
+        self.assertIn("Em análise clínica", interpretation)
+        self.assertIn("Análise Clínica:", interpretation)

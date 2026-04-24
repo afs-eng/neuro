@@ -901,7 +901,15 @@ class ReportGenerationService:
                 for test in context.get("validated_tests") or []
                 if test.get("instrument_code") == "etdah_pais"
             ]
-            return cls._tests_interpretation_blocks(tests)
+            return "\n".join(
+                [
+                    "A escala E-TDAH-PAIS oferece a perspectiva dos responsáveis sobre regulação emocional, hiperatividade/impulsividade, comportamento adaptativo e atenção no cotidiano.",
+                    "",
+                    cls._tests_detailed_blocks(tests),
+                    "",
+                    "A interpretação deve ser integrada à anamnese, à observação clínica e aos achados objetivos das testagens neuropsicológicas, sem uso isolado do instrumento para diagnóstico.",
+                ]
+            )
 
         if key == "etdah_ad":
             tests = [
@@ -911,11 +919,11 @@ class ReportGenerationService:
             ]
             return "\n".join(
                 [
-                    "A escala E-TDAH-AD oferece a perspectiva do próprio adolescente sobre desatenção, hiperatividade, impulsividade e aspectos emocionais associados.",
+                    "A escala E-TDAH-AD oferece a perspectiva do próprio adolescente ou adulto sobre desatenção, impulsividade, aspectos emocionais, autorregulação e hiperatividade no cotidiano.",
                     "",
                     cls._tests_detailed_blocks(tests),
                     "",
-                    "A interpretação do autorrelato exige integração com o relato familiar, desempenho nos testes e observação clínica do caso.",
+                    "A interpretação do autorrelato exige integração com o relato familiar quando disponível, desempenho nos testes, observação clínica e impacto funcional do caso.",
                 ]
             )
 
@@ -943,11 +951,11 @@ class ReportGenerationService:
             ]
             return "\n".join(
                 [
-                    "O EPQ-J descreve traços de personalidade em dimensões como psicoticismo, extroversão, neuroticismo e sinceridade/socialização.",
+                    "O EPQ-J descreve traços de personalidade nos domínios Psicoticismo, Extroversão, Neuroticismo e Sinceridade, devendo ser interpretado como dado complementar e não como ferramenta diagnóstica isolada.",
                     "",
                     cls._tests_detailed_blocks(tests),
                     "",
-                    "O perfil de personalidade deve ser lido como dado complementar, articulado com ansiedade, recursos adaptativos e contexto relacional do adolescente.",
+                    "O perfil de personalidade deve ser articulado ao funcionamento emocional, aos recursos adaptativos, ao contexto relacional e aos demais achados da avaliação neuropsicológica.",
                 ]
             )
 
