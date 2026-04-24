@@ -422,6 +422,32 @@ export default function ReportDetailPage() {
     }
   }
 
+  async function handleRegenerateTests() {
+    if (!report) return;
+    const currentSectionKey = activeSection?.key;
+    setSaving(true);
+    setNotice("");
+    try {
+      const updated = await reportService.regenerateTests(report.id) as any;
+      setReport(updated);
+
+      const nextActiveSection = (updated.sections || []).find((section: any) => section.key === currentSectionKey)
+        || (updated.sections || []).find((section: any) => section.id === activeSectionId)
+        || null;
+
+      if (nextActiveSection) {
+        setActiveSectionId(nextActiveSection.id);
+        setEditedText(String(nextActiveSection.edited_text || nextActiveSection.generated_text || ""));
+      }
+
+      setNotice("Secoes de testes regeneradas com sucesso.");
+    } catch (err: any) {
+      setError(err?.message || "Nao foi possivel regenerar as secoes de testes.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleFinalize() {
     if (!report) return;
     setSaving(true);
@@ -661,6 +687,10 @@ export default function ReportDetailPage() {
             <div className="flex gap-2">
               {!isFinalized && (
                 <>
+                  <Button variant="outline" className="gap-2" disabled={saving || completedTests.length === 0} onClick={handleRegenerateTests}>
+                    <RotateCcw className="h-4 w-4" />
+                    Regenerar testes
+                  </Button>
                   <Button variant="outline" className="gap-2" disabled={saving || !activeSection} onClick={isWiscSubscaleActive ? handleRegenerateWiscSubscales : handleRegenerate}>
                     <RotateCcw className="h-4 w-4" />
                     {isWiscSubscaleActive ? "Regenerar Subscalas-Wisc" : "Regenerar secao"}

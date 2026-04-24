@@ -10,21 +10,25 @@ from apps.reports.services.report_section_service import ReportSectionService
 from apps.reports.services.report_version_service import ReportVersionService
 from .section_workflow_service import SectionWorkflowService
 from .report_ai_service import ReportAIService
+from .section_registry import get_section_config
 
 
 class SectionRegenerationService:
     @classmethod
-    def regenerate_section(cls, report: Report, section_key: str, context: dict | None = None, user=None):
+    def _regenerate_section_in_place(
+        cls,
+        report: Report,
+        section_key: str,
+        context: dict,
+        *,
+        ensure_ai_available: bool = True,
+    ):
         section = report.sections.filter(key=section_key).first()
         if not section or section.is_locked:
             return None
 
-        if ReportAIService.supports_section(section_key):
+        if ensure_ai_available and ReportAIService.supports_section(section_key):
             AIHealthcheckService.ensure_available(timeout=30)
-
-        context = context or build_report_snapshot(report.evaluation)
-        report.context_payload = context
-        report.save(update_fields=["context_payload", "updated_at"])
 
         result = ReportPipelineService._generate_single_section(report, section_key, context)
         ReportPipelineService._save_section_result(
@@ -46,6 +50,20 @@ class SectionRegenerationService:
         }
         regenerated.generation_metadata = generation_metadata
         regenerated.save(update_fields=["generation_metadata", "updated_at"])
+        return regenerated
+
+    @classmethod
+    def regenerate_section(
+        cls, report: Report, section_key: str, context: dict | None = None, user=None
+    ):
+        context = context or build_report_snapshot(report.evaluation)
+        report.context_payload = context
+        report.save(update_fields=["context_payload", "updated_at"])
+
+        regenerated = cls._regenerate_section_in_place(report, section_key, context)
+        if not regenerated:
+            return None
+        generation_metadata = regenerated.generation_metadata or {}
 
         report.ai_metadata = {
             **(report.ai_metadata or {}),
@@ -60,6 +78,49 @@ class SectionRegenerationService:
         ReportSectionService._rebuild_report_text(report)
         ReportVersionService.create_version(report, user=user)
         return regenerated
+
+    @classmethod
+    def regenerate_test_sections(
+        cls, report: Report, context: dict | None = None, user=None
+    ) -> list[str]:
+        context = context or build_report_snapshot(report.evaluation)
+        report.context_payload = context
+
+        section_keys = [
+            section.key
+            for section in report.sections.all()
+            if get_section_config(section.key).get("kind") == "test"
+        ]
+        if any(ReportAIService.supports_section(key) for key in section_keys):
+            AIHealthcheckService.ensure_available(timeout=30)
+
+        regenerated_keys: list[str] = []
+        for section_key in section_keys:
+            regenerated = cls._regenerate_section_in_place(
+                report,
+                section_key,
+                context,
+                ensure_ai_available=False,
+            )
+            if regenerated:
+                regenerated_keys.append(section_key)
+
+        report.ai_metadata = {
+            **(report.ai_metadata or {}),
+            "last_test_regeneration": {
+                "regenerated_sections": regenerated_keys,
+                "regenerated_at": timezone.now().isoformat(),
+            },
+            "stale_sections": [
+                item.key
+                for item in report.sections.all()
+                if (item.generation_metadata or {}).get("stale")
+            ],
+        }
+        report.save(update_fields=["context_payload", "ai_metadata", "updated_at"])
+        ReportSectionService._rebuild_report_text(report)
+        ReportVersionService.create_version(report, user=user)
+        return regenerated_keys
 
     @classmethod
     def mark_dependents_stale(cls, report: Report, section_key: str) -> list[str]:

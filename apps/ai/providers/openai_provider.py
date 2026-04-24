@@ -36,11 +36,15 @@ class OpenAIProvider(BaseAIProvider):
     @staticmethod
     def _should_try_fallback(status_code: int, message: str) -> bool:
         normalized = message.lower()
-        return status_code in {429, 502, 503, 504} or any(
+        return status_code in {400, 404, 429, 502, 503, 504} or any(
             token in normalized
             for token in {
                 "provider returned error",
                 "no providers",
+                "no endpoints found",
+                "model not found",
+                "invalid model",
+                "does not exist",
                 "temporarily unavailable",
                 "rate limit",
                 "capacity",

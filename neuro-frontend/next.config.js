@@ -1,4 +1,10 @@
 /** @type {import('next').NextConfig} */
+const apiBaseUrl = process.env.INTERNAL_API_BASE_URL
+  || process.env.NEXT_PUBLIC_API_BASE_URL
+  || (process.env.NODE_ENV === 'development'
+    ? 'http://backend:8000'
+    : 'http://127.0.0.1:8000')
+
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
@@ -9,7 +15,6 @@ const nextConfig = {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || '',
   },
   async rewrites() {
-    const apiBaseUrl = process.env.INTERNAL_API_BASE_URL || 'http://backend:8000';
     return [
       {
         source: '/api/:path*',

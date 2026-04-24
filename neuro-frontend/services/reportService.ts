@@ -20,6 +20,9 @@ export const reportService = {
   regenerateReport: (reportId: number | string) =>
     api.post<Record<string, unknown>>(`/api/reports/${reportId}/regenerate`, {}),
 
+  regenerateTests: (reportId: number | string) =>
+    api.post<Record<string, unknown>>(`/api/reports/${reportId}/regenerate-tests`, {}),
+
   build: (reportId: number | string) =>
     api.post<Record<string, unknown>>(`/api/reports/${reportId}/build`, {}),
 

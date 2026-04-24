@@ -21,6 +21,7 @@ from apps.reports.services.report_export_service import ReportExportService
 from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.report_generation_service import ReportGenerationService
 from apps.reports.services.report_section_service import ReportSectionService
+from apps.reports.services.section_regeneration_service import SectionRegenerationService
 from apps.reports.services.report_review_service import ReportReviewService
 from apps.reports.services.report_validation_service import ReportValidationService
 from apps.reports.services.report_version_service import ReportVersionService
@@ -281,6 +282,25 @@ def build_report(request, report_id: int):
 )
 def regenerate_report(request, report_id: int):
     return build_report(request, report_id)
+
+
+@router.post(
+    "/{report_id}/regenerate-tests",
+    response={200: ReportDetailOut, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def regenerate_test_sections(request, report_id: int):
+    if not can_edit_reports(request.auth):
+        return 403, {"message": "Permissão negada."}
+    report, error = _get_report_or_404(report_id)
+    if error:
+        return error
+    try:
+        SectionRegenerationService.regenerate_test_sections(report, user=request.auth)
+    except ValueError as exc:
+        return 400, {"message": str(exc)}
+    report.refresh_from_db()
+    return 200, serialize_report(report, include_sections=True, include_versions=True)
 
 
 @router.post(
