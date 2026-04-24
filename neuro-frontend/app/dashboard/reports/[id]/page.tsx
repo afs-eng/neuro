@@ -293,6 +293,27 @@ export default function ReportDetailPage() {
     }
   }, [searchParams]);
 
+  const handleRebuildReport = useCallback(async () => {
+    if (!report) return;
+    setSaving(true);
+    setNotice("");
+    try {
+      const updated = await reportService.build(report.id);
+      setReport(updated);
+      if ((updated as any)?.sections?.length) {
+        const firstSection = (updated as any).sections[0];
+        setActiveSectionId(firstSection.id);
+        setEditedText(firstSection.edited_text || firstSection.generated_text || "");
+      }
+      setNotice("Laudo reconstruido com os testes validados mais recentes.");
+      await loadReport();
+    } catch (err: any) {
+      setError(err?.message || "Nao foi possivel reconstruir o laudo.");
+    } finally {
+      setSaving(false);
+    }
+  }, [loadReport, report]);
+
   useEffect(() => {
     if (searchParams.get("autobuild") !== "1") return;
     if (!report || report.status === "generating") return;
@@ -304,7 +325,7 @@ export default function ReportDetailPage() {
     handleRebuildReport().catch(() => {
       autobuildTriggeredRef.current = false;
     });
-  }, [missingSections, report, searchParams]);
+  }, [handleRebuildReport, missingSections, report, searchParams]);
 
   useEffect(() => {
     if (!report || report.status !== "generating") return;
@@ -412,27 +433,6 @@ export default function ReportDetailPage() {
       await loadReport();
     } catch (err: any) {
       setError(err?.message || "Nao foi possivel finalizar o laudo.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleRebuildReport() {
-    if (!report) return;
-    setSaving(true);
-    setNotice("");
-    try {
-      const updated = await reportService.build(report.id);
-      setReport(updated);
-      if ((updated as any)?.sections?.length) {
-        const firstSection = (updated as any).sections[0];
-        setActiveSectionId(firstSection.id);
-        setEditedText(firstSection.edited_text || firstSection.generated_text || "");
-      }
-      setNotice("Laudo reconstruido com os testes validados mais recentes.");
-      await loadReport();
-    } catch (err: any) {
-      setError(err?.message || "Nao foi possivel reconstruir o laudo.");
     } finally {
       setSaving(false);
     }

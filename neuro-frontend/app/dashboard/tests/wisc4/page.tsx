@@ -237,7 +237,8 @@ function WISC4FormPageContent() {
                 {indices.map((idx) => {
                   const subtestScores = idx.subtests.map(code => scores[code])
                   const hasMissingScores = subtestScores.some(score => score == null)
-                  const sum = hasMissingScores ? null : subtestScores.reduce((a, b) => a + (b ?? 0), 0)
+                  const presentScores = subtestScores.filter((score): score is number => score != null)
+                  const sum = hasMissingScores ? null : presentScores.reduce((total, score) => total + score, 0)
                   return (
                     <div key={idx.code} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                       <div className="flex items-center justify-between">
