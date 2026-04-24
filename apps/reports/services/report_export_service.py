@@ -31,6 +31,7 @@ from apps.reports.models import Report
 from apps.reports.builders.references_builder import build_references
 from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.ptbr_text_service import PtBrTextService
+from apps.reports.services.wisc4_standardization import WISC4StandardizationService
 from apps.tests.srs2.interpreters import interpret_srs2_results
 from apps.tests.ravlt.norms import NORMS as RAVLT_NORMS
 from apps.tests.ravlt.norms import get_age_band as get_ravlt_age_band
@@ -77,7 +78,20 @@ class ReportExportService:
     EMPTY_INTERPRETATION_MESSAGES = {
         "Nenhum instrumento específico deste domínio apresentou interpretação clínica consolidada.",
     }
+    FIXED_AUTHOR = "Jacqueline Oliveira Caires (CRP 09/6017)"
+    FIXED_PURPOSE = "Averiguação das capacidades cognitivas para auxílio diagnóstico"
     logger = logging.getLogger(__name__)
+
+    @classmethod
+    def _wisc_section_text(cls, sections: dict, section_key: str, context: dict) -> str:
+        text = (sections.get(section_key) or "").strip()
+        if text:
+            return text
+
+        if WISC4StandardizationService.supports(section_key, context):
+            return PtBrTextService.normalize(WISC4StandardizationService.build(section_key, context))
+
+        return ""
     INSTRUMENT_CATALOG = {
         "anamnese": {
             "nome": "Anamnese",
@@ -247,9 +261,9 @@ class ReportExportService:
         content = str(report.final_text or report.edited_text or "")
         created_at = report.created_at.strftime("%d/%m/%Y") if report.created_at else ""
         patient_name = report.patient.full_name if report.patient else ""
-        author_name = report.author.display_name if report.author else "Sistema"
+        author_name = cls.FIXED_AUTHOR
         interested_party = report.interested_party or patient_name
-        purpose = report.purpose or "Auxílio diagnóstico e planejamento clínico."
+        purpose = cls.FIXED_PURPOSE
 
         return f"""
         <html>
@@ -322,21 +336,14 @@ class ReportExportService:
 
         patient = context.get("patient") or {}
         evaluation = context.get("evaluation") or {}
-        author_name = getattr(
-            getattr(report, "author", None), "display_name", "Profissional responsável"
-        )
+        author_name = cls.FIXED_AUTHOR
         interested_party = (
             report.interested_party
             or patient.get("responsible_name")
             or patient.get("full_name")
             or "Não informado"
         )
-        purpose = (
-            report.purpose
-            or evaluation.get("evaluation_purpose")
-            or evaluation.get("referral_reason")
-            or "Auxílio diagnóstico e planejamento clínico."
-        )
+        purpose = cls.FIXED_PURPOSE
 
         cls._add_center_title(document, report.title or "Laudo Neuropsicológico")
         cls._add_center_text(document, "Documento gerado sem papel timbrado do template.")
@@ -437,9 +444,7 @@ class ReportExportService:
         cls._apply_base_styles(document)
         patient = context.get("patient") or {}
         evaluation = context.get("evaluation") or {}
-        author_name = getattr(
-            getattr(report, "author", None), "display_name", "Profissional responsável"
-        )
+        author_name = cls.FIXED_AUTHOR
         interested_party = (
             report.interested_party
             or patient.get("responsible_name")
@@ -497,12 +502,7 @@ class ReportExportService:
                 test_payload,
             )
 
-        purpose = (
-            report.purpose
-            or evaluation.get("evaluation_purpose")
-            or evaluation.get("referral_reason")
-            or "Averiguação das capacidades cognitivas para auxílio diagnóstico"
-        )
+        purpose = cls.FIXED_PURPOSE
 
         cls._add_center_title(document, "LAUDO DE AVALIAÇÃO NEUROPSICOLÓGICA")
         cls._add_center_text(
@@ -543,9 +543,8 @@ class ReportExportService:
         )
 
         cls._append_heading(document, "3. PROCEDIMENTOS")
-        cls._append_paragraph(document, cls._procedures_intro(context))
         for item in cls._adolescent_instruments(context):
-            cls._append_bullet(document, f"{item['name']}: {item['description']}")
+            cls._append_procedure_bullet(document, item["name"], item["description"])
 
         cls._append_heading(document, "4. ANÁLISE")
         cls._append_subheading(document, "4.1. História Pessoal")
@@ -574,14 +573,14 @@ class ReportExportService:
                 cls._find_test(context, "wisc4"), context, "funcoes_executivas"
             ),
             "wisc",
-            sections.get("funcoes_executivas"),
+            cls._wisc_section_text(sections, "funcoes_executivas", context),
             "Resultado da Função executiva",
         )
         cls._append_subheading(document, "5.2.2. Linguagem")
         append_table_with_interpretation(
             cls._wisc_rows(cls._find_test(context, "wisc4"), context, "linguagem"),
             "wisc",
-            sections.get("linguagem"),
+            cls._wisc_section_text(sections, "linguagem", context),
             "Resultado da Linguagem",
         )
         cls._append_subheading(document, "5.2.3. Gnosias e Praxias")
@@ -590,14 +589,14 @@ class ReportExportService:
                 cls._find_test(context, "wisc4"), context, "gnosias_praxias"
             ),
             "wisc",
-            sections.get("gnosias_praxias"),
+            cls._wisc_section_text(sections, "gnosias_praxias", context),
             "Resultados da Gnosias e praxias",
         )
         cls._append_subheading(document, "5.2.4. Memória e Aprendizagem")
         append_table_with_interpretation(
             cls._wisc_memory_rows(cls._find_test(context, "wisc4"), context),
             "wisc",
-            sections.get("memoria_aprendizagem"),
+            cls._wisc_section_text(sections, "memoria_aprendizagem", context),
             "Resultados da Memória e aprendizagem",
         )
 
@@ -1043,7 +1042,7 @@ class ReportExportService:
         if is_adolescent:
             add_title("5.2. Subescalas WISC-IV")
             add_title("5.2.1. Função Executiva")
-            add_text(sections.get("funcoes_executivas", ""))
+            add_text(cls._wisc_section_text(sections, "funcoes_executivas", context))
             add_table(
                 "Resultado da Função executiva",
                 cls._wisc_rows(tests.get("wisc4"), context, "funcoes_executivas"),
@@ -1051,7 +1050,7 @@ class ReportExportService:
             )
 
             add_title("5.2.2. Linguagem")
-            add_text(sections.get("linguagem", ""))
+            add_text(cls._wisc_section_text(sections, "linguagem", context))
             add_table(
                 "Resultados da Linguagem",
                 cls._wisc_rows(tests.get("wisc4"), context, "linguagem"),
@@ -1059,7 +1058,7 @@ class ReportExportService:
             )
 
             add_title("5.2.3. Gnosias e Praxias")
-            add_text(sections.get("gnosias_praxias", ""))
+            add_text(cls._wisc_section_text(sections, "gnosias_praxias", context))
             add_table(
                 "Resultados da Gnosias e praxias",
                 cls._wisc_rows(tests.get("wisc4"), context, "gnosias_praxias"),
@@ -1067,7 +1066,7 @@ class ReportExportService:
             )
 
             add_title("5.2.4. Memória e Aprendizagem")
-            add_text(sections.get("memoria_aprendizagem", ""))
+            add_text(cls._wisc_section_text(sections, "memoria_aprendizagem", context))
             add_table(
                 "Resultados da Memória e aprendizagem",
                 cls._wisc_memory_rows(tests.get("wisc4"), context),
@@ -1705,6 +1704,31 @@ class ReportExportService:
         p.paragraph_format.first_line_indent = Cm(-0.25)
 
     @classmethod
+    def _append_procedure_bullet(cls, document, name: str, description: str):
+        name = PtBrTextService.normalize(name)
+        description = PtBrTextService.normalize(description)
+        try:
+            p = document.add_paragraph(style="List Bullet")
+            bullet_run = None
+        except KeyError:
+            p = document.add_paragraph()
+            bullet_run = p.add_run("• ")
+            bullet_run.font.name = cls.FONT_NAME
+            bullet_run.font.size = cls.BODY_SIZE
+        label_run = p.add_run(f"{name}: ")
+        label_run.font.name = cls.FONT_NAME
+        label_run.font.size = cls.BODY_SIZE
+        label_run.bold = True
+        value_run = p.add_run(description)
+        value_run.font.name = cls.FONT_NAME
+        value_run.font.size = cls.BODY_SIZE
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = 1.0
+        p.paragraph_format.left_indent = Cm(0.75)
+        p.paragraph_format.first_line_indent = Cm(-0.25)
+
+    @classmethod
     def _append_numbered_item(cls, document, text: str):
         text = PtBrTextService.normalize(text)
         p = document.add_paragraph()
@@ -2037,24 +2061,6 @@ class ReportExportService:
     @staticmethod
     def _schooling_text(patient: dict) -> str:
         return patient.get("grade_year") or patient.get("schooling") or "Não informada"
-
-    @classmethod
-    def _procedures_intro(cls, context: dict) -> str:
-        sessions = len(context.get("progress_entries") or []) or 5
-        age_text = cls._age_text(context)
-        subject = "paciente"
-        if age_text != "Não informada":
-            try:
-                years = int(str(age_text).split(" ", 1)[0])
-                if years < 12:
-                    subject = "criança"
-                elif years < 18:
-                    subject = "adolescente"
-                else:
-                    subject = "paciente"
-            except (TypeError, ValueError):
-                subject = "paciente"
-        return f"Para esta avaliação foram realizadas: uma sessão de anamnese, {sessions:02d} sessões de testagem com o(a) {subject} e uma sessão de devolutiva com familiar responsável."
 
     @classmethod
     def _adolescent_instruments(cls, context: dict):

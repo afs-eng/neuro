@@ -20,6 +20,29 @@ from apps.reports.services.report_version_service import ReportVersionService
 
 
 class ReportGenerationService:
+    FIXED_AUTHOR = "Jacqueline Oliveira Caires (CRP 09/6017)"
+    FIXED_PURPOSE = "Averiguação das capacidades cognitivas para auxílio diagnóstico"
+    PROCEDURE_CATALOG = {
+        "anamnese": "Entrevista clínica inicial destinada ao levantamento da história do desenvolvimento, queixas atuais, antecedentes médicos, escolares, familiares, emocionais e comportamentais, com o objetivo de contextualizar os dados obtidos nos demais instrumentos.",
+        "wisc4": "Utilizada para avaliar o funcionamento intelectual global, os índices fatoriais (Compreensão Verbal, Organização Perceptual, Memória Operacional e Velocidade de Processamento) e fornecer indicadores sobre o perfil cognitivo.",
+        "bpa2": "Avalia a capacidade geral de atenção, incluindo atenção concentrada, alternada, dividida e atenção global.",
+        "fdt": "Investiga a velocidade de processamento, controle inibitório, alternância e flexibilidade cognitiva.",
+        "ravlt": "Avalia memória verbal episódica, aquisição, retenção, recuperação e resistência à interferência.",
+        "etdah_pais": "Questionário para identificação de sintomas de desatenção, impulsividade, hiperatividade, regulação emocional e comportamento adaptativo, a partir da percepção dos responsáveis.",
+        "scared": "Avalia sintomas ansiosos em crianças e adolescentes, incluindo ansiedade generalizada, ansiedade de separação, fobia social, pânico e sintomas somáticos, com base no autorrelato.",
+        "epq_j": "Avalia traços de personalidade em crianças e adolescentes, contemplando dimensões como extroversão, neuroticismo, psicoticismo e sinceridade.",
+    }
+    PROCEDURE_NAMES = {
+        "anamnese": "Anamnese",
+        "wisc4": "Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV)",
+        "bpa2": "Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2)",
+        "fdt": "Teste dos Cinco Dígitos (FDT)",
+        "ravlt": "Teste de Aprendizagem Auditivo-Verbal de Rey (RAVLT)",
+        "etdah_pais": "Escala para Transtorno de Déficit de Atenção e Hiperatividade – Versão Pais (E-TDAH-PAIS)",
+        "scared": "SCARED – Autorrelato (Screen for Child Anxiety Related Emotional Disorders)",
+        "epq_j": "Inventário de Personalidade de Eysenck para Jovens (EPQ-J)",
+    }
+    PROCEDURE_ORDER = ["anamnese", "wisc4", "bpa2", "fdt", "ravlt", "etdah_pais", "scared", "epq_j"]
     AI_FALLBACK_WARNING = "A IA nao esta disponivel no momento; o texto foi gerado pelo fallback deterministico."
     EMPTY_INTERPRETATION_MESSAGES = {
         "Nenhum instrumento específico deste domínio apresentou interpretação clínica consolidada.",
@@ -299,28 +322,27 @@ class ReportGenerationService:
 
     @classmethod
     def _procedure_lines(cls, context: dict) -> list[str]:
-        entries = context.get("progress_entries") or []
-        session_count = max(len(entries), 1)
-        current_response = (context.get("anamnesis") or {}).get(
-            "current_response"
-        ) or {}
-        devolutiva = current_response.get("submitted_by_name") or cls._pick_answer(
-            context, "primary_guardian", "submitted_by_name"
-        )
-        lines = [
-            f"Para esta avaliação foram realizadas: uma sessão de anamnese, {session_count:02d} sessões de testagem e uma sessão de devolutiva{' com ' + devolutiva if devolutiva else ''}.",
-            "Anamnese estruturada, observação clínica e análise documental foram utilizadas como fontes complementares.",
-        ]
+        validated_codes = []
+        seen_codes = {"anamnese"}
         for test in context.get("validated_tests") or []:
-            instrument = (
-                test.get("instrument_name") or test.get("instrument") or "Instrumento"
-            )
-            summary = (
-                test.get("summary")
-                or test.get("clinical_interpretation")
-                or "Utilizado para composição clínica do caso."
-            )
-            lines.append(f"{instrument}: {summary}")
+            code = test.get("instrument_code")
+            if not code or code in seen_codes:
+                continue
+            seen_codes.add(code)
+            validated_codes.append(code)
+
+        ordered_codes = [
+            code for code in cls.PROCEDURE_ORDER if code == "anamnese" or code in validated_codes
+        ]
+
+        lines = []
+        for code in ordered_codes:
+            name = cls.PROCEDURE_NAMES.get(code)
+            description = cls.PROCEDURE_CATALOG.get(code)
+            if not name or not description:
+                continue
+            lines.append(f"• {name}: {description}")
+
         return lines
 
     @staticmethod
@@ -737,9 +759,7 @@ class ReportGenerationService:
         patient = context["patient"]
         evaluation = context["evaluation"]
         is_adolescent = cls._is_adolescent_case(context)
-        professional = (
-            report.author.display_name if report.author else "Profissional responsável"
-        )
+        professional = cls.FIXED_AUTHOR
 
         if key == "identificacao":
             interested_party = report.interested_party or patient["full_name"]
@@ -753,7 +773,7 @@ class ReportGenerationService:
                     "1.1. Identificação do laudo:",
                     f"Autora: {professional}",
                     f"Interessado: {interested_party}",
-                    f"Finalidade: {report.purpose or 'Auxílio diagnóstico e planejamento clínico.'}",
+                    f"Finalidade: {cls.FIXED_PURPOSE}",
                     "",
                     "1.2. Identificação do paciente:",
                     f"Nome: {patient['full_name']}",
@@ -801,20 +821,7 @@ class ReportGenerationService:
             )
 
         if key == "procedimentos":
-            if is_adolescent:
-                return "\n".join(cls._procedure_lines(context))
-            test_list = cls._tests_bullet_list(context.get("validated_tests") or [])
-            return "\n".join(
-                [
-                    "Para a presente avaliação foram considerados os seguintes procedimentos e fontes de informação:",
-                    "- Entrevista/anamnese estruturada.",
-                    "- Registros de evolução clínica incluídos no laudo.",
-                    f"- Documentos complementares: {cls._document_summary(context)}.",
-                    "- Instrumentos psicológicos/neuropsicológicos validados:",
-                    test_list,
-                    f"- Total de registros evolutivos incluídos: {len(context.get('progress_entries') or [])}.",
-                ]
-            )
+            return "\n".join(cls._procedure_lines(context))
 
         if key == "historia_pessoal":
             if is_adolescent:
