@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from django.utils import timezone
 
+from apps.ai.services.ai_healthcheck_service import AIHealthcheckService
 from apps.reports.builders.snapshot_builder import build_report_snapshot
 from apps.reports.models import Report
 from apps.reports.services.report_pipeline_service import ReportPipelineService
 from apps.reports.services.report_section_service import ReportSectionService
 from apps.reports.services.report_version_service import ReportVersionService
 from .section_workflow_service import SectionWorkflowService
+from .report_ai_service import ReportAIService
 
 
 class SectionRegenerationService:
@@ -16,6 +18,9 @@ class SectionRegenerationService:
         section = report.sections.filter(key=section_key).first()
         if not section or section.is_locked:
             return None
+
+        if ReportAIService.supports_section(section_key):
+            AIHealthcheckService.ensure_available(timeout=30)
 
         context = context or build_report_snapshot(report.evaluation)
         report.context_payload = context

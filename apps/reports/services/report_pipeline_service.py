@@ -7,7 +7,6 @@ from apps.reports.models import Report, ReportSection, ReportStatus
 from apps.reports.services.clinical_consistency_audit_service import (
     ClinicalConsistencyAuditService,
 )
-from apps.reports.services.report_ai_service import ReportAIService
 from apps.reports.services.report_generation_service import ReportGenerationService
 from apps.reports.services.report_review_service import ReportReviewService
 from apps.reports.services.report_section_service import ReportSectionService
@@ -173,9 +172,6 @@ class ReportPipelineService:
 
     @classmethod
     def _generate_single_section(cls, report: Report, section_key: str, context: dict) -> dict:
-        if ReportAIService.supports_section(section_key):
-            return ReportAIService.generate_section(report, section_key, context)
-
         content, metadata, warnings = ReportGenerationService._generate_section_payload(
             report, section_key, context
         )

@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.db import close_old_connections
 from django.utils.text import slugify
 
+from apps.ai.services.ai_healthcheck_service import AIHealthcheckService
 from apps.accounts.models import UserRole
 from apps.api.auth import bearer_auth
 from apps.evaluations.models import Evaluation
@@ -203,6 +204,14 @@ def _generate_report_for_evaluation(evaluation_id: int, user):
     except Exception as exc:
         return None, (400, {"message": str(exc)})
 
+    context = ReportGenerationService.construct_clinical_context(evaluation)
+    sections_config = ReportGenerationService._enabled_sections_config(context)
+    if any(ReportGenerationService._has_ai_section(key) for key, _ in sections_config):
+        try:
+            AIHealthcheckService.ensure_available(timeout=30)
+        except ValueError as exc:
+            return None, (400, {"message": str(exc)})
+
     report = Report.objects.create(
         evaluation=evaluation,
         patient=evaluation.patient,
@@ -257,7 +266,10 @@ def build_report(request, report_id: int):
     if error:
         return error
 
-    ReportGenerationService.generate_full_report(report, user=request.auth)
+    try:
+        ReportGenerationService.generate_full_report(report, user=request.auth)
+    except ValueError as exc:
+        return 400, {"message": str(exc)}
     report.refresh_from_db()
     return 200, serialize_report(report, include_sections=True, include_versions=True)
 

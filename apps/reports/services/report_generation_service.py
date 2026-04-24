@@ -2,6 +2,7 @@ import re
 
 from django.utils import timezone
 
+from apps.ai.services.ai_healthcheck_service import AIHealthcheckService
 from apps.evaluations.models import EvaluationStatus
 from apps.reports.models import Report, ReportSection, ReportStatus
 from apps.reports.builders.references_builder import build_references_text
@@ -42,6 +43,10 @@ class ReportGenerationService:
     def get_sections_config():
         return [(key, config["title"]) for key, config in list_section_configs()]
 
+    @staticmethod
+    def _has_ai_section(section_key: str) -> bool:
+        return bool(get_section_config(section_key).get("supports_ai"))
+
     @classmethod
     def _has_test(cls, context: dict, *codes: str) -> bool:
         available = {
@@ -72,6 +77,9 @@ class ReportGenerationService:
     @classmethod
     def generate_full_report(cls, report: Report, user=None):
         context = cls.construct_clinical_context(report.evaluation)
+        sections_config = cls._enabled_sections_config(context)
+        if any(ReportAIService.supports_section(key) for key, _ in sections_config):
+            AIHealthcheckService.ensure_available(timeout=30)
         from apps.reports.services.report_pipeline_service import ReportPipelineService
 
         ReportPipelineService.generate_full_report(report, context, user=user)
