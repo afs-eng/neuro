@@ -3,7 +3,7 @@ from .section_registry import get_ai_section_config
 
 class SectionContextService:
     WISC_SECTION_SUBTEST_CODES = {
-        "funcoes_executivas": {"SM", "CO", "CN", "RM", "SNL"},
+        "funcoes_executivas": {"SM", "CO", "CN", "RM"},
         "linguagem": {"SM", "VC", "CO"},
         "gnosias_praxias": {"RM", "CB"},
         "memoria_aprendizagem": {"DG", "SNL"},
