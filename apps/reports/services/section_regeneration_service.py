@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from apps.ai.services.ai_healthcheck_service import AIHealthcheckService
 from apps.reports.builders.snapshot_builder import build_report_snapshot
-from apps.reports.models import Report
+from apps.reports.models import Report, ReportStatus
 from apps.reports.services.report_pipeline_service import ReportPipelineService
 from apps.reports.services.report_section_service import ReportSectionService
 from apps.reports.services.report_version_service import ReportVersionService
@@ -84,7 +84,9 @@ class SectionRegenerationService:
         cls, report: Report, context: dict | None = None, user=None
     ) -> list[str]:
         context = context or build_report_snapshot(report.evaluation)
+        report.status = ReportStatus.GENERATING
         report.context_payload = context
+        report.save(update_fields=["status", "context_payload", "updated_at"])
 
         section_keys = [
             section.key
@@ -117,7 +119,17 @@ class SectionRegenerationService:
                 if (item.generation_metadata or {}).get("stale")
             ],
         }
-        report.save(update_fields=["context_payload", "ai_metadata", "updated_at"])
+        report.status = ReportStatus.IN_REVIEW
+        report.generated_at = timezone.now()
+        report.save(
+            update_fields=[
+                "context_payload",
+                "ai_metadata",
+                "status",
+                "generated_at",
+                "updated_at",
+            ]
+        )
         ReportSectionService._rebuild_report_text(report)
         ReportVersionService.create_version(report, user=user)
         return regenerated_keys

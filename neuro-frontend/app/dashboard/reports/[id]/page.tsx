@@ -431,6 +431,11 @@ export default function ReportDetailPage() {
       const updated = await reportService.regenerateTests(report.id) as any;
       setReport(updated);
 
+      if (updated?.status === "generating") {
+        setNotice("Regeneracao dos testes iniciada. A pagina sera atualizada automaticamente quando as secoes ficarem prontas.");
+        return;
+      }
+
       const nextActiveSection = (updated.sections || []).find((section: any) => section.key === currentSectionKey)
         || (updated.sections || []).find((section: any) => section.id === activeSectionId)
         || null;

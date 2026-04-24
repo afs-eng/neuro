@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PageContainer, PageHeader, EmptyState, SectionCard } from "@/components/ui/page";
+import { PageContainer, PageHeader, EmptyState } from "@/components/ui/page";
 import { Plus, Search, User, Calendar, ClipboardList, Filter, MoreHorizontal, ArrowRight, Clock, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api";
+import { compareEvaluationsByDeadline, getEvaluationDeadlineMeta } from "@/lib/evaluation-deadline";
 
 interface Evaluation {
   id: number;
@@ -52,7 +52,6 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export default function EvaluationsPage() {
-  const router = useRouter();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,12 +72,16 @@ export default function EvaluationsPage() {
     }
   }
 
-  const filteredEvaluations = Array.isArray(evaluations) ? evaluations.filter(
-    (e) =>
-      (e.patient_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (e.code?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (e.title?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-  ) : [];
+  const filteredEvaluations = Array.isArray(evaluations)
+    ? evaluations
+        .filter(
+          (e) =>
+            (e.patient_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+            (e.code?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+            (e.title?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+        )
+        .sort(compareEvaluationsByDeadline)
+    : [];
 
   if (loading) {
     return (
@@ -130,54 +133,66 @@ export default function EvaluationsPage() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {filteredEvaluations.map((evaluation) => (
-            <Link key={evaluation.id} href={`/dashboard/evaluations/${evaluation.id}`}>
-              <div className="group flex flex-col p-8 rounded-[40px] border border-slate-100 bg-white hover:border-primary/20 hover:shadow-spike transition-all relative">
-                <div className="flex items-start justify-between mb-8">
-                   <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 group-hover:text-primary/40 transition-colors">{evaluation.code}</span>
-                      <h3 className="text-xl font-black tracking-tight text-slate-900 group-hover:text-primary transition-colors">{evaluation.patient_name}</h3>
-                   </div>
-                   <button className="h-10 w-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 opacity-0 group-hover:opacity-100 transition-all">
-                      <MoreHorizontal className="h-5 w-5" />
-                   </button>
-                </div>
+          {filteredEvaluations.map((evaluation) => {
+            const deadlineMeta = getEvaluationDeadlineMeta(evaluation.end_date, evaluation.status);
 
-                <div className="flex-1 space-y-6">
-                   {evaluation.title && (
-                      <p className="text-sm font-bold text-slate-500 line-clamp-2 leading-relaxed">
+            return (
+              <Link key={evaluation.id} href={`/dashboard/evaluations/${evaluation.id}`}>
+                <div className="group relative flex flex-col rounded-[40px] border border-slate-100 bg-white p-8 transition-all hover:border-primary/20 hover:shadow-spike">
+                  <div className="mb-8 flex items-start justify-between">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 transition-colors group-hover:text-primary/40">{evaluation.code}</span>
+                      <h3 className="text-xl font-black tracking-tight text-slate-900 transition-colors group-hover:text-primary">{evaluation.patient_name}</h3>
+                    </div>
+                    <button className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 opacity-0 transition-all group-hover:opacity-100">
+                      <MoreHorizontal className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 space-y-6">
+                    {evaluation.title && (
+                      <p className="line-clamp-2 text-sm font-bold leading-relaxed text-slate-500">
                         {evaluation.title}
                       </p>
-                   )}
+                    )}
 
-                   <div className="flex flex-wrap gap-3">
-                      <Badge className={`${STATUS_COLORS[evaluation.status] || "bg-slate-100"} border rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest shadow-none`}>
+                    <div className="flex flex-wrap gap-3">
+                      <Badge className={`${STATUS_COLORS[evaluation.status] || "bg-slate-100"} rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest shadow-none`}>
                         {evaluation.status_display}
                       </Badge>
-                      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[9px] font-black uppercase tracking-widest ${PRIORITY_COLORS[evaluation.priority]}`}>
-                         {PRIORITY_ICONS[evaluation.priority]}
-                         {evaluation.priority_display}
+                      <div className={`flex items-center gap-1.5 rounded-full border border-slate-100 bg-slate-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest ${PRIORITY_COLORS[evaluation.priority]}`}>
+                        {PRIORITY_ICONS[evaluation.priority]}
+                        {evaluation.priority_display}
                       </div>
-                   </div>
-                </div>
+                      <div className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-widest ${deadlineMeta.badgeClassName}`}>
+                        {deadlineMeta.label}
+                      </div>
+                    </div>
 
-                <div className="mt-10 pt-6 border-t border-slate-50 flex items-center justify-between">
-                   <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center -ml-1 first:ml-0">
-                         <User className="h-4 w-4 text-slate-400" />
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400">
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>{deadlineMeta.helperText}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-10 flex items-center justify-between border-t border-slate-50 pt-6">
+                    <div className="flex items-center gap-2">
+                      <div className="-ml-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-100 first:ml-0">
+                        <User className="h-4 w-4 text-slate-400" />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {evaluation.examiner_name?.split(' ')[0] || "Sistema"}
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        {evaluation.examiner_name?.split(" ")[0] || "Sistema"}
                       </span>
-                   </div>
-                   <div className="flex items-center gap-2 text-primary">
+                    </div>
+                    <div className="flex items-center gap-2 text-primary">
                       <span className="text-[10px] font-black uppercase tracking-widest">Ver Processo</span>
-                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                   </div>
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </PageContainer>

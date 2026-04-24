@@ -29,6 +29,7 @@ config/db.sqlite3
 
 # Generated documents (patient-specific)
 *.docx
+!apps/reports/templates_assets/*.docx
 
 # Environment files (contain secrets)
 .env

@@ -38,9 +38,10 @@ from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
 
 
 class ReportExportService:
-    DEFAULT_TEMPLATE_PATH = settings.BASE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
-    ADOLESCENT_TEMPLATE_PATH = settings.BASE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
-    TABLE_STYLE_SOURCE_PATH = settings.BASE_DIR / "Modelo-WISC.docx"
+    TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates_assets"
+    DEFAULT_TEMPLATE_PATH = TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
+    ADOLESCENT_TEMPLATE_PATH = TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
+    TABLE_STYLE_SOURCE_PATH = TEMPLATE_DIR / "Modelo-WISC.docx"
     FONT_NAME = "Times New Roman"
     BODY_SIZE = Pt(12)
     TABLE_SIZE = Pt(9)
@@ -76,6 +77,7 @@ class ReportExportService:
     EMPTY_INTERPRETATION_MESSAGES = {
         "Nenhum instrumento específico deste domínio apresentou interpretação clínica consolidada.",
     }
+    logger = logging.getLogger(__name__)
     INSTRUMENT_CATALOG = {
         "anamnese": {
             "nome": "Anamnese",
@@ -282,13 +284,14 @@ class ReportExportService:
         }
 
         template_path = cls._select_template_path(report)
-        if not template_path.exists():
-            raise FileNotFoundError(
-                f"Template DOCX não encontrado: {template_path.name}"
-            )
-
         if cls._is_adolescent_context(context, report):
             document = cls._build_adolescent_document(report, context, sections)
+        elif not template_path.exists():
+            cls.logger.warning(
+                "Template DOCX ausente em %s. Gerando fallback sem papel timbrado.",
+                template_path,
+            )
+            document = cls._build_fallback_document(report, context)
         else:
             document = Document(str(template_path))
             cls._ensure_model_table_styles(document)
@@ -310,6 +313,68 @@ class ReportExportService:
         if age is not None and age < 18 and cls.ADOLESCENT_TEMPLATE_PATH.exists():
             return cls.ADOLESCENT_TEMPLATE_PATH
         return cls.DEFAULT_TEMPLATE_PATH
+
+    @classmethod
+    def _build_fallback_document(cls, report: Report, context: dict):
+        document = Document()
+        cls._ensure_model_table_styles(document)
+        cls._apply_base_styles(document)
+
+        patient = context.get("patient") or {}
+        evaluation = context.get("evaluation") or {}
+        author_name = getattr(
+            getattr(report, "author", None), "display_name", "Profissional responsável"
+        )
+        interested_party = (
+            report.interested_party
+            or patient.get("responsible_name")
+            or patient.get("full_name")
+            or "Não informado"
+        )
+        purpose = (
+            report.purpose
+            or evaluation.get("evaluation_purpose")
+            or evaluation.get("referral_reason")
+            or "Auxílio diagnóstico e planejamento clínico."
+        )
+
+        cls._add_center_title(document, report.title or "Laudo Neuropsicológico")
+        cls._add_center_text(document, "Documento gerado sem papel timbrado do template.")
+
+        cls._append_heading(document, "1. IDENTIFICAÇÃO")
+        cls._append_label_value(document, "Autora", author_name)
+        cls._append_label_value(document, "Interessado", interested_party)
+        cls._append_label_value(document, "Finalidade", purpose)
+        cls._append_label_value(
+            document, "Paciente", patient.get("full_name") or "Não informado"
+        )
+        cls._append_label_value(
+            document,
+            "Data de nascimento",
+            cls._format_date_display(patient.get("birth_date")),
+        )
+        cls._append_label_value(document, "Idade", cls._age_text(context))
+
+        body_text = str(report.final_text or report.edited_text or report.generated_text or "")
+        for raw_line in body_text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith("### "):
+                cls._append_subheading(document, line[4:].strip())
+                continue
+            if line.startswith("## "):
+                cls._append_heading(document, line[3:].strip())
+                continue
+            cls._append_paragraph(document, line)
+
+        if not body_text.strip():
+            cls._append_paragraph(
+                document,
+                "O laudo ainda não possui conteúdo textual consolidado para exportação.",
+            )
+
+        return document
 
     @classmethod
     def _is_adolescent_document(cls, document: Document, context: dict) -> bool:

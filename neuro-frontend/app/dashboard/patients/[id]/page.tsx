@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { getEvaluationDeadlineMeta } from "@/lib/evaluation-deadline";
 import { PageContainer, PageHeader, SectionCard, InfoCard, EmptyState } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -368,52 +369,64 @@ export default function PatientDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     {evaluations.map((evaluation) => (
-                      <div
-                        key={evaluation.id}
-                        className="group flex items-start justify-between gap-4 rounded-xl border border-slate-100 p-4 transition-all hover:border-primary/30 hover:bg-slate-50"
-                      >
-                        <Link
-                          href={`/dashboard/evaluations/${evaluation.id}/overview`}
-                          className="flex flex-1 items-start gap-4"
-                        >
-                          <div className="space-y-1 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-primary">{evaluation.code}</span>
-                              <span className="h-1 w-1 rounded-full bg-slate-300" />
-                              <span className="text-sm font-bold text-slate-900">{evaluation.title || "Sem título"}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500">
-                              <span className="font-semibold">{evaluation.status_display}</span>
-                              <span className="h-1 w-1 rounded-full bg-slate-300" />
-                              <span>{evaluation.priority_display}</span>
-                              {evaluation.start_date && (
-                                <>
+                      (() => {
+                        const deadlineMeta = getEvaluationDeadlineMeta(evaluation.end_date, evaluation.status);
+
+                        return (
+                          <div
+                            key={evaluation.id}
+                            className="group flex items-start justify-between gap-4 rounded-xl border border-slate-100 p-4 transition-all hover:border-primary/30 hover:bg-slate-50"
+                          >
+                           <Link
+                              href={`/dashboard/evaluations/${evaluation.id}/overview`}
+                              className="flex flex-1 items-start gap-4"
+                            >
+                              <div className="space-y-1 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-primary">{evaluation.code}</span>
                                   <span className="h-1 w-1 rounded-full bg-slate-300" />
-                                  <span>Início: {formatDate(evaluation.start_date)}</span>
-                                </>
-                              )}
+                                  <span className="text-sm font-bold text-slate-900">{evaluation.title || "Sem título"}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-slate-500">
+                                  <span className="font-semibold">{evaluation.status_display}</span>
+                                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                  <span>{evaluation.priority_display}</span>
+                                  {evaluation.start_date && (
+                                    <>
+                                      <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                     <span>Início: {formatDate(evaluation.start_date)}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                  <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${deadlineMeta.badgeClassName}`}>
+                                    {deadlineMeta.label}
+                                </span>
+                                <span className="text-xs text-slate-400">{deadlineMeta.helperText}</span>
+                                </div>
+                              </div>
+                            </Link>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/dashboard/evaluations/${evaluation.id}/overview`}
+                                className="shrink-0"
+                              >
+                                <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-primary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-primary/5">
+                                  <ChevronRight className="h-5 w-5" />
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0 text-red-400 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-50 hover:text-red-600"
+                                onClick={() => handleOpenDeleteDialog(evaluation.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                        </Link>
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/dashboard/evaluations/${evaluation.id}/overview`}
-                            className="shrink-0"
-                          >
-                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/5">
-                              <ChevronRight className="h-5 w-5" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:bg-red-50 hover:text-red-600"
-                            onClick={() => handleOpenDeleteDialog(evaluation.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+                        );
+                      })()
                     ))}
                   </div>
                 )}

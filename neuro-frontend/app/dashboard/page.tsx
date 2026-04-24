@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { PageContainer, PageHeader, SectionCard, StatCard } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
+import { compareEvaluationsByDeadline, getEvaluationDeadlineMeta } from "@/lib/evaluation-deadline";
 import { 
   Users, 
   ClipboardList, 
@@ -11,12 +12,25 @@ import {
   FileText, 
   Plus, 
   ChevronRight, 
-  Brain,
   Stethoscope,
   Sparkles,
   Loader2,
-  Inbox
+  Inbox,
+  Calendar,
+  AlertTriangle,
+  Siren,
+  CheckCircle2,
 } from "lucide-react";
+
+interface Evaluation {
+  id: number;
+  patient_id: number;
+  patient_name: string;
+  status: string;
+  status_display?: string;
+  end_date: string | null;
+  created_at: string;
+}
 
 const QUICK_ACTIONS = [
   { title: "Novo Paciente", icon: Users, href: "/dashboard/patients/new", color: "text-blue-600", bg: "bg-blue-50" },
@@ -49,8 +63,7 @@ function StatusBadge({ children }: { children: string }) {
 
 export default function DashboardPage() {
   const [user, setUser] = React.useState<any>(null);
-  const [evaluations, setEvaluations] = React.useState<any[]>([]);
-  const [stats, setStats] = React.useState<any>(null);
+  const [evaluations, setEvaluations] = React.useState<Evaluation[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -66,11 +79,11 @@ export default function DashboardPage() {
         const { api } = await import("@/lib/api");
         // Busca estatisticas e avaliações recentes em paralelo
         const [evalsRes] = await Promise.all([
-          api.get<any[]>("/api/evaluations/"),
+          api.get<Evaluation[]>("/api/evaluations/"),
           // api.get("/api/dashboard/stats") // Exemplo de endpoint futuro
         ]);
-        
-        setEvaluations(evalsRes.slice(0, 5)); // Pega as 5 mais recentes
+
+        setEvaluations(Array.isArray(evalsRes) ? evalsRes : []);
       } catch (e) {
         console.error("Erro ao carregar dashboard:", e);
       } finally {
@@ -97,6 +110,59 @@ export default function DashboardPage() {
     { title: "Testes Aplicados", value: "...", trend: { value: 0, label: "total" }, icon: FlaskConical },
   ];
 
+  const activeEvaluations = evaluations.filter((evaluation) => !["approved", "archived", "completed"].includes(evaluation.status));
+  const scheduledEvaluations = [...activeEvaluations].sort(compareEvaluationsByDeadline);
+  const urgentAgenda = scheduledEvaluations.slice(0, 5);
+
+  const deadlineSummary = activeEvaluations.reduce(
+    (acc, evaluation) => {
+      const meta = getEvaluationDeadlineMeta(evaluation.end_date, evaluation.status);
+
+      if (meta.isOverdue) {
+        acc.overdue += 1;
+      } else if (meta.label === "Vence hoje") {
+        acc.today += 1;
+      } else if (meta.label.startsWith("Vence em ")) {
+        acc.week += 1;
+      } else if (meta.label === "Sem prazo") {
+        acc.missing += 1;
+      }
+
+      return acc;
+    },
+    { overdue: 0, today: 0, week: 0, missing: 0 },
+  );
+
+  const deadlineStats = [
+    {
+      title: "Atrasadas",
+      value: deadlineSummary.overdue,
+      description: "Exigem contato e replanejamento imediato.",
+      icon: AlertTriangle,
+      className: deadlineSummary.overdue > 0 ? "border-rose-200 bg-rose-50/60" : undefined,
+    },
+    {
+      title: "Vencem Hoje",
+      value: deadlineSummary.today,
+      description: "Prioridade da agenda clínica de hoje.",
+      icon: Siren,
+      className: deadlineSummary.today > 0 ? "border-amber-200 bg-amber-50/60" : undefined,
+    },
+    {
+      title: "Próx. 7 Dias",
+      value: deadlineSummary.week,
+      description: "Casos que já pedem janela de execução.",
+      icon: Calendar,
+    },
+    {
+      title: "Sem Prazo",
+      value: deadlineSummary.missing,
+      description: "Cadastros sem meta de entrega definida.",
+      icon: CheckCircle2,
+      className: deadlineSummary.missing > 0 ? "border-slate-200 bg-slate-50/80" : undefined,
+    },
+  ];
+
   return (
     <PageContainer>
       <PageHeader
@@ -121,15 +187,21 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      <div className="mb-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        {deadlineStats.map((stat) => (
+          <StatCard key={stat.title} {...stat} />
+        ))}
+      </div>
+
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
-          <SectionCard title="Avaliações Recentes" description="Acompanhamento em tempo real dos seus processos ativos.">
+          <SectionCard title="Agenda de Prazos" description="Casos mais sensíveis para atrasos e organização da semana.">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                 <Loader2 className="h-8 w-8 animate-spin mb-4" />
                 <p className="text-sm font-medium">Carregando seus dados clínicos...</p>
               </div>
-            ) : evaluations.length > 0 ? (
+            ) : urgentAgenda.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -137,43 +209,54 @@ export default function DashboardPage() {
                       <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">CÓDIGO</th>
                       <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">PACIENTE</th>
                       <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">STATUS</th>
-                      <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">DATA INÍCIO</th>
+                      <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">PRAZO</th>
                       <th className="pb-4"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {evaluations.map((eval_) => (
-                      <tr key={eval_.id} className="group hover:bg-slate-50/50 transition-colors">
-                        <td className="py-4 text-sm font-bold text-slate-900">#{eval_.id.toString().padStart(4, '0')}</td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <Link
-                              href={`/dashboard/patients/${eval_.patient_id}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 text-primary text-[10px] font-black transition-colors hover:bg-primary/10"
-                            >
-                              {eval_.patient_name?.charAt(0) || 'P'}
+                    {urgentAgenda.map((evaluation) => {
+                      const deadlineMeta = getEvaluationDeadlineMeta(evaluation.end_date, evaluation.status);
+
+                      return (
+                        <tr key={evaluation.id} className="group transition-colors hover:bg-slate-50/50">
+                          <td className="py-4 text-sm font-bold text-slate-900">#{evaluation.id.toString().padStart(4, "0")}</td>
+                          <td className="py-4">
+                            <div className="flex items-center gap-3">
+                              <Link
+                                href={`/dashboard/patients/${evaluation.patient_id}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 text-[10px] font-black text-primary transition-colors hover:bg-primary/10"
+                              >
+                                {evaluation.patient_name?.charAt(0) || "P"}
+                              </Link>
+                              <Link
+                                href={`/dashboard/patients/${evaluation.patient_id}`}
+                                className="text-sm font-bold text-slate-700 transition-colors hover:text-primary"
+                              >
+                                {evaluation.patient_name}
+                              </Link>
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <StatusBadge>{evaluation.status_display || evaluation.status}</StatusBadge>
+                          </td>
+                          <td className="py-4">
+                            <div className="flex flex-col gap-1">
+                              <span className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${deadlineMeta.badgeClassName}`}>
+                                {deadlineMeta.label}
+                              </span>
+                              <span className="text-xs font-medium text-slate-400">{deadlineMeta.helperText}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 text-right">
+                            <Link href={`/dashboard/evaluations/${evaluation.id}`}>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 transition-opacity group-hover:opacity-100">
+                                <ChevronRight className="h-4 w-4 text-primary" />
+                              </Button>
                             </Link>
-                            <Link
-                              href={`/dashboard/patients/${eval_.patient_id}`}
-                              className="text-sm font-bold text-slate-700 transition-colors hover:text-primary"
-                            >
-                              {eval_.patient_name}
-                            </Link>
-                          </div>
-                        </td>
-                        <td className="py-4"><StatusBadge>{eval_.status}</StatusBadge></td>
-                        <td className="py-4 text-xs font-medium text-slate-400">
-                          {new Date(eval_.created_at).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="py-4 text-right">
-                          <Link href={`/dashboard/evaluations/${eval_.id}`}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <ChevronRight className="h-4 w-4 text-primary" />
-                            </Button>
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -182,17 +265,17 @@ export default function DashboardPage() {
                 <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
                    <Inbox className="h-8 w-8 text-slate-200" />
                 </div>
-                <p className="text-sm font-bold text-slate-900 mb-1">Nenhuma avaliação encontrada</p>
-                <p className="text-xs font-medium text-slate-500 mb-6">Você ainda não possui processos clínicos registrados.</p>
+                <p className="text-sm font-bold text-slate-900 mb-1">Nenhum prazo ativo encontrado</p>
+                <p className="text-xs font-medium text-slate-500 mb-6">Defina metas de entrega para organizar a agenda clínica aqui.</p>
                 <Link href="/dashboard/evaluations/new">
                    <Button variant="outline" size="sm" className="font-bold gap-2">
                       <Plus className="h-4 w-4" />
-                      Começar Avaliação
-                   </Button>
-                </Link>
-              </div>
-            )}
-          </SectionCard>
+                      Criar Avaliação
+                    </Button>
+                 </Link>
+               </div>
+             )}
+           </SectionCard>
         </div>
 
         <div className="space-y-8">

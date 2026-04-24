@@ -139,6 +139,29 @@ def _generate_report_async(report_id: int, user_id: int | None):
         close_old_connections()
 
 
+def _regenerate_test_sections_async(report_id: int, user_id: int | None):
+    close_old_connections()
+    try:
+        report = (
+            Report.objects.select_related("evaluation", "patient")
+            .prefetch_related("sections", "versions")
+            .filter(id=report_id)
+            .first()
+        )
+        if not report:
+            logger.error("Laudo %s nao encontrado para regeneracao assincrona", report_id)
+            return
+        user = (
+            request_user_model().objects.filter(id=user_id).first() if user_id else None
+        )
+        SectionRegenerationService.regenerate_test_sections(report, user=user)
+    except Exception:
+        logger.exception("Erro na regeneracao assincrona de testes do laudo %s", report_id)
+        Report.objects.filter(id=report_id).update(status=ReportStatus.IN_REVIEW)
+    finally:
+        close_old_connections()
+
+
 def request_user_model():
     from django.contrib.auth import get_user_model
 
@@ -296,8 +319,17 @@ def regenerate_test_sections(request, report_id: int):
     if error:
         return error
     try:
-        SectionRegenerationService.regenerate_test_sections(report, user=request.auth)
+        report.status = ReportStatus.GENERATING
+        report.save(update_fields=["status", "updated_at"])
+        thread = threading.Thread(
+            target=_regenerate_test_sections_async,
+            args=(report.id, getattr(request.auth, "id", None)),
+            daemon=True,
+        )
+        thread.start()
     except ValueError as exc:
+        report.status = ReportStatus.IN_REVIEW
+        report.save(update_fields=["status", "updated_at"])
         return 400, {"message": str(exc)}
     report.refresh_from_db()
     return 200, serialize_report(report, include_sections=True, include_versions=True)

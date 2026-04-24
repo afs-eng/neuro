@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { api, resolveApiUrl } from "@/lib/api";
+import { getEvaluationDeadlineMeta } from "@/lib/evaluation-deadline";
 import { AnamnesisResponseViewer } from "@/components/anamnesis/AnamnesisResponseViewer";
 
 interface Instrument {
@@ -929,6 +930,7 @@ export default function EvaluationDetailPage() {
     { id: "evolution" as TabType, label: "Evolução", icon: StickyNote },
     { id: "report" as TabType, label: "Laudo", icon: FileText },
   ];
+  const deadlineMeta = getEvaluationDeadlineMeta(evaluation.end_date, evaluation.status);
 
   const getTestesDisponiveis = () => {
     const codes = evaluation.tests.map(t => t.instrument_code);
@@ -1143,6 +1145,15 @@ export default function EvaluationDetailPage() {
                     <InfoCard label="Data de Início" value={formatDisplayDate(evaluation.start_date)} icon={Calendar} />
                     <InfoCard label="Previsão de Conclusão" value={formatDisplayDate(evaluation.end_date)} icon={Clock} />
                     <InfoCard label="Status Atual" value={evaluation.status_display} icon={ShieldCheck} />
+                  </div>
+
+                  <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${deadlineMeta.badgeClassName}`}>
+                        {deadlineMeta.label}
+                      </span>
+                      <span className="text-sm font-bold text-slate-500">{deadlineMeta.helperText}</span>
+                    </div>
                   </div>
 
                   <div className="mt-8 space-y-6 pt-8 border-t border-slate-50">
