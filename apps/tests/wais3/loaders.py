@@ -30,7 +30,7 @@ class WAIS3NormLoader:
         rows = self._read_csv_rows(path)
         # If the normative file exists but contains no meaningful values (only headers),
         # fall back to the template conversion file for the domain/age.
-        skip_cols = {"tabela", "faixa_etaria", "tipo_subteste", "escore_ponderado"}
+        skip_cols = {"tabela", "faixa_etaria", "tipo_subteste", "escore_ponderado", "raw_score"}
         if not rows or not self._rows_have_meaningful_values(rows, skip_columns=skip_cols):
             template_path = self.base_path / "conversao_bruto_ponderado_templates" / domain / f"{age_range_key}_{domain}.csv"
             template_rows = self._read_csv_rows(template_path)
@@ -41,11 +41,22 @@ class WAIS3NormLoader:
             raise ValueError(f"Tabela normativa vazia ou ausente: {path.name}")
         if subtest_key not in rows[0]:
             raise ValueError(f"Subteste não encontrado na tabela: {subtest_key}")
+        
+        # Try direct lookup by raw_score first (new format)
+        for row in rows:
+            if row.get("raw_score") == str(raw_score):
+                score_val = row.get(subtest_key)
+                score = normalize_csv_value(score_val)
+                if score is not None:
+                    return int(score)
+        
+        # Fall back to interval matching (old format)
         for row in rows:
             if raw_score_matches_interval(raw_score, row.get(subtest_key)):
                 score = normalize_csv_value(row.get("escore_ponderado"))
                 if score is not None:
                     return int(score)
+        
         raise ValueError(
             f"Não foi encontrada conversão para {subtest_key}, bruto={raw_score}, faixa={age_range_key}"
         )

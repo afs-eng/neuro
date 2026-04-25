@@ -1,32 +1,9 @@
-﻿soma_ponderada,pontuacao_composta,percentil,ic_90,ic_95,classificacao
-10,55,1,50 a 60,48 a 62,Muito Inferior
-11,58,1,53 a 63,51 a 65,Muito Inferior
-12,61,1,56 a 66,54 a 68,Muito Inferior
-13,64,1,59 a 69,57 a 71,Muito Inferior
-14,67,1,62 a 72,60 a 74,Muito Inferior
-15,70,1,65 a 75,63 a 77,Inferior
-16,73,1,68 a 78,66 a 80,Inferior
-17,76,1,71 a 81,69 a 83,Inferior
-18,79,1,74 a 84,72 a 86,Inferior
-19,82,5,77 a 87,75 a 89,Médio Inferior
-20,85,8,80 a 90,78 a 92,Médio Inferior
-21,88,11,83 a 93,81 a 95,Médio Inferior
-22,91,15,86 a 96,84 a 98,Médio
-23,94,18,89 a 99,87 a 101,Médio
-24,97,21,92 a 102,90 a 104,Médio
-25,100,50,95 a 105,93 a 107,Médio
-26,103,53,98 a 108,96 a 110,Médio
-27,106,56,101 a 111,99 a 113,Médio
-28,109,60,104 a 114,102 a 116,Médio
-29,112,63,107 a 117,105 a 119,Médio Superior
-30,115,66,110 a 120,108 a 122,Médio Superior
-31,118,70,113 a 123,111 a 125,Médio Superior
-32,121,73,116 a 126,114 a 128,Superior
-33,124,76,119 a 129,117 a 131,Superior
-34,127,80,122 a 132,120 a 134,Superior
-35,130,83,125 a 135,123 a 137,Muito Superior
-36,133,86,128 a 138,126 a 140,Muito Superior
-37,136,90,131 a 141,129 a 143,Muito Superior
-38,139,93,134 a 144,132 a 146,Muito Superior
-39,142,96,137 a 147,135 a 149,Muito Superior
-40,145,99,140 a 150,138 a 152,Muito Superior
+﻿soma_ponderada,pontuacao_composta,percentil,ic_95,classificacao
+5,48,0,40-56,Muito Inferior
+8,70,2,62-78,Inferior
+10,80,9,72-88,Médio Inferior
+13,90,25,82-98,Médio
+15,100,50,92-108,Médio
+17,110,75,102-118,Médio Superior
+20,120,91,112-128,Superior
+22,130,98,122-138,Muito Superior

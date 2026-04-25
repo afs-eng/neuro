@@ -1,122 +1,24 @@
-﻿soma_ponderada,pontuacao_composta,percentil,ic_90,ic_95,classificacao
-40,55,1,50 a 60,48 a 62,Muito Inferior
-41,55,1,50 a 60,48 a 62,Muito Inferior
-42,56,1,51 a 61,49 a 63,Muito Inferior
-43,57,1,52 a 62,50 a 64,Muito Inferior
-44,58,1,53 a 63,51 a 65,Muito Inferior
-45,58,1,53 a 63,51 a 65,Muito Inferior
-46,59,1,54 a 64,52 a 66,Muito Inferior
-47,60,1,55 a 65,53 a 67,Muito Inferior
-48,61,1,56 a 66,54 a 68,Muito Inferior
-49,61,1,56 a 66,54 a 68,Muito Inferior
-50,62,1,57 a 67,55 a 69,Muito Inferior
-51,63,1,58 a 68,56 a 70,Muito Inferior
-52,64,1,59 a 69,57 a 71,Muito Inferior
-53,64,1,59 a 69,57 a 71,Muito Inferior
-54,65,1,60 a 70,58 a 72,Muito Inferior
-55,66,1,61 a 71,59 a 73,Muito Inferior
-56,67,1,62 a 72,60 a 74,Muito Inferior
-57,67,1,62 a 72,60 a 74,Muito Inferior
-58,68,1,63 a 73,61 a 75,Muito Inferior
-59,69,1,64 a 74,62 a 76,Muito Inferior
-60,70,1,65 a 75,63 a 77,Inferior
-61,70,1,65 a 75,63 a 77,Inferior
-62,71,1,66 a 76,64 a 78,Inferior
-63,72,1,67 a 77,65 a 79,Inferior
-64,73,1,68 a 78,66 a 80,Inferior
-65,73,1,68 a 78,66 a 80,Inferior
-66,74,1,69 a 79,67 a 81,Inferior
-67,75,1,70 a 80,68 a 82,Inferior
-68,76,1,71 a 81,69 a 83,Inferior
-69,76,1,71 a 81,69 a 83,Inferior
-70,77,1,72 a 82,70 a 84,Inferior
-71,78,1,73 a 83,71 a 85,Inferior
-72,79,1,74 a 84,72 a 86,Inferior
-73,79,1,74 a 84,72 a 86,Inferior
-74,80,2,75 a 85,73 a 87,Médio Inferior
-75,81,3,76 a 86,74 a 88,Médio Inferior
-76,82,5,77 a 87,75 a 89,Médio Inferior
-77,82,5,77 a 87,75 a 89,Médio Inferior
-78,83,6,78 a 88,76 a 90,Médio Inferior
-79,84,7,79 a 89,77 a 91,Médio Inferior
-80,85,8,80 a 90,78 a 92,Médio Inferior
-81,85,8,80 a 90,78 a 92,Médio Inferior
-82,86,9,81 a 91,79 a 93,Médio Inferior
-83,87,10,82 a 92,80 a 94,Médio Inferior
-84,88,11,83 a 93,81 a 95,Médio Inferior
-85,88,11,83 a 93,81 a 95,Médio Inferior
-86,89,12,84 a 94,82 a 96,Médio Inferior
-87,90,13,85 a 95,83 a 97,Médio
-88,91,15,86 a 96,84 a 98,Médio
-89,91,15,86 a 96,84 a 98,Médio
-90,92,16,87 a 97,85 a 99,Médio
-91,93,17,88 a 98,86 a 100,Médio
-92,94,18,89 a 99,87 a 101,Médio
-93,94,18,89 a 99,87 a 101,Médio
-94,95,19,90 a 100,88 a 102,Médio
-95,96,20,91 a 101,89 a 103,Médio
-96,97,21,92 a 102,90 a 104,Médio
-97,97,21,92 a 102,90 a 104,Médio
-98,98,22,93 a 103,91 a 105,Médio
-99,99,23,94 a 104,92 a 106,Médio
-100,100,50,95 a 105,93 a 107,Médio
-101,100,50,95 a 105,93 a 107,Médio
-102,101,51,96 a 106,94 a 108,Médio
-103,102,52,97 a 107,95 a 109,Médio
-104,103,53,98 a 108,96 a 110,Médio
-105,103,53,98 a 108,96 a 110,Médio
-106,104,54,99 a 109,97 a 111,Médio
-107,105,55,100 a 110,98 a 112,Médio
-108,106,56,101 a 111,99 a 113,Médio
-109,106,56,101 a 111,99 a 113,Médio
-110,107,57,102 a 112,100 a 114,Médio
-111,108,58,103 a 113,101 a 115,Médio
-112,109,60,104 a 114,102 a 116,Médio
-113,109,60,104 a 114,102 a 116,Médio
-114,110,61,105 a 115,103 a 117,Médio Superior
-115,111,62,106 a 116,104 a 118,Médio Superior
-116,112,63,107 a 117,105 a 119,Médio Superior
-117,112,63,107 a 117,105 a 119,Médio Superior
-118,113,64,108 a 118,106 a 120,Médio Superior
-119,114,65,109 a 119,107 a 121,Médio Superior
-120,115,66,110 a 120,108 a 122,Médio Superior
-121,115,66,110 a 120,108 a 122,Médio Superior
-122,116,67,111 a 121,109 a 123,Médio Superior
-123,117,68,112 a 122,110 a 124,Médio Superior
-124,118,70,113 a 123,111 a 125,Médio Superior
-125,118,70,113 a 123,111 a 125,Médio Superior
-126,119,71,114 a 124,112 a 126,Médio Superior
-127,120,72,115 a 125,113 a 127,Superior
-128,121,73,116 a 126,114 a 128,Superior
-129,121,73,116 a 126,114 a 128,Superior
-130,122,74,117 a 127,115 a 129,Superior
-131,123,75,118 a 128,116 a 130,Superior
-132,124,76,119 a 129,117 a 131,Superior
-133,124,76,119 a 129,117 a 131,Superior
-134,125,77,120 a 130,118 a 132,Superior
-135,126,78,121 a 131,119 a 133,Superior
-136,127,80,122 a 132,120 a 134,Superior
-137,127,80,122 a 132,120 a 134,Superior
-138,128,81,123 a 133,121 a 135,Superior
-139,129,82,124 a 134,122 a 136,Superior
-140,130,83,125 a 135,123 a 137,Muito Superior
-141,130,83,125 a 135,123 a 137,Muito Superior
-142,131,84,126 a 136,124 a 138,Muito Superior
-143,132,85,127 a 137,125 a 139,Muito Superior
-144,133,86,128 a 138,126 a 140,Muito Superior
-145,133,86,128 a 138,126 a 140,Muito Superior
-146,134,87,129 a 139,127 a 141,Muito Superior
-147,135,88,130 a 140,128 a 142,Muito Superior
-148,136,90,131 a 141,129 a 143,Muito Superior
-149,136,90,131 a 141,129 a 143,Muito Superior
-150,137,91,132 a 142,130 a 144,Muito Superior
-151,138,92,133 a 143,131 a 145,Muito Superior
-152,139,93,134 a 144,132 a 146,Muito Superior
-153,139,93,134 a 144,132 a 146,Muito Superior
-154,140,94,135 a 145,133 a 147,Muito Superior
-155,141,95,136 a 146,134 a 148,Muito Superior
-156,142,96,137 a 147,135 a 149,Muito Superior
-157,142,96,137 a 147,135 a 149,Muito Superior
-158,143,97,138 a 148,136 a 150,Muito Superior
-159,144,98,139 a 149,137 a 151,Muito Superior
-160,145,99,140 a 150,138 a 152,Muito Superior
+﻿soma_ponderada,pontuacao_composta,percentil,ic_95,classificacao
+40,45,0,37-53,Muito Inferior
+41,47,0,39-55,Muito Inferior
+42,48,0,40-56,Muito Inferior
+43,50,0,42-58,Muito Inferior
+44,51,1,43-59,Muito Inferior
+45,53,1,45-61,Muito Inferior
+46,54,1,46-62,Muito Inferior
+47,56,0,48-64,Muito Inferior
+48,57,0,49-65,Muito Inferior
+49,59,0,51-67,Inferior
+50,61,0,53-69,Inferior
+55,70,2,62-78,Inferior
+60,79,8,71-87,Médio Inferior
+64,85,16,77-93,Médio Inferior
+65,86,18,78-94,Médio Inferior
+70,93,32,85-101,Médio
+75,100,50,92-108,Médio
+80,107,68,99-115,Médio Superior
+85,114,82,106-122,Superior
+90,121,92,113-129,Superior
+95,128,97,120-136,Muito Superior
+100,135,99,127-143,Muito Superior
+110,145,99,137-153,Muito Superior
