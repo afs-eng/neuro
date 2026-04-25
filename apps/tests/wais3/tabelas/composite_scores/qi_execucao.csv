@@ -1,11 +1,6 @@
 ﻿soma_ponderada,pontuacao_composta,percentil,ic_95,classificacao
-20,51,0,43-59,Muito Inferior
-25,60,0,52-68,Inferior
-30,70,2,62-78,Inferior
-32,73,4,65-81,Médio Inferior
-35,79,8,71-87,Médio Inferior
-40,89,24,81-97,Médio
-45,99,47,91-107,Médio
-50,109,73,101-117,Médio Superior
-55,119,90,111-127,Superior
-60,129,98,121-137,Muito Superior
+20,51,0,44 a 58,Muito Inferior
+30,70,2,63 a 77,Inferior
+40,89,24,82 a 96,Médio Inferior
+50,100,50,93 a 107,Médio
+60,129,98,122 a 136,Superior

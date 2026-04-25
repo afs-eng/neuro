@@ -40,6 +40,8 @@ function WAIS3PageContent() {
   const [evaluation, setEvaluation] = useState<any>(null)
   const [scores, setScores] = useState<Record<string, number | null>>({})
   const [loading, setLoading] = useState(true)
+  const [preview, setPreview] = useState<any>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -84,6 +86,40 @@ function WAIS3PageContent() {
   const handleChange = (code: string, value: string) => {
     setScores((prev) => ({ ...prev, [code]: value === '' ? null : parseInt(value, 10) }))
   }
+
+  // Fetch preview whenever scores change
+  useEffect(() => {
+    if (!evaluationId) return
+    
+    const hasAnyScore = Object.values(scores).some(v => v !== null)
+    if (!hasAnyScore) {
+      setPreview(null)
+      return
+    }
+
+    const fetchPreview = async () => {
+      setPreviewLoading(true)
+      try {
+        const payload: Record<string, any> = {
+          evaluation_id: parseInt(evaluationId, 10),
+        }
+        for (const subtest of subtests) {
+          payload[subtest.code] = scores[subtest.code] == null ? '' : String(scores[subtest.code])
+        }
+        
+        const result = await api.post<any>('/api/tests/wais3/preview', payload)
+        setPreview(result)
+      } catch (error) {
+        console.error('Preview error:', error)
+        setPreview(null)
+      } finally {
+        setPreviewLoading(false)
+      }
+    }
+
+    const timer = setTimeout(fetchPreview, 500)
+    return () => clearTimeout(timer)
+  }, [scores, evaluationId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -192,6 +228,83 @@ function WAIS3PageContent() {
                 })}
               </div>
             </div>
+
+            {/* Preview Section */}
+            {preview && (
+              <div className="space-y-4">
+                {/* Índices */}
+                {Object.keys(preview.indices || {}).length > 0 && (
+                  <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+                    <h3 className="mb-4 text-lg font-semibold text-zinc-900">Índices e QI (Preview)</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-black/10">
+                            <th className="px-3 py-2 text-left font-semibold text-zinc-700">Índice</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Soma</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Escore</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Percentil</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Classificação</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/5">
+                          {Object.entries(preview.indices || {}).map(([key, idx]: [string, any]) => (
+                            <tr key={key} className="hover:bg-black/2">
+                              <td className="px-3 py-2 text-zinc-900">{idx.nome || key}</td>
+                              <td className="px-3 py-2 text-center text-zinc-700">{idx.soma_ponderada ?? '—'}</td>
+                              <td className="px-3 py-2 text-center font-medium text-zinc-900">{idx.pontuacao_composta ?? '—'}</td>
+                              <td className="px-3 py-2 text-center text-zinc-700">{idx.percentil ?? '—'}</td>
+                              <td className="px-3 py-2 text-center text-zinc-700">{idx.classificacao ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Subtestes */}
+                {Object.keys(preview.subtestes || {}).length > 0 && (
+                  <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+                    <h3 className="mb-4 text-lg font-semibold text-zinc-900">Subtestes (Preview)</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-black/10">
+                            <th className="px-3 py-2 text-left font-semibold text-zinc-700">Subteste</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Bruto</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Ponderado</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Classificação</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/5">
+                          {Object.entries(preview.subtestes || {}).map(([key, st]: [string, any]) => (
+                            <tr key={key} className="hover:bg-black/2">
+                              <td className="px-3 py-2 text-zinc-900">{st.nome || key}</td>
+                              <td className="px-3 py-2 text-center font-medium text-zinc-700">{st.pontos_brutos ?? '—'}</td>
+                              <td className="px-3 py-2 text-center font-medium text-zinc-900">{st.escore_ponderado ?? '—'}</td>
+                              <td className="px-3 py-2 text-center text-zinc-700">{st.classificacao ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Warnings */}
+                {preview.warnings && preview.warnings.length > 0 && (
+                  <div className="rounded-[28px] bg-yellow-50/70 p-5 shadow-lg ring-1 ring-yellow-200">
+                    <h3 className="mb-2 text-sm font-semibold text-yellow-900">⚠️ Avisos</h3>
+                    <ul className="space-y-1">
+                      {preview.warnings.map((w: string, i: number) => (
+                        <li key={i} className="text-xs text-yellow-800">• {w}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-3">
               <Link href={evaluationId ? `/dashboard/evaluations/${evaluationId}?tab=overview` : '/dashboard/tests'} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50">Cancelar</Link>

@@ -90,7 +90,7 @@ WAIS3_COMPOSITE_TABLES = {
     "compreensao_verbal": {
         "path": "QI-Equivalente-Soma-dos-Escores-Ponderados/tabela_a6_indice_compreensao_verbal.csv",
         "sum_column": "soma_escores_ponderados",
-        "score_column": "indice_compreensao_verbal",
+        "score_column": "indice_verbal",
         "percentile_column": "percentil",
         "ic90_column": "intervalo_confianca_90",
         "ic95_column": "intervalo_confianca_95",
@@ -98,7 +98,7 @@ WAIS3_COMPOSITE_TABLES = {
     "organizacao_perceptual": {
         "path": "QI-Equivalente-Soma-dos-Escores-Ponderados/tabela_a7_indice_organizacao_perceptual.csv",
         "sum_column": "soma_escores_ponderados",
-        "score_column": "indice_organizacao_perceptual",
+        "score_column": "indice_perceptual",
         "percentile_column": "percentil",
         "ic90_column": "intervalo_confianca_90",
         "ic95_column": "intervalo_confianca_95",
@@ -106,7 +106,7 @@ WAIS3_COMPOSITE_TABLES = {
     "memoria_operacional": {
         "path": "QI-Equivalente-Soma-dos-Escores-Ponderados/tabela_a8_indice_memoria_operacional.csv",
         "sum_column": "soma_escores_ponderados",
-        "score_column": "indice_memoria_operacional",
+        "score_column": "indice_operacional",
         "percentile_column": "percentil",
         "ic90_column": "intervalo_confianca_90",
         "ic95_column": "intervalo_confianca_95",
@@ -114,7 +114,7 @@ WAIS3_COMPOSITE_TABLES = {
     "velocidade_processamento": {
         "path": "QI-Equivalente-Soma-dos-Escores-Ponderados/tabela_a9_indice_velocidade_processamento.csv",
         "sum_column": "soma_escores_ponderados",
-        "score_column": "indice_velocidade_processamento",
+        "score_column": "indice_processamento",
         "percentile_column": "percentil",
         "ic90_column": "intervalo_confianca_90",
         "ic95_column": "intervalo_confianca_95",

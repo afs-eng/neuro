@@ -1,38 +1,10 @@
-﻿tabela,nome_tabela,soma_escores_ponderados,indice_velocidade_processamento,percentil,intervalo_confianca_90,intervalo_confianca_95
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,2,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,3,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,4,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,5,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,6,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,7,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,8,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,9,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,10,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,11,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,12,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,13,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,14,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,15,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,16,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,17,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,18,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,19,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,20,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,21,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,22,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,23,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,24,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,25,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,26,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,27,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,28,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,29,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,30,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,31,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,32,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,33,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,34,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,35,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,36,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,37,,,,
-A.9,QI Equivalente à Soma dos Pontos Ponderados - Índice de Velocidade de Processamento,38,,,,
+soma_escores_ponderados,indice_processamento,percentil,intervalo_confianca_95
+5,48,0,41 a 55
+8,70,2,63 a 77
+10,80,9,73 a 87
+13,90,25,83 a 97
+15,100,50,93 a 107
+17,110,75,103 a 117
+19,98,45,88 a 108
+20,120,91,113 a 127
+22,130,98,123 a 137

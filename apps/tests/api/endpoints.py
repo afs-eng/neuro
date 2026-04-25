@@ -997,7 +997,69 @@ def wisc4_submit(request, payload: WISC4SubmitIn) -> tuple[int, dict]:
         "age": age,
         "faixa": faixa,
         "scores": raw_scores,
-        "classified": classified,
+         "classified": classified,
+     }
+
+
+@router.post(
+    "/wais3/preview",
+    response={200: dict, 400: MessageOut},
+    auth=bearer_auth,
+)
+def wais3_preview(request, payload: WAIS3SubmitIn) -> tuple[int, dict]:
+    """Preview WAIS-III results without saving to database.
+    
+    This endpoint is used for real-time preview as user types values.
+    """
+    from apps.evaluations.models import Evaluation
+    
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 400, {"message": "Avaliação não encontrada."}
+    
+    patient = evaluation.patient
+    if not patient.birth_date:
+        return 400, {"message": "Paciente não tem data de nascimento."}
+    
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+    age = calcAge(patient.birth_date, reference_date)
+    if age < 16 or age > 89:
+        return 400, {"message": "WAIS-III é indicado para pacientes entre 16 e 89 anos."}
+    
+    raw_scores = {
+        "idade": {"anos": age, "meses": 0},
+        "subtestes": {
+            "vocabulario": {"pontos_brutos": int(payload.vocabulario)} if payload.vocabulario else None,
+            "semelhancas": {"pontos_brutos": int(payload.semelhancas)} if payload.semelhancas else None,
+            "aritmetica": {"pontos_brutos": int(payload.aritmetica)} if payload.aritmetica else None,
+            "digitos": {"pontos_brutos": int(payload.digitos)} if payload.digitos else None,
+            "informacao": {"pontos_brutos": int(payload.informacao)} if payload.informacao else None,
+            "compreensao": {"pontos_brutos": int(payload.compreensao)} if payload.compreensao else None,
+            "sequencia_numeros_letras": {"pontos_brutos": int(payload.sequencia_numeros_letras)} if payload.sequencia_numeros_letras else None,
+            "completar_figuras": {"pontos_brutos": int(payload.completar_figuras)} if payload.completar_figuras else None,
+            "codigos": {"pontos_brutos": int(payload.codigos)} if payload.codigos else None,
+            "cubos": {"pontos_brutos": int(payload.cubos)} if payload.cubos else None,
+            "raciocinio_matricial": {"pontos_brutos": int(payload.raciocinio_matricial)} if payload.raciocinio_matricial else None,
+            "arranjo_figuras": {"pontos_brutos": int(payload.arranjo_figuras)} if payload.arranjo_figuras else None,
+            "procurar_simbolos": {"pontos_brutos": int(payload.procurar_simbolos)} if payload.procurar_simbolos else None,
+            "armar_objetos": {"pontos_brutos": int(payload.armar_objetos)} if payload.armar_objetos else None,
+        },
+    }
+    raw_scores["subtestes"] = {k: v for k, v in raw_scores["subtestes"].items() if v is not None}
+    
+    # Compute directly without saving
+    from apps.tests.wais3.calculators import compute_wais3_payload
+    from apps.tests.wais3.classifiers import classify_wais3_payload
+    
+    computed = compute_wais3_payload(raw_scores)
+    classified = classify_wais3_payload(computed)
+    
+    return 200, {
+        "age": age,
+        "age_range": computed.get("idade_normativa"),
+        "indices": computed.get("indices", {}),
+        "subtestes": computed.get("subtestes", {}),
+        "warnings": computed.get("warnings", []),
     }
 
 
