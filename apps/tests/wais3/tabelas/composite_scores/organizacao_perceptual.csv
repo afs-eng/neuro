@@ -1,1 +1,62 @@
 ﻿soma_ponderada,pontuacao_composta,percentil,ic_90,ic_95,classificacao
+20,55,1,50 a 60,48 a 62,Muito Inferior
+21,56,1,51 a 61,49 a 63,Muito Inferior
+22,58,1,53 a 63,51 a 65,Muito Inferior
+23,59,1,54 a 64,52 a 66,Muito Inferior
+24,61,1,56 a 66,54 a 68,Muito Inferior
+25,62,1,57 a 67,55 a 69,Muito Inferior
+26,64,1,59 a 69,57 a 71,Muito Inferior
+27,65,1,60 a 70,58 a 72,Muito Inferior
+28,67,1,62 a 72,60 a 74,Muito Inferior
+29,68,1,63 a 73,61 a 75,Muito Inferior
+30,70,1,65 a 75,63 a 77,Inferior
+31,71,1,66 a 76,64 a 78,Inferior
+32,73,1,68 a 78,66 a 80,Inferior
+33,74,1,69 a 79,67 a 81,Inferior
+34,76,1,71 a 81,69 a 83,Inferior
+35,77,1,72 a 82,70 a 84,Inferior
+36,79,1,74 a 84,72 a 86,Inferior
+37,80,2,75 a 85,73 a 87,Médio Inferior
+38,82,5,77 a 87,75 a 89,Médio Inferior
+39,83,6,78 a 88,76 a 90,Médio Inferior
+40,85,8,80 a 90,78 a 92,Médio Inferior
+41,86,9,81 a 91,79 a 93,Médio Inferior
+42,88,11,83 a 93,81 a 95,Médio Inferior
+43,89,12,84 a 94,82 a 96,Médio Inferior
+44,91,15,86 a 96,84 a 98,Médio
+45,92,16,87 a 97,85 a 99,Médio
+46,94,18,89 a 99,87 a 101,Médio
+47,95,19,90 a 100,88 a 102,Médio
+48,97,21,92 a 102,90 a 104,Médio
+49,98,22,93 a 103,91 a 105,Médio
+50,100,50,95 a 105,93 a 107,Médio
+51,101,51,96 a 106,94 a 108,Médio
+52,103,53,98 a 108,96 a 110,Médio
+53,104,54,99 a 109,97 a 111,Médio
+54,106,56,101 a 111,99 a 113,Médio
+55,107,57,102 a 112,100 a 114,Médio
+56,109,60,104 a 114,102 a 116,Médio
+57,110,61,105 a 115,103 a 117,Médio Superior
+58,112,63,107 a 117,105 a 119,Médio Superior
+59,113,64,108 a 118,106 a 120,Médio Superior
+60,115,66,110 a 120,108 a 122,Médio Superior
+61,116,67,111 a 121,109 a 123,Médio Superior
+62,118,70,113 a 123,111 a 125,Médio Superior
+63,119,71,114 a 124,112 a 126,Médio Superior
+64,121,73,116 a 126,114 a 128,Superior
+65,122,74,117 a 127,115 a 129,Superior
+66,124,76,119 a 129,117 a 131,Superior
+67,125,77,120 a 130,118 a 132,Superior
+68,127,80,122 a 132,120 a 134,Superior
+69,128,81,123 a 133,121 a 135,Superior
+70,130,83,125 a 135,123 a 137,Muito Superior
+71,131,84,126 a 136,124 a 138,Muito Superior
+72,133,86,128 a 138,126 a 140,Muito Superior
+73,134,87,129 a 139,127 a 141,Muito Superior
+74,136,90,131 a 141,129 a 143,Muito Superior
+75,137,91,132 a 142,130 a 144,Muito Superior
+76,139,93,134 a 144,132 a 146,Muito Superior
+77,140,94,135 a 145,133 a 147,Muito Superior
+78,142,96,137 a 147,135 a 149,Muito Superior
+79,143,97,138 a 148,136 a 150,Muito Superior
+80,145,99,140 a 150,138 a 152,Muito Superior
