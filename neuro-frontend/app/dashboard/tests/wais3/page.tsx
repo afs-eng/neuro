@@ -9,23 +9,25 @@ type Subtest = {
   code: string
   name: string
   maxScore?: number
+  domain?: 'verbal' | 'execucao' | 'suplementar'
 }
 
 const subtests: Subtest[] = [
-  { code: 'vocabulario', name: 'Vocabulário' },
-  { code: 'semelhancas', name: 'Semelhanças' },
-  { code: 'aritmetica', name: 'Aritmética' },
-  { code: 'digitos', name: 'Dígitos' },
-  { code: 'informacao', name: 'Informação' },
-  { code: 'compreensao', name: 'Compreensão' },
-  { code: 'sequencia_numeros_letras', name: 'Sequência de Números e Letras' },
-  { code: 'completar_figuras', name: 'Completar Figuras' },
-  { code: 'codigos', name: 'Códigos' },
-  { code: 'cubos', name: 'Cubos' },
-  { code: 'raciocinio_matricial', name: 'Raciocínio Matricial' },
-  { code: 'arranjo_figuras', name: 'Arranjo de Figuras' },
-  { code: 'procurar_simbolos', name: 'Procurar Símbolos' },
-  { code: 'armar_objetos', name: 'Armar Objetos' },
+  // Escala de Execução
+  { code: 'completar_figuras', name: 'Completar Figuras', domain: 'execucao' },
+  { code: 'vocabulario', name: 'Vocabulário', domain: 'verbal' },
+  { code: 'codigos', name: 'Códigos', domain: 'execucao' },
+  { code: 'semelhancas', name: 'Semelhanças', domain: 'verbal' },
+  { code: 'cubos', name: 'Cubos', domain: 'execucao' },
+  { code: 'aritmetica', name: 'Aritmética', domain: 'verbal' },
+  { code: 'raciocinio_matricial', name: 'Raciocínio Matricial', domain: 'execucao' },
+  { code: 'digitos', name: 'Dígitos', domain: 'verbal' },
+  { code: 'informacao', name: 'Informação', domain: 'verbal' },
+  { code: 'arranjo_figuras', name: 'Arranjo de Figuras', domain: 'execucao' },
+  { code: 'compreensao', name: 'Compreensão', domain: 'verbal' },
+  { code: 'procurar_simbolos', name: 'Procurar Símbolos', domain: 'execucao' },
+  { code: 'sequencia_numeros_letras', name: 'Sequência de Números e Letras', domain: 'suplementar' },
+  { code: 'armar_objetos', name: 'Armar Objetos', domain: 'suplementar' },
 ]
 
 function WAIS3PageContent() {
@@ -147,22 +149,47 @@ function WAIS3PageContent() {
             </div>
 
             <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
-              <h3 className="mb-4 text-lg font-semibold text-zinc-900">Pontos Brutos</h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {subtests.map((subtest) => (
-                  <div key={subtest.code} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="font-medium text-zinc-900">{subtest.name}</span>
-                    </div>
-                    <input
-                      type="number"
-                      min="0"
-                      value={scores[subtest.code] ?? ''}
-                      onChange={(e) => handleChange(subtest.code, e.target.value)}
-                      className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
-                    />
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-zinc-900">Pontos Brutos</h3>
+                <div className="flex gap-3 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="h-3 w-3 rounded bg-blue-200"></div>
+                    <span className="text-zinc-600">Execução</span>
                   </div>
-                ))}
+                  <div className="flex items-center gap-1">
+                    <div className="h-3 w-3 rounded bg-yellow-200"></div>
+                    <span className="text-zinc-600">Verbal</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="h-3 w-3 rounded bg-green-200"></div>
+                    <span className="text-zinc-600">Suplementar</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {subtests.map((subtest) => {
+                  const domainColors = {
+                    execucao: 'bg-blue-50 border-blue-200',
+                    verbal: 'bg-yellow-50 border-yellow-200',
+                    suplementar: 'bg-green-50 border-green-200',
+                  }
+                  const bgClass = subtest.domain ? domainColors[subtest.domain] || 'bg-white border-black/10' : 'bg-white border-black/10'
+                  
+                  return (
+                    <div key={subtest.code} className={`rounded-2xl border p-4 shadow-sm ${bgClass}`}>
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="font-medium text-zinc-900">{subtest.name}</span>
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        value={scores[subtest.code] ?? ''}
+                        onChange={(e) => handleChange(subtest.code, e.target.value)}
+                        className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                      />
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
