@@ -259,6 +259,25 @@ class WISC4SubmitIn(Schema):
     rp: Optional[str] = ""
 
 
+class WAIS3SubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    vocabulario: Optional[str] = ""
+    semelhancas: Optional[str] = ""
+    aritmetica: Optional[str] = ""
+    digitos: Optional[str] = ""
+    informacao: Optional[str] = ""
+    compreensao: Optional[str] = ""
+    sequencia_numeros_letras: Optional[str] = ""
+    completar_figuras: Optional[str] = ""
+    codigos: Optional[str] = ""
+    cubos: Optional[str] = ""
+    raciocinio_matricial: Optional[str] = ""
+    arranjo_figuras: Optional[str] = ""
+    procurar_simbolos: Optional[str] = ""
+    armar_objetos: Optional[str] = ""
+
+
 # --- EPQ-J ---
 
 

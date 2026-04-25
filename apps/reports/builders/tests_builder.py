@@ -11,6 +11,7 @@ from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
 
 SECTION_MAP = {
     "wisc4": "eficiencia_intelectual",
+    "wais3": "eficiencia_intelectual",
     "bpa2": "atencao",
     "fdt": "funcoes_executivas",
     "ravlt": "memoria_aprendizagem",
@@ -149,6 +150,37 @@ def _build_bpa2_rows(payload: dict) -> list[str]:
                 item.get("classificacao"),
             )
         )
+    return rows
+
+
+def _build_wais3_rows(payload: dict) -> list[str]:
+    rows = []
+    indices = payload.get("indices") or {}
+    for key in (
+        "qi_total",
+        "qi_verbal",
+        "qi_execucao",
+        "compreensao_verbal",
+        "organizacao_perceptual",
+        "memoria_operacional",
+        "velocidade_processamento",
+    ):
+        item = indices.get(key) or {}
+        if not item:
+            continue
+        parts = []
+        if item.get("pontuacao_composta") not in (None, ""):
+            parts.append(f"pontuação composta {_format_number(item.get('pontuacao_composta'))}")
+        if item.get("percentil") not in (None, ""):
+            parts.append(f"percentil {_format_number(item.get('percentil'))}")
+        if item.get("classificacao"):
+            parts.append(item.get("classificacao"))
+        if item.get("subtestes_ausentes"):
+            parts.append("subtestes ausentes " + ", ".join(item.get("subtestes_ausentes")[:5]))
+        rows.append(_format_result_line(item.get("nome") or key, *parts))
+    warnings = payload.get("warnings") or []
+    if warnings:
+        rows.append(_format_result_line("Alertas", "; ".join(warnings[:3])))
     return rows
 
 
@@ -396,6 +428,8 @@ def build_result_rows(instrument_code: str, payload: dict) -> list[str]:
         return []
     if instrument_code == "wisc4":
         return _build_wisc4_rows(payload)
+    if instrument_code == "wais3":
+        return _build_wais3_rows(payload)
     if instrument_code == "bpa2":
         return _build_bpa2_rows(payload)
     if instrument_code == "fdt":

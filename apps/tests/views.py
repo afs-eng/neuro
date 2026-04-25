@@ -39,6 +39,13 @@ def _get_reference_date(evaluation, evaluation_date=None):
     )
 
 
+def _calculate_age(birth_date, reference_date=None):
+    base_date = reference_date or date.today()
+    return base_date.year - birth_date.year - (
+        (base_date.month, base_date.day) < (birth_date.month, birth_date.day)
+    )
+
+
 def _process_and_save_test(
     patient,
     evaluation,
@@ -435,6 +442,107 @@ def wisc4_form_view(request, application_id=None):
     existing_data = (
         application.raw_payload if application and application.raw_payload else None
     )
+    return JsonResponse(
+        {
+            "patients": [p.id for p in patients],
+            "evaluation": evaluation.id if evaluation else None,
+            "application": application.id if application else None,
+            "existing_data": existing_data,
+        }
+    )
+
+
+def wais3_form_view(request, application_id=None):
+    patients = Patient.objects.all()
+    application = None
+    evaluation = None
+
+    if application_id:
+        application = _get_application(application_id)
+        evaluation = application.evaluation
+        patients = Patient.objects.filter(pk=evaluation.patient.pk)
+
+    if request.method == "POST":
+        patient_id = _get_param(request, "patient")
+        evaluation_date = _get_param(request, "evaluation_date")
+        patient = get_object_or_404(Patient, pk=patient_id)
+
+        existing_app, existing_eval = _get_existing_application(patient, "wais3")
+        if existing_app and not application:
+            return JsonResponse(
+                {
+                    "patients": [p.id for p in patients],
+                    "errors": [
+                        f"Paciente já possui WAIS-III aplicado em {existing_app.applied_on.strftime('%d/%m/%Y')}."
+                    ],
+                    "evaluation": evaluation.id if evaluation else None,
+                    "application": application.id if application else None,
+                    "existing_app": {
+                        "id": existing_app.id,
+                        "applied_on": existing_app.applied_on.isoformat() if existing_app.applied_on else None,
+                    },
+                },
+                status=400,
+            )
+
+        age = 0
+        if patient.birth_date:
+            age = _calculate_age(patient.birth_date, _get_reference_date(evaluation, evaluation_date))
+
+        subtest_codes = [
+            "vocabulario",
+            "semelhancas",
+            "aritmetica",
+            "digitos",
+            "informacao",
+            "compreensao",
+            "sequencia_numeros_letras",
+            "completar_figuras",
+            "codigos",
+            "cubos",
+            "raciocinio_matricial",
+            "arranjo_figuras",
+            "procurar_simbolos",
+            "armar_objetos",
+        ]
+        raw_scores = {"idade": {"anos": age, "meses": 0}, "subtestes": {}}
+        for code in subtest_codes:
+            raw_value = _get_param(request, code)
+            if raw_value is not None and raw_value != "":
+                raw_scores["subtestes"][code] = {"pontos_brutos": int(raw_value)}
+
+        result = _process_and_save_test(
+            patient,
+            evaluation,
+            "wais3",
+            raw_scores,
+            evaluation_date,
+        )
+        if isinstance(result[1], list):
+            return JsonResponse(
+                {
+                    "patients": [p.id for p in patients],
+                    "errors": result[1],
+                    "evaluation": evaluation.id if evaluation else None,
+                    "application": application.id if application else None,
+                },
+                status=400,
+            )
+
+        app_result, classified, interpretation = result
+        return JsonResponse(
+            {
+                "patient": patient.id,
+                "evaluation": evaluation.id if evaluation else None,
+                "application": app_result.id,
+                "evaluation_date": evaluation_date,
+                "classified": classified,
+                "interpretation": interpretation,
+                "raw_scores": raw_scores,
+            }
+        )
+
+    existing_data = application.raw_payload if application and application.raw_payload else None
     return JsonResponse(
         {
             "patients": [p.id for p in patients],

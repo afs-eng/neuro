@@ -94,6 +94,7 @@ from .schemas import (
     TestApplicationUpdateIn,
     MessageOut,
     WISC4SubmitIn,
+    WAIS3SubmitIn,
     SCAREDSubmitIn,
 )
 
@@ -995,6 +996,100 @@ def wisc4_submit(request, payload: WISC4SubmitIn) -> tuple[int, dict]:
         "application_id": application.id,
         "age": age,
         "faixa": faixa,
+        "scores": raw_scores,
+        "classified": classified,
+    }
+
+
+@router.post(
+    "/wais3/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def wais3_submit(request, payload: WAIS3SubmitIn) -> tuple[int, dict]:
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+    from apps.tests.wais3 import WAIS3Module
+    from apps.tests.base.types import TestContext
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    patient = evaluation.patient
+    if not patient.birth_date:
+        return 400, {"message": "Paciente não tem data de nascimento."}
+
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+    age = calcAge(patient.birth_date, reference_date)
+    if age < 16 or age > 89:
+        return 400, {"message": "WAIS-III é indicado para pacientes entre 16 e 89 anos."}
+
+    raw_scores = {
+        "idade": {"anos": age, "meses": 0},
+        "subtestes": {
+            "vocabulario": {"pontos_brutos": int(payload.vocabulario)} if payload.vocabulario else None,
+            "semelhancas": {"pontos_brutos": int(payload.semelhancas)} if payload.semelhancas else None,
+            "aritmetica": {"pontos_brutos": int(payload.aritmetica)} if payload.aritmetica else None,
+            "digitos": {"pontos_brutos": int(payload.digitos)} if payload.digitos else None,
+            "informacao": {"pontos_brutos": int(payload.informacao)} if payload.informacao else None,
+            "compreensao": {"pontos_brutos": int(payload.compreensao)} if payload.compreensao else None,
+            "sequencia_numeros_letras": {"pontos_brutos": int(payload.sequencia_numeros_letras)} if payload.sequencia_numeros_letras else None,
+            "completar_figuras": {"pontos_brutos": int(payload.completar_figuras)} if payload.completar_figuras else None,
+            "codigos": {"pontos_brutos": int(payload.codigos)} if payload.codigos else None,
+            "cubos": {"pontos_brutos": int(payload.cubos)} if payload.cubos else None,
+            "raciocinio_matricial": {"pontos_brutos": int(payload.raciocinio_matricial)} if payload.raciocinio_matricial else None,
+            "arranjo_figuras": {"pontos_brutos": int(payload.arranjo_figuras)} if payload.arranjo_figuras else None,
+            "procurar_simbolos": {"pontos_brutos": int(payload.procurar_simbolos)} if payload.procurar_simbolos else None,
+            "armar_objetos": {"pontos_brutos": int(payload.armar_objetos)} if payload.armar_objetos else None,
+        },
+    }
+    raw_scores["subtestes"] = {k: v for k, v in raw_scores["subtestes"].items() if v is not None}
+
+    ctx = TestContext(
+        patient_name=patient.full_name,
+        evaluation_id=evaluation.id,
+        instrument_code="wais3",
+        raw_scores=raw_scores,
+        reviewed_scores={
+            "birth_date": str(patient.birth_date),
+            "evaluation_date": str(reference_date),
+        },
+    )
+
+    wais3_module = WAIS3Module()
+    errors = wais3_module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = wais3_module.compute(ctx)
+    classified = wais3_module.classify(computed)
+    interpretation = wais3_module.interpret(ctx, {**computed, **classified})
+
+    instrument = Instrument.objects.filter(code="wais3", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento WAIS-III não encontrado."}
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    return 200, {
+        "application_id": application.id,
+        "age": age,
         "scores": raw_scores,
         "classified": classified,
     }

@@ -2,6 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ -f "$ROOT_DIR/.env" ]; then
+  set -a
+  . "$ROOT_DIR/.env"
+  set +a
+fi
+
 LOCAL_PYTHON="$ROOT_DIR/.venv/bin/python"
 LOCAL_OLLAMA_URL="${OLLAMA_BASE_URL:-http://localhost:11434}"
 DOCKER_OLLAMA_URL="${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}"

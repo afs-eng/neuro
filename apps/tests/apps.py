@@ -10,6 +10,7 @@ class TestsConfig(AppConfig):
         from apps.tests.fdt import FDTModule  # noqa
         from apps.tests.bpa2 import BPA2Module  # noqa
         from apps.tests.wisc4 import WISC4Module  # noqa
+        from apps.tests.wais3 import WAIS3Module  # noqa
         from apps.tests.ebaped_ij import EBADEPIJModule  # noqa
         from apps.tests.ebadep_a import EBADEPAModule  # noqa
         from apps.tests.epq_j import EPQJModule  # noqa

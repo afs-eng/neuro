@@ -22,6 +22,13 @@ class Command(BaseCommand):
                 "is_active": True,
             },
             {
+                "code": "wais3",
+                "name": "WAIS-III - Escala de Inteligência de Wechsler para Adultos",
+                "category": "Inteligência",
+                "version": "3ª Edição",
+                "is_active": True,
+            },
+            {
                 "code": "bpa2",
                 "name": "BPA-2 - Brief Psychological Assessment",
                 "category": "Atenção",

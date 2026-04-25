@@ -12,15 +12,21 @@ class AIHealthcheckService:
     )
     HEALTHCHECK_USER_PROMPT = "Responda apenas OK."
 
+    @staticmethod
+    def _timeout(timeout: int | None) -> int:
+        if timeout is not None:
+            return timeout
+        return int(getattr(settings, "AI_HEALTHCHECK_TIMEOUT", 180))
+
     @classmethod
-    def check(cls, provider: str | None = None, timeout: int = 20) -> dict:
+    def check(cls, provider: str | None = None, timeout: int | None = None) -> dict:
         provider_name = provider or settings.AI_PROVIDER
         client = ProviderFactory.create(provider_name)
         result = client.generate(
             system_prompt=cls.HEALTHCHECK_SYSTEM_PROMPT,
             user_prompt=cls.HEALTHCHECK_USER_PROMPT,
             temperature=0,
-            timeout=timeout,
+            timeout=cls._timeout(timeout),
             max_tokens=8,
         )
         return {
@@ -31,7 +37,9 @@ class AIHealthcheckService:
         }
 
     @classmethod
-    def ensure_available(cls, provider: str | None = None, timeout: int = 20) -> dict:
+    def ensure_available(
+        cls, provider: str | None = None, timeout: int | None = None
+    ) -> dict:
         try:
             return cls.check(provider=provider, timeout=timeout)
         except Exception as exc:

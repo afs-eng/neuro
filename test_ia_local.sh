@@ -3,6 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+if [ -f "$ROOT_DIR/.env" ]; then
+  set -a
+  . "$ROOT_DIR/.env"
+  set +a
+fi
+
 if [ ! -x "$ROOT_DIR/.venv/bin/python" ]; then
   printf 'Virtualenv nao encontrado em .venv\n' >&2
   exit 1

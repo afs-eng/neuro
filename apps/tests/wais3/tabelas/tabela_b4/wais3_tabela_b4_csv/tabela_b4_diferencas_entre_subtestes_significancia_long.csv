@@ -1,0 +1,197 @@
+﻿subteste_linha;subteste_coluna;valor;nivel_significancia
+Vocabulário;Vocabulário;—;diagonal
+Vocabulário;Semelhanças;2,01;0,15
+Vocabulário;Aritmética;2,08;0,15
+Vocabulário;Dígitos;2,29;0,15
+Vocabulário;Informação;1,82;0,15
+Vocabulário;Compreensão;1,97;0,15
+Vocabulário;Seq. N. e Letras;2,65;0,15
+Vocabulário;Comp. Figuras;2,03;0,15
+Vocabulário;Códigos;2,31;0,15
+Vocabulário;Cubos;2,18;0,15
+Vocabulário;Rac. Matricial;1,94;0,15
+Vocabulário;Ar. de Figuras;2,28;0,15
+Vocabulário;Proc. Símbolos;2,98;0,15
+Vocabulário;Armar Objetos;2,83;0,15
+Semelhanças;Vocabulário;2,74;0,05
+Semelhanças;Semelhanças;—;diagonal
+Semelhanças;Aritmética;2,20;0,15
+Semelhanças;Dígitos;2,41;0,15
+Semelhanças;Informação;1,96;0,15
+Semelhanças;Compreensão;2,10;0,15
+Semelhanças;Seq. N. e Letras;2,74;0,15
+Semelhanças;Comp. Figuras;2,16;0,15
+Semelhanças;Códigos;2,42;0,15
+Semelhanças;Cubos;2,30;0,15
+Semelhanças;Rac. Matricial;2,07;0,15
+Semelhanças;Ar. de Figuras;2,40;0,15
+Semelhanças;Proc. Símbolos;3,06;0,15
+Semelhanças;Armar Objetos;2,93;0,15
+Aritmética;Vocabulário;2,83;0,05
+Aritmética;Semelhanças;2,99;0,05
+Aritmética;Aritmética;—;diagonal
+Aritmética;Dígitos;2,46;0,15
+Aritmética;Informação;2,03;0,15
+Aritmética;Compreensão;2,16;0,15
+Aritmética;Seq. N. e Letras;2,79;0,15
+Aritmética;Comp. Figuras;2,22;0,15
+Aritmética;Códigos;2,47;0,15
+Aritmética;Cubos;2,35;0,15
+Aritmética;Rac. Matricial;2,13;0,15
+Aritmética;Ar. de Figuras;2,45;0,15
+Aritmética;Proc. Símbolos;3,11;0,15
+Aritmética;Armar Objetos;2,97;0,15
+Dígitos;Vocabulário;3,12;0,05
+Dígitos;Semelhanças;3,28;0,05
+Dígitos;Aritmética;3,35;0,05
+Dígitos;Dígitos;—;diagonal
+Dígitos;Informação;2,25;0,15
+Dígitos;Compreensão;2,37;0,15
+Dígitos;Seq. N. e Letras;2,96;0,15
+Dígitos;Comp. Figuras;2,42;0,15
+Dígitos;Códigos;2,66;0,15
+Dígitos;Cubos;2,55;0,15
+Dígitos;Rac. Matricial;2,34;0,15
+Dígitos;Ar. de Figuras;2,64;0,15
+Dígitos;Proc. Símbolos;3,26;0,15
+Dígitos;Armar Objetos;3,13;0,15
+Informação;Vocabulário;2,48;0,05
+Informação;Semelhanças;2,67;0,05
+Informação;Aritmética;2,76;0,05
+Informação;Dígitos;3,07;0,05
+Informação;Informação;—;diagonal
+Informação;Compreensão;1,92;0,15
+Informação;Seq. N. e Letras;2,61;0,15
+Informação;Comp. Figuras;1,99;0,15
+Informação;Códigos;2,26;0,15
+Informação;Cubos;2,13;0,15
+Informação;Rac. Matricial;1,89;0,15
+Informação;Ar. de Figuras;2,24;0,15
+Informação;Proc. Símbolos;2,94;0,15
+Informação;Armar Objetos;2,80;0,15
+Compreensão;Vocabulário;2,68;0,05
+Compreensão;Semelhanças;2,86;0,05
+Compreensão;Aritmética;2,94;0,05
+Compreensão;Dígitos;3,23;0,05
+Compreensão;Informação;2,61;0,05
+Compreensão;Compreensão;—;diagonal
+Compreensão;Seq. N. e Letras;2,71;0,15
+Compreensão;Comp. Figuras;2,12;0,15
+Compreensão;Códigos;2,38;0,15
+Compreensão;Cubos;2,26;0,15
+Compreensão;Rac. Matricial;2,03;0,15
+Compreensão;Ar. de Figuras;2,36;0,15
+Compreensão;Proc. Símbolos;3,04;0,15
+Compreensão;Armar Objetos;2,90;0,15
+Seq. N. e Letras;Vocabulário;3,60;0,05
+Seq. N. e Letras;Semelhanças;3,73;0,05
+Seq. N. e Letras;Aritmética;3,80;0,05
+Seq. N. e Letras;Dígitos;4,03;0,05
+Seq. N. e Letras;Informação;3,55;0,05
+Seq. N. e Letras;Compreensão;3,69;0,05
+Seq. N. e Letras;Seq. N. e Letras;—;diagonal
+Seq. N. e Letras;Comp. Figuras;2,76;0,15
+Seq. N. e Letras;Códigos;2,97;0,15
+Seq. N. e Letras;Cubos;2,87;0,15
+Seq. N. e Letras;Rac. Matricial;2,69;0,15
+Seq. N. e Letras;Ar. de Figuras;2,95;0,15
+Seq. N. e Letras;Proc. Símbolos;3,51;0,15
+Seq. N. e Letras;Armar Objetos;3,39;0,15
+Comp. Figuras;Vocabulário;2,77;0,05
+Comp. Figuras;Semelhanças;2,94;0,05
+Comp. Figuras;Aritmética;3,02;0,05
+Comp. Figuras;Dígitos;3,30;0,05
+Comp. Figuras;Informação;2,70;0,05
+Comp. Figuras;Compreensão;2,88;0,05
+Comp. Figuras;Seq. N. e Letras;3,76;0,05
+Comp. Figuras;Comp. Figuras;—;diagonal
+Comp. Figuras;Códigos;2,44;0,15
+Comp. Figuras;Cubos;2,32;0,15
+Comp. Figuras;Rac. Matricial;2,09;0,15
+Comp. Figuras;Ar. de Figuras;2,41;0,15
+Comp. Figuras;Proc. Símbolos;3,08;0,15
+Comp. Figuras;Armar Objetos;2,94;0,15
+Códigos;Vocabulário;3,14;0,05
+Códigos;Semelhanças;3,29;0,05
+Códigos;Aritmética;3,37;0,05
+Códigos;Dígitos;3,62;0,05
+Códigos;Informação;3,08;0,05
+Códigos;Compreensão;3,24;0,05
+Códigos;Seq. N. e Letras;4,04;0,05
+Códigos;Comp. Figuras;3,32;0,05
+Códigos;Códigos;—;diagonal
+Códigos;Cubos;2,56;0,15
+Códigos;Rac. Matricial;2,36;0,15
+Códigos;Ar. de Figuras;2,65;0,15
+Códigos;Proc. Símbolos;3,26;0,15
+Códigos;Armar Objetos;3,14;0,15
+Cubos;Vocabulário;2,96;0,05
+Cubos;Semelhanças;3,13;0,05
+Cubos;Aritmética;3,20;0,05
+Cubos;Dígitos;3,47;0,05
+Cubos;Informação;2,91;0,05
+Cubos;Compreensão;3,07;0,05
+Cubos;Seq. N. e Letras;3,90;0,05
+Cubos;Comp. Figuras;3,15;0,05
+Cubos;Códigos;3,48;0,05
+Cubos;Cubos;—;diagonal
+Cubos;Rac. Matricial;2,23;0,15
+Cubos;Ar. de Figuras;2,54;0,15
+Cubos;Proc. Símbolos;3,18;0,15
+Cubos;Armar Objetos;3,04;0,15
+Rac. Matricial;Vocabulário;2,63;0,05
+Rac. Matricial;Semelhanças;2,82;0,05
+Rac. Matricial;Aritmética;2,90;0,05
+Rac. Matricial;Dígitos;3,19;0,05
+Rac. Matricial;Informação;2,57;0,05
+Rac. Matricial;Compreensão;2,76;0,05
+Rac. Matricial;Seq. N. e Letras;3,66;0,05
+Rac. Matricial;Comp. Figuras;2,84;0,05
+Rac. Matricial;Códigos;3,21;0,05
+Rac. Matricial;Cubos;3,04;0,05
+Rac. Matricial;Rac. Matricial;—;diagonal
+Rac. Matricial;Ar. de Figuras;2,33;0,15
+Rac. Matricial;Proc. Símbolos;3,01;0,15
+Rac. Matricial;Armar Objetos;2,88;0,15
+Ar. de Figuras;Vocabulário;3,11;0,05
+Ar. de Figuras;Semelhanças;3,26;0,05
+Ar. de Figuras;Aritmética;3,34;0,05
+Ar. de Figuras;Dígitos;3,59;0,05
+Ar. de Figuras;Informação;3,05;0,05
+Ar. de Figuras;Compreensão;3,21;0,05
+Ar. de Figuras;Seq. N. e Letras;4,01;0,05
+Ar. de Figuras;Comp. Figuras;3,28;0,05
+Ar. de Figuras;Códigos;3,60;0,05
+Ar. de Figuras;Cubos;3,45;0,05
+Ar. de Figuras;Rac. Matricial;3,18;0,05
+Ar. de Figuras;Ar. de Figuras;—;diagonal
+Ar. de Figuras;Proc. Símbolos;3,25;0,15
+Ar. de Figuras;Armar Objetos;3,12;0,15
+Proc. Símbolos;Vocabulário;4,05;0,05
+Proc. Símbolos;Semelhanças;4,17;0,05
+Proc. Símbolos;Aritmética;4,23;0,05
+Proc. Símbolos;Dígitos;4,43;0,05
+Proc. Símbolos;Informação;4,01;0,05
+Proc. Símbolos;Compreensão;4,13;0,05
+Proc. Símbolos;Seq. N. e Letras;4,78;0,05
+Proc. Símbolos;Comp. Figuras;4,19;0,05
+Proc. Símbolos;Códigos;4,44;0,05
+Proc. Símbolos;Cubos;4,32;0,05
+Proc. Símbolos;Rac. Matricial;4,10;0,05
+Proc. Símbolos;Ar. de Figuras;4,42;0,05
+Proc. Símbolos;Proc. Símbolos;—;diagonal
+Proc. Símbolos;Armar Objetos;3,66;0,15
+Armar Objetos;Vocabulário;3,86;0,05
+Armar Objetos;Semelhanças;3,98;0,05
+Armar Objetos;Aritmética;4,05;0,05
+Armar Objetos;Dígitos;4,26;0,05
+Armar Objetos;Informação;3,81;0,05
+Armar Objetos;Compreensão;3,94;0,05
+Armar Objetos;Seq. N. e Letras;4,62;0,05
+Armar Objetos;Comp. Figuras;4,00;0,05
+Armar Objetos;Códigos;4,27;0,05
+Armar Objetos;Cubos;4,14;0,05
+Armar Objetos;Rac. Matricial;3,91;0,05
+Armar Objetos;Ar. de Figuras;4,25;0,05
+Armar Objetos;Proc. Símbolos;4,98;0,05
+Armar Objetos;Armar Objetos;—;diagonal

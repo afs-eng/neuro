@@ -102,7 +102,7 @@ class ReportGenerationService:
         context = cls.construct_clinical_context(report.evaluation)
         sections_config = cls._enabled_sections_config(context)
         if any(ReportAIService.supports_section(key) for key, _ in sections_config):
-            AIHealthcheckService.ensure_available(timeout=30)
+            AIHealthcheckService.ensure_available()
         from apps.reports.services.report_pipeline_service import ReportPipelineService
 
         ReportPipelineService.generate_full_report(report, context, user=user)

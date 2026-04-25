@@ -1,0 +1,19 @@
+{
+  "instrumento": "WAIS-III",
+  "conjunto": "Tabelas A.3 a A.5",
+  "descricao": "Templates CSV para QI equivalente à soma dos escores ponderados.",
+  "inclui": [
+    "A.3 - QI Verbal",
+    "A.4 - QI de Execução",
+    "A.5 - QI Total"
+  ],
+  "nao_inclui": [
+    "A.6 em diante"
+  ],
+  "observacao": "Arquivos estruturados para preenchimento autorizado. As colunas normativas foram deixadas em branco para evitar reprodução integral de material protegido.",
+  "arquivos": [
+    "tabela_a3_qi_verbal.csv",
+    "tabela_a4_qi_execucao.csv",
+    "tabela_a5_qi_total.csv"
+  ]
+}

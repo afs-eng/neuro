@@ -28,7 +28,7 @@ class SectionRegenerationService:
             return None
 
         if ensure_ai_available and ReportAIService.supports_section(section_key):
-            AIHealthcheckService.ensure_available(timeout=30)
+            AIHealthcheckService.ensure_available()
 
         result = ReportPipelineService._generate_single_section(report, section_key, context)
         ReportPipelineService._save_section_result(
@@ -94,7 +94,7 @@ class SectionRegenerationService:
             if get_section_config(section.key).get("kind") == "test"
         ]
         if any(ReportAIService.supports_section(key) for key in section_keys):
-            AIHealthcheckService.ensure_available(timeout=30)
+            AIHealthcheckService.ensure_available()
 
         regenerated_keys: list[str] = []
         for section_key in section_keys:

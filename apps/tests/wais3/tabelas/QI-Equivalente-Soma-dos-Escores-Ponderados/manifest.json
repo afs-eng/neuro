@@ -1,0 +1,18 @@
+{
+  "instrumento": "WAIS-III",
+  "conjunto": "Tabelas A.6 a A.9",
+  "descricao": "Templates CSV para índices fatoriais equivalentes à soma dos escores ponderados.",
+  "inclui": [
+    "A.6 - Índice de Compreensão Verbal",
+    "A.7 - Índice de Organização Perceptual",
+    "A.8 - Índice de Memória Operacional",
+    "A.9 - Índice de Velocidade de Processamento"
+  ],
+  "observacao": "Arquivos estruturados para preenchimento autorizado. As colunas normativas foram deixadas em branco para evitar reprodução integral de material protegido.",
+  "arquivos": [
+    "tabela_a6_indice_compreensao_verbal.csv",
+    "tabela_a7_indice_organizacao_perceptual.csv",
+    "tabela_a8_indice_memoria_operacional.csv",
+    "tabela_a9_indice_velocidade_processamento.csv"
+  ]
+}

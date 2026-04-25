@@ -46,6 +46,8 @@ urlpatterns = [
     path("report/<int:application_id>/", views.bpa2_report_view, name="report"),
     path("wisc4/<int:application_id>/", views.wisc4_form_view, name="wisc4"),
     path("wisc4/", views.wisc4_form_view, name="wisc4_standalone"),
+    path("wais3/<int:application_id>/", views.wais3_form_view, name="wais3"),
+    path("wais3/", views.wais3_form_view, name="wais3_standalone"),
     path(
         "apply/<int:patient_id>/",
         views.apply_test_for_patient,

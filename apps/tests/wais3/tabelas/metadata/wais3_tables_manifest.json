@@ -1,0 +1,49 @@
+{
+  "instrumento": "WAIS-III",
+  "finalidade": "Templates CSV para organização das tabelas normativas e suplementares no sistema.",
+  "observacao": "Arquivos criados como estrutura de importação. Os dados normativos devem ser preenchidos apenas a partir de material licenciado e com autorização de uso.",
+  "raw_to_scaled": {
+    "descricao": "Conversão de pontos brutos em escores ponderados por faixa etária.",
+    "subtestes_verbais": [
+      "vocabulario",
+      "semelhancas",
+      "aritmetica",
+      "digitos",
+      "informacao",
+      "compreensao",
+      "sequencia_numeros_letras"
+    ],
+    "subtestes_execucao": [
+      "completar_figuras",
+      "codigos",
+      "cubos",
+      "raciocinio_matricial",
+      "arranjo_figuras",
+      "procurar_simbolos",
+      "armar_objetos"
+    ],
+    "faixas": [
+      "idade_16-17",
+      "idade_18-19",
+      "idade_20-29",
+      "idade_30-39",
+      "idade_40-49",
+      "idade_50-59",
+      "idade_60-64",
+      "idade_65-89",
+      "grupo_referencia_20-34"
+    ]
+  },
+  "composite_scores": {
+    "descricao": "Conversão da soma dos escores ponderados em QIs e índices fatoriais.",
+    "arquivos": [
+      "qi_verbal",
+      "qi_execucao",
+      "qi_total",
+      "compreensao_verbal",
+      "organizacao_perceptual",
+      "memoria_operacional",
+      "velocidade_processamento"
+    ]
+  }
+}

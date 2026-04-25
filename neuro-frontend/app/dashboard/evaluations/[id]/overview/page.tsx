@@ -758,6 +758,7 @@ export default function EvaluationDetailPage() {
     const baseUrls: Record<string, string> = {
       "fdt": "/dashboard/tests/fdt",
       "wisc4": "/dashboard/tests/wisc4",
+      "wais3": "/dashboard/tests/wais3",
       "bpa2": "/dashboard/tests/bpa2",
       "bai": "/dashboard/tests/bai",
       "ebadep_a": "/dashboard/tests/ebadep-a",

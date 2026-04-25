@@ -1,0 +1,3 @@
+from .constants import WAIS3_CODE, WAIS3_MAX_AGE, WAIS3_MIN_AGE, WAIS3_NAME
+
+__all__ = ["WAIS3_CODE", "WAIS3_NAME", "WAIS3_MIN_AGE", "WAIS3_MAX_AGE"]

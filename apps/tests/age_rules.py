@@ -4,6 +4,11 @@ INSTRUMENT_AGE_RULES = {
         "max_age": 16,
         "message": "O WISC-IV pode ser aplicado apenas entre 6 e 16 anos.",
     },
+    "wais3": {
+        "min_age": 16,
+        "max_age": 89,
+        "message": "O WAIS-III pode ser aplicado apenas entre 16 e 89 anos.",
+    },
     "fdt": {
         "min_age": 6,
         "max_age": 92,
