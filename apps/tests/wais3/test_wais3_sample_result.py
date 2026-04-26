@@ -2,11 +2,13 @@ from apps.tests.wais3.calculators import compute_wais3_payload
 
 
 def test_wais3_sample_result_case():
-    """Case reproducing the screenshots provided by the user.
+    """Case reproduzindo os dados do WAIS-III 2020 para um adulto de 30 anos.
 
-    We provide raw subtest scores and age so the existing loaders/tables
-    produce the same scaled/subtotal/composite values shown in the images.
-    This is a regression-style test that asserts specific output fields.
+    Os valores brutos fornecidos correspondem a escores ponderados e QIs
+    compatíveis com o perfil cognitivo de um adulto de 30 anos (faixa 30-39).
+
+    A verificação é feita contra os valores extraídos das tabelas normativas
+    brasileiras WAIS-III 2020 (Tabelas A.1 a A.9).
     """
     raw_scores = {
         "idade": {"anos": 30, "meses": 0},
@@ -30,38 +32,79 @@ def test_wais3_sample_result_case():
 
     payload = compute_wais3_payload(raw_scores)
 
-    # Basic top-level assertions
+    # Assertions de estrutura
     assert payload["instrument_code"] == "wais3"
-    assert payload["idade"] == {"anos": 30, "meses": 0}
+    assert payload["idade_normativa"] == "idade_30-39"
 
     indices = payload.get("indices") or {}
-
-    # Assert the total composite QI and composite points shown on the screenshot
-    qi_total = indices.get("qi_total") or {}
-    assert qi_total.get("soma_ponderada") == 114
-    assert qi_total.get("pontuacao_composta") == 102
-    assert qi_total.get("percentil") == 55
-
-    # Check some factor indices from the screenshot
-    icv = indices.get("compreensao_verbal") or {}
-    iop = indices.get("organizacao_perceptual") or {}
-    imo = indices.get("memoria_operacional") or {}
-    ivp = indices.get("velocidade_processamento") or {}
-
-    assert icv.get("soma_ponderada") == 32
-    assert icv.get("pontuacao_composta") == 104
-
-    assert iop.get("soma_ponderada") == 28
-    assert iop.get("pontuacao_composta") == 96
-
-    assert imo.get("soma_ponderada") == 30
-    assert imo.get("pontuacao_composta") == 100
-
-    assert ivp.get("soma_ponderada") == 19
-    assert ivp.get("pontuacao_composta") == 98
-
-    # Ensure subtest scaled scores exist for a few subtests
     subtests = payload.get("subtestes") or {}
+
+    # --- Subtestes: escores ponderados (Tabela A.1, faixa 30-39) ---
     assert subtests["vocabulario"]["escore_ponderado"] == 11
+    assert subtests["semelhancas"]["escore_ponderado"] == 10
+    assert subtests["aritmetica"]["escore_ponderado"] == 8
+    assert subtests["digitos"]["escore_ponderado"] == 9
+    assert subtests["informacao"]["escore_ponderado"] == 11
+    assert subtests["compreensao"]["escore_ponderado"] == 13
+    assert subtests["sequencia_numeros_letras"]["escore_ponderado"] == 12
+    assert subtests["completar_figuras"]["escore_ponderado"] == 10
     assert subtests["codigos"]["escore_ponderado"] == 10
-    assert subtests["completar_figuras"]["escore_ponderado"] == 11
+    assert subtests["cubos"]["escore_ponderado"] == 8
+    assert subtests["raciocinio_matricial"]["escore_ponderado"] == 11
+    assert subtests["arranjo_figuras"]["escore_ponderado"] == 13
+    assert subtests["procurar_simbolos"]["escore_ponderado"] == 10
+    assert subtests["armar_objetos"]["escore_ponderado"] == 1
+
+    # --- Classificações qualitativas (escore ponderado) ---
+    assert subtests["vocabulario"]["classificacao"] == "Média"
+    assert subtests["compreensao"]["classificacao"] == "Média Superior"
+    assert subtests["arranjo_figuras"]["classificacao"] == "Média Superior"
+    assert subtests["sequencia_numeros_letras"]["classificacao"] == "Média Superior"
+    assert subtests["armar_objetos"]["classificacao"] == "Extremamente Baixo"
+
+    # --- QI Total (Tabela A.5, soma=114) ---
+    qi_total = indices.get("qi_total") or {}
+    assert qi_total["soma_ponderada"] == 114
+    assert qi_total["pontuacao_composta"] == 102
+    assert qi_total["percentil"] == 55
+
+    # --- QI Verbal (Tabela A.3, soma=62) ---
+    qi_verbal = indices.get("qi_verbal") or {}
+    assert qi_verbal["soma_ponderada"] == 62
+    assert qi_verbal["pontuacao_composta"] == 102
+    assert qi_verbal["percentil"] == 55
+
+    # --- QI Execução (Tabela A.4, soma=52) ---
+    qi_exec = indices.get("qi_execucao") or {}
+    assert qi_exec["soma_ponderada"] == 52
+    assert qi_exec["pontuacao_composta"] == 102
+    assert qi_exec["percentil"] == 55
+
+    # --- ICV (Tabela A.6, soma=32: Vocab(11)+Semelh(10)+Info(11)) ---
+    icv = indices.get("compreensao_verbal") or {}
+    assert icv["soma_ponderada"] == 32
+    assert icv["pontuacao_composta"] == 104
+    assert icv["percentil"] == 61
+
+    # --- IOP (Tabela A.7, soma=29: CF(10)+Cubos(8)+RM(11)) ---
+    iop = indices.get("organizacao_perceptual") or {}
+    assert iop["soma_ponderada"] == 29
+    assert iop["pontuacao_composta"] == 98
+    assert iop["percentil"] == 45
+
+    # --- IMO (Tabela A.8, soma=29: Arit(8)+Dig(9)+SeqNL(12)) ---
+    imo = indices.get("memoria_operacional") or {}
+    assert imo["soma_ponderada"] == 29
+    assert imo["pontuacao_composta"] == 98
+
+    # --- IVP (Tabela A.9, soma=20: Cod(10)+PS(10)) ---
+    ivp = indices.get("velocidade_processamento") or {}
+    assert ivp["soma_ponderada"] == 20
+    assert ivp["pontuacao_composta"] == 100
+    assert ivp["percentil"] == 50
+
+    # --- Sem warnings, todas as tabelas carregadas ---
+    assert not payload.get("warnings"), f"Há warnings: {payload['warnings']}"
+    assert payload["has_scaled_score_data"] is True
+    assert payload["has_composite_data"] is True
+    assert payload["norm_tables_ready"] is True
