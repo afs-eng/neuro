@@ -14,20 +14,20 @@ type Subtest = {
 
 const subtests: Subtest[] = [
   // Escala de Execução
-  { code: 'completar_figuras', name: 'Completar Figuras', domain: 'execucao' },
-  { code: 'vocabulario', name: 'Vocabulário', domain: 'verbal' },
-  { code: 'codigos', name: 'Códigos', domain: 'execucao' },
-  { code: 'semelhancas', name: 'Semelhanças', domain: 'verbal' },
-  { code: 'cubos', name: 'Cubos', domain: 'execucao' },
-  { code: 'aritmetica', name: 'Aritmética', domain: 'verbal' },
-  { code: 'raciocinio_matricial', name: 'Raciocínio Matricial', domain: 'execucao' },
-  { code: 'digitos', name: 'Dígitos', domain: 'verbal' },
-  { code: 'informacao', name: 'Informação', domain: 'verbal' },
-  { code: 'arranjo_figuras', name: 'Arranjo de Figuras', domain: 'execucao' },
-  { code: 'compreensao', name: 'Compreensão', domain: 'verbal' },
-  { code: 'procurar_simbolos', name: 'Procurar Símbolos', domain: 'execucao' },
-  { code: 'sequencia_numeros_letras', name: 'Sequência de Números e Letras', domain: 'suplementar' },
-  { code: 'armar_objetos', name: 'Armar Objetos', domain: 'suplementar' },
+  { code: 'completar_figuras', name: 'Completar Figuras', maxScore: 25, domain: 'execucao' },
+  { code: 'vocabulario', name: 'Vocabulário', maxScore: 66, domain: 'verbal' },
+  { code: 'codigos', name: 'Códigos', maxScore: 133, domain: 'execucao' },
+  { code: 'semelhancas', name: 'Semelhanças', maxScore: 38, domain: 'verbal' },
+  { code: 'cubos', name: 'Cubos', maxScore: 68, domain: 'execucao' },
+  { code: 'aritmetica', name: 'Aritmética', maxScore: 22, domain: 'verbal' },
+  { code: 'raciocinio_matricial', name: 'Raciocínio Matricial', maxScore: 26, domain: 'execucao' },
+  { code: 'digitos', name: 'Dígitos', maxScore: 30, domain: 'verbal' },
+  { code: 'informacao', name: 'Informação', maxScore: 28, domain: 'verbal' },
+  { code: 'arranjo_figuras', name: 'Arranjo de Figuras', maxScore: 22, domain: 'execucao' },
+  { code: 'compreensao', name: 'Compreensão', maxScore: 33, domain: 'verbal' },
+  { code: 'procurar_simbolos', name: 'Procurar Símbolos', maxScore: 60, domain: 'execucao' },
+  { code: 'sequencia_numeros_letras', name: 'Sequência de Números e Letras', maxScore: 21, domain: 'suplementar' },
+  { code: 'armar_objetos', name: 'Armar Objetos', maxScore: 52, domain: 'suplementar' },
 ]
 
 function WAIS3PageContent() {
@@ -39,6 +39,7 @@ function WAIS3PageContent() {
 
   const [evaluation, setEvaluation] = useState<any>(null)
   const [scores, setScores] = useState<Record<string, number | null>>({})
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [preview, setPreview] = useState<any>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
@@ -84,7 +85,20 @@ function WAIS3PageContent() {
   }, [applicationId, evaluationId, isEditMode, router])
 
   const handleChange = (code: string, value: string) => {
-    setScores((prev) => ({ ...prev, [code]: value === '' ? null : parseInt(value, 10) }))
+    const subtest = subtests.find(s => s.code === code)
+    const numVal = value === '' ? null : parseInt(value, 10)
+
+    if (numVal !== null && subtest?.maxScore && numVal > subtest.maxScore) {
+      setErrors(prev => ({ ...prev, [code]: `Valor máximo permitido: ${subtest.maxScore}` }))
+    } else {
+      setErrors(prev => {
+        const next = { ...prev }
+        delete next[code]
+        return next
+      })
+    }
+
+    setScores((prev) => ({ ...prev, [code]: numVal }))
   }
 
   // Fetch preview whenever scores change
@@ -125,6 +139,21 @@ function WAIS3PageContent() {
     e.preventDefault()
     if (!evaluationId) {
       alert('ID da avaliação não encontrado.')
+      return
+    }
+
+    // Validate max scores before submit
+    const validationErrors: Record<string, string> = {}
+    for (const subtest of subtests) {
+      const val = scores[subtest.code]
+      if (val !== null && subtest.maxScore && val > subtest.maxScore) {
+        validationErrors[subtest.code] = `Valor máximo permitido: ${subtest.maxScore}`
+      }
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
+      const firstError = Object.values(validationErrors)[0]
+      alert(`Erro de validação: ${firstError}`)
       return
     }
 
@@ -215,14 +244,19 @@ function WAIS3PageContent() {
                     <div key={subtest.code} className={`rounded-2xl border p-4 shadow-sm ${bgClass}`}>
                       <div className="mb-2 flex items-center justify-between">
                         <span className="font-medium text-zinc-900">{subtest.name}</span>
+                        {subtest.maxScore && <span className="text-xs text-zinc-500">máx: {subtest.maxScore}</span>}
                       </div>
                       <input
                         type="number"
                         min="0"
+                        max={subtest.maxScore}
                         value={scores[subtest.code] ?? ''}
                         onChange={(e) => handleChange(subtest.code, e.target.value)}
-                        className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                        className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${errors[subtest.code] ? 'border-red-400 focus:ring-red-500/20' : 'border-black/10 focus:ring-zinc-900/20'}`}
                       />
+                      {errors[subtest.code] && (
+                        <p className="mt-1 text-xs text-red-600">{errors[subtest.code]}</p>
+                      )}
                     </div>
                   )
                 })}

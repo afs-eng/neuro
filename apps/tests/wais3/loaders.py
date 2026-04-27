@@ -160,4 +160,6 @@ class WAIS3NormLoader:
             sample = fh.read(2048)
             fh.seek(0)
             delimiter = ";" if sample.count(";") > sample.count(",") else ","
-            return [row for row in csv.DictReader(fh, delimiter=delimiter)]
+            reader = csv.DictReader(fh, delimiter=delimiter)
+            # Strip whitespace from keys and values to avoid lookup failures
+            return [{k.strip(): v.strip() for k, v in row.items()} for row in reader]

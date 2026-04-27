@@ -244,7 +244,9 @@ def update_instrument_endpoint(
 
 @router.get("/applications", response=list[TestApplicationOut], auth=bearer_auth)
 def list_test_applications(
-    request, evaluation_id: int | None = Query(default=None)
+    request, 
+    evaluation_id: int | None = Query(default=None),
+    instrument_code: str | None = Query(default=None),
 ) -> list[dict]:
     if not can_view_tests(request.auth):
         raise HttpError(
@@ -256,6 +258,10 @@ def list_test_applications(
         if evaluation_id
         else get_test_applications()
     )
+    
+    if instrument_code:
+        applications = applications.filter(instrument__code=instrument_code)
+    
     return [serialize_test_application(item) for item in applications]
 
 

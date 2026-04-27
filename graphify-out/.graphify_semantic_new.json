@@ -1,0 +1,1747 @@
+{
+  "nodes": [
+    {
+      "id": "neuroavalia_system",
+      "label": "NeuroAvalia",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "django_backend",
+      "label": "Django Backend",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "nextjs_frontend",
+      "label": "Next.js Frontend",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_tests_module",
+      "label": "apps/tests/ Module",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_reports_module",
+      "label": "apps/reports/ Module",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_ai_module",
+      "label": "apps/ai/ Module",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_anamnesis_module",
+      "label": "apps/anamnesis/ Module",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_patients_module",
+      "label": "apps/patients/ Module",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_evaluations_module",
+      "label": "apps/evaluations/ Module",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_messaging_module",
+      "label": "apps/messaging/ Module",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "context_builder_service",
+      "label": "EvaluationContextBuilder",
+      "file_type": "code",
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "section_generator_service",
+      "label": "SectionGenerator",
+      "file_type": "code",
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "draft_generator_service",
+      "label": "DraftGenerator",
+      "file_type": "code",
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "report_model",
+      "label": "Report Model",
+      "file_type": "code",
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "report_section_model",
+      "label": "ReportSection Model",
+      "file_type": "code",
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "backend_source_of_truth",
+      "label": "Backend Source of Truth Principle",
+      "file_type": "document",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "ai_is_assistive_principle",
+      "label": "AI Assistive Not Normative Principle",
+      "file_type": "document",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "separation_of_data_stages",
+      "label": "Separation of Test Data Stages Principle",
+      "file_type": "document",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "ollam_provider",
+      "label": "Ollama Provider",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "openrouter_provider",
+      "label": "OpenRouter Provider",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "resend_email_provider",
+      "label": "Resend Email Provider",
+      "file_type": "code",
+      "source_file": "analise_mensageria_revisada.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "evolution_api_whatsapp",
+      "label": "Evolution API WhatsApp",
+      "file_type": "code",
+      "source_file": "analise_mensageria_revisada.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "adolescent_report_model",
+      "label": "Adolescent Report Model",
+      "file_type": "document",
+      "source_file": "mapeamento_modelo_adolescente.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "laudo_ia_adolescent_package",
+      "label": "laudo_ia_python_adolescente Package",
+      "file_type": "code",
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "linguagem_prompt",
+      "label": "linguagem_prompt",
+      "category": "Prompt Template",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "funcoes_executivas_prompt",
+      "label": "funcoes_executivas_prompt",
+      "category": "Prompt Template",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "attention_prompt",
+      "label": "attention_prompt",
+      "category": "Prompt Template",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/attention_prompt.txt"
+    },
+    {
+      "id": "base_system_prompt",
+      "label": "base_system_prompt",
+      "category": "Prompt Template",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/base_system_prompt.txt"
+    },
+    {
+      "id": "Laudo Neuropsicologico",
+      "label": "Laudo Neuropsicol\u00f3gico",
+      "category": "Domain Concept",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "Linguagem",
+      "label": "Linguagem",
+      "category": "Cognitive Domain",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "Funcoes Executivas",
+      "label": "Fun\u00e7\u00f5es Executivas",
+      "category": "Cognitive Domain",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "Atencao",
+      "label": "Aten\u00e7\u00e3o",
+      "category": "Cognitive Domain",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/attention_prompt.txt"
+    },
+    {
+      "id": "WISC-IV",
+      "label": "WISC-IV",
+      "category": "Psychological Test",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "WASI",
+      "label": "WASI",
+      "category": "Psychological Test",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "WAIS-III",
+      "label": "WAIS-III",
+      "category": "Psychological Test",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "Semelhancas",
+      "label": "Semelhan\u00e7as",
+      "category": "WISC-IV Subtest",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "Vocabulario",
+      "label": "Vocabul\u00e1rio",
+      "category": "WISC-IV Subtest",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "Compreensao",
+      "label": "Compreens\u00e3o",
+      "category": "WISC-IV Subtest",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt"
+    },
+    {
+      "id": "Conceitos Figurativos",
+      "label": "Conceitos Figurativos",
+      "category": "WISC-IV Subtest",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "Raciocinio Matricial",
+      "label": "Racioc\u00ednio Matricial",
+      "category": "WISC-IV Subtest",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "Sequencia de Numeros e Letras",
+      "label": "Sequ\u00eancia de N\u00fameros e Letras",
+      "category": "WISC-IV Subtest",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "Planejamento",
+      "label": "Planejamento",
+      "category": "Executive Function",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "Controle Inibitorio",
+      "label": "Controle Inibit\u00f3rio",
+      "category": "Executive Function",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "Flexibilidade Cognitiva",
+      "label": "Flexibilidade Cognitiva",
+      "category": "Executive Function",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "Monitoramento",
+      "label": "Monitoramento",
+      "category": "Executive Function",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt"
+    },
+    {
+      "id": "pt-BR",
+      "label": "pt-BR",
+      "category": "Localization",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/apps/ai/prompts/base_system_prompt.txt"
+    },
+    {
+      "id": "NeuroAvalia",
+      "label": "NeuroAvalia",
+      "category": "Application",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "Next.js",
+      "label": "Next.js 14",
+      "category": "Framework",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "Django API",
+      "label": "Django API",
+      "category": "Framework",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "PostgreSQL",
+      "label": "PostgreSQL",
+      "category": "Database",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "Nginx",
+      "label": "Nginx",
+      "category": "Web Server",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "Docker",
+      "label": "Docker",
+      "category": "Infrastructure",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "Frontend",
+      "label": "Frontend (Porta 3000)",
+      "category": "Service",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "Backend",
+      "label": "Backend (Porta 8000)",
+      "category": "Service",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "Database",
+      "label": "Database (Porta 5432)",
+      "category": "Service",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/walkthrough.txt"
+    },
+    {
+      "id": "TailwindCSS",
+      "label": "TailwindCSS",
+      "category": "CSS Framework",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/postcss.config.js"
+    },
+    {
+      "id": "Autoprefixer",
+      "label": "Autoprefixer",
+      "category": "CSS Tool",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/postcss.config.js"
+    },
+    {
+      "id": "React Strict Mode",
+      "label": "React Strict Mode",
+      "category": "React Feature",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/next.config.js"
+    },
+    {
+      "id": "Standalone Output",
+      "label": "Standalone Output",
+      "category": "Next.js Feature",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/next.config.js"
+    },
+    {
+      "id": "API Rewrites",
+      "label": "API Rewrites",
+      "category": "Next.js Feature",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/next.config.js"
+    },
+    {
+      "id": "Patient",
+      "label": "Patient",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/patient.ts"
+    },
+    {
+      "id": "Evaluation",
+      "label": "Evaluation",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/evaluation.ts"
+    },
+    {
+      "id": "ClinicalChecklist",
+      "label": "ClinicalChecklist",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "Instrument",
+      "label": "Instrument",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "TestApplication",
+      "label": "TestApplication",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "EvaluationDocument",
+      "label": "EvaluationDocument",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "ProgressEntry",
+      "label": "ProgressEntry",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "Report",
+      "label": "Report",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "ReportSection",
+      "label": "ReportSection",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "AnamnesisTemplate",
+      "label": "AnamnesisTemplate",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "AnamnesisInvite",
+      "label": "AnamnesisInvite",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "AnamnesisResponse",
+      "label": "AnamnesisResponse",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "User",
+      "label": "User",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "id": "WISC4Index",
+      "label": "WISC4Index",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/tests/wisc4.ts"
+    },
+    {
+      "id": "WISC4Result",
+      "label": "WISC4Result",
+      "category": "TypeScript Interface",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/types/tests/wisc4.ts"
+    },
+    {
+      "id": "AppSidebar",
+      "label": "AppSidebar",
+      "category": "React Component",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Dashboard",
+      "label": "Dashboard",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Pacientes",
+      "label": "Pacientes",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Avaliacoes",
+      "label": "Avalia\u00e7\u00f5es",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Testes",
+      "label": "Testes",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Anamnese",
+      "label": "Anamnese",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Laudos",
+      "label": "Laudos",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Documentos",
+      "label": "Documentos",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "IA Clinica",
+      "label": "IA Cl\u00ednica",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Usuarios",
+      "label": "Usu\u00e1rios",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "Configuracoes",
+      "label": "Configura\u00e7\u00f5es",
+      "category": "Navigation Item",
+      "confidence_score": 1.0,
+      "source_file": "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx"
+    },
+    {
+      "id": "ReferralInfo",
+      "label": "ReferralInfo",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "PatientInfo",
+      "label": "PatientInfo",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "SessionInfo",
+      "label": "SessionInfo",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "TestResult",
+      "label": "TestResult",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "ClinicalHistory",
+      "label": "ClinicalHistory",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "StyleRules",
+      "label": "StyleRules",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "EvaluationContext",
+      "label": "EvaluationContext",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "ReportSection",
+      "label": "ReportSection",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "ReportDraft",
+      "label": "ReportDraft",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/schemas.py"
+    },
+    {
+      "id": "EvaluationContextBuilder",
+      "label": "EvaluationContextBuilder",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/context_builder.py"
+    },
+    {
+      "id": "ReportGenerator",
+      "label": "ReportGenerator",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/section_generators.py"
+    },
+    {
+      "id": "PromptBuilder",
+      "label": "PromptBuilder",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/prompt_builder.py"
+    },
+    {
+      "id": "ConsistencyChecker",
+      "label": "ConsistencyChecker",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/consistency.py"
+    },
+    {
+      "id": "ConsistencyReport",
+      "label": "ConsistencyReport",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/consistency.py"
+    },
+    {
+      "id": "ReportSectionKey",
+      "label": "ReportSectionKey",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/enums.py"
+    },
+    {
+      "id": "GenerationMode",
+      "label": "GenerationMode",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/enums.py"
+    },
+    {
+      "id": "DEFAULT_REFERENCES",
+      "label": "DEFAULT_REFERENCES",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/bibliography.py"
+    },
+    {
+      "id": "SECTION_TITLES",
+      "label": "SECTION_TITLES",
+      "file_type": "document",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/section_catalog.py"
+    },
+    {
+      "id": "BaseLLMClient",
+      "label": "BaseLLMClient",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/llm_client.py"
+    },
+    {
+      "id": "MockLLMClient",
+      "label": "MockLLMClient",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/llm_client.py"
+    },
+    {
+      "id": "ReportCompiler",
+      "label": "ReportCompiler",
+      "file_type": "code",
+      "source_file": "laudo_ia_python_adolescente/laudo_ai/compiler.py"
+    }
+  ],
+  "edges": [
+    {
+      "source": "nextjs_frontend",
+      "target": "django_backend",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "FRONTEND_STRUCTURE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_tests_module",
+      "target": "apps_reports_module",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_reports_module",
+      "target": "context_builder_service",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "context_builder_service",
+      "target": "apps_tests_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "context_builder_service",
+      "target": "apps_anamnesis_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "context_builder_service",
+      "target": "apps_patients_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "implementacao_laudo_com_ia.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_ai_module",
+      "target": "backend_source_of_truth",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "backend_source_of_truth",
+      "target": "apps_tests_module",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "ai_is_assistive_principle",
+      "target": "apps_ai_module",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "separation_of_data_stages",
+      "target": "apps_tests_module",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_reports_module",
+      "target": "apps_tests_module",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "laudo_ia_adolescent_package",
+      "target": "apps_reports_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "ollam_provider",
+      "target": "apps_ai_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "openrouter_provider",
+      "target": "apps_ai_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "resend_email_provider",
+      "target": "apps_messaging_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "analise_mensageria_revisada.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "evolution_api_whatsapp",
+      "target": "apps_messaging_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "analise_mensageria_revisada.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "adolescent_report_model",
+      "target": "apps_reports_module",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "mapeamento_modelo_adolescente.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "adolescent_report_model",
+      "target": "laudo_ia_adolescent_package",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "mapeamento_modelo_adolescente.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_reports_module",
+      "target": "ollam_provider",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_ai_module",
+      "target": "openrouter_provider",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "neuroavalia_system",
+      "target": "django_backend",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "neuroavalia_system",
+      "target": "nextjs_frontend",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "relationship": "generates_section",
+      "source_id": "linguagem_prompt",
+      "target_id": "Laudo Neuropsicologico",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "generates_section",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "Laudo Neuropsicologico",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "generates_section",
+      "source_id": "attention_prompt",
+      "target_id": "Laudo Neuropsicologico",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "defines_cognitive_domain",
+      "source_id": "linguagem_prompt",
+      "target_id": "Linguagem",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "defines_cognitive_domain",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "Funcoes Executivas",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "defines_cognitive_domain",
+      "source_id": "attention_prompt",
+      "target_id": "Atencao",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_test",
+      "source_id": "linguagem_prompt",
+      "target_id": "WISC-IV",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_test",
+      "source_id": "linguagem_prompt",
+      "target_id": "WASI",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_test",
+      "source_id": "linguagem_prompt",
+      "target_id": "WAIS-III",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_test",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "WISC-IV",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_test",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "WASI",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_test",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "WAIS-III",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_subtest",
+      "source_id": "linguagem_prompt",
+      "target_id": "Semelhancas",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_subtest",
+      "source_id": "linguagem_prompt",
+      "target_id": "Vocabulario",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_subtest",
+      "source_id": "linguagem_prompt",
+      "target_id": "Compreensao",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_subtest",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "Semelhancas",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_subtest",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "Compreensao",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_subtest",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "Conceitos Figurativos",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_subtest",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "Raciocinio Matricial",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_subtest",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "Sequencia de Numeros e Letras",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "assesses",
+      "source_id": "Funcoes Executivas",
+      "target_id": "Planejamento",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "assesses",
+      "source_id": "Funcoes Executivas",
+      "target_id": "Controle Inibitorio",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "assesses",
+      "source_id": "Funcoes Executivas",
+      "target_id": "Flexibilidade Cognitiva",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "assesses",
+      "source_id": "Funcoes Executivas",
+      "target_id": "Monitoramento",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "localized_to",
+      "source_id": "base_system_prompt",
+      "target_id": "pt-BR",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "localized_to",
+      "source_id": "linguagem_prompt",
+      "target_id": "pt-BR",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "localized_to",
+      "source_id": "funcoes_executivas_prompt",
+      "target_id": "pt-BR",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "localized_to",
+      "source_id": "attention_prompt",
+      "target_id": "pt-BR",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "app_name",
+      "source_id": "NeuroAvalia",
+      "target_id": "Next.js",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "app_name",
+      "source_id": "NeuroAvalia",
+      "target_id": "Django API",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "app_name",
+      "source_id": "NeuroAvalia",
+      "target_id": "PostgreSQL",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_frontend_framework",
+      "source_id": "NeuroAvalia",
+      "target_id": "Next.js",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_backend_framework",
+      "source_id": "NeuroAvalia",
+      "target_id": "Django API",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_database",
+      "source_id": "NeuroAvalia",
+      "target_id": "PostgreSQL",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_webserver",
+      "source_id": "NeuroAvalia",
+      "target_id": "Nginx",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_containerization",
+      "source_id": "NeuroAvalia",
+      "target_id": "Docker",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "exposes_service",
+      "source_id": "Next.js",
+      "target_id": "Frontend",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "exposes_service",
+      "source_id": "Django API",
+      "target_id": "Backend",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "exposes_service",
+      "source_id": "PostgreSQL",
+      "target_id": "Database",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_css_framework",
+      "source_id": "NeuroAvalia",
+      "target_id": "TailwindCSS",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "uses_css_tool",
+      "source_id": "TailwindCSS",
+      "target_id": "Autoprefixer",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "configures_react_strict_mode",
+      "source_id": "next.config.js",
+      "target_id": "React Strict Mode",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "configures_output",
+      "source_id": "next.config.js",
+      "target_id": "Standalone Output",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "configures_rewrites",
+      "source_id": "next.config.js",
+      "target_id": "API Rewrites",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "implements_interface",
+      "source_id": "Patient",
+      "target_id": "Evaluation",
+      "confidence_score": 0.8,
+      "rationale": "Patient is used within Evaluation interface via patient field",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/evaluation.ts"
+    },
+    {
+      "relationship": "implements_interface",
+      "source_id": "Patient",
+      "target_id": "TestApplication",
+      "confidence_score": 0.8,
+      "rationale": "Patient is related to Evaluation which contains TestApplications",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "defines_data_structure",
+      "source_id": "Patient",
+      "target_id": "ClinicalChecklist",
+      "confidence_score": 0.6,
+      "rationale": "ClinicalChecklist is a field in the Evaluation interface",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "implements_interface",
+      "source_id": "Instrument",
+      "target_id": "TestApplication",
+      "confidence_score": 0.8,
+      "rationale": "TestApplication references Instrument via instrument_id",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "manages",
+      "source_id": "Evaluation",
+      "target_id": "TestApplication",
+      "confidence_score": 0.8,
+      "rationale": "TestApplication has evaluation_id linking to Evaluation",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "manages",
+      "source_id": "Evaluation",
+      "target_id": "EvaluationDocument",
+      "confidence_score": 0.8,
+      "rationale": "EvaluationDocument has evaluation_id linking to Evaluation",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "manages",
+      "source_id": "Evaluation",
+      "target_id": "ProgressEntry",
+      "confidence_score": 0.8,
+      "rationale": "ProgressEntry has evaluation_id linking to Evaluation",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "generates",
+      "source_id": "Evaluation",
+      "target_id": "Report",
+      "confidence_score": 0.8,
+      "rationale": "Report has evaluation_id linking to Evaluation",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "contains_section",
+      "source_id": "Report",
+      "target_id": "ReportSection",
+      "confidence_score": 0.8,
+      "rationale": "Report has sections array of ReportSection",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "manages",
+      "source_id": "Evaluation",
+      "target_id": "AnamnesisTemplate",
+      "confidence_score": 0.6,
+      "rationale": "Evaluation related to anamnesis workflow",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "invites",
+      "source_id": "AnamnesisTemplate",
+      "target_id": "AnamnesisInvite",
+      "confidence_score": 0.8,
+      "rationale": "AnamnesisInvite references template_id",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "responds_to",
+      "source_id": "AnamnesisInvite",
+      "target_id": "AnamnesisResponse",
+      "confidence_score": 0.8,
+      "rationale": "AnamnesisResponse has invite_id linking to AnamnesisInvite",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/shared.ts"
+    },
+    {
+      "relationship": "uses_test_type",
+      "source_id": "Evaluation",
+      "target_id": "WISC4Result",
+      "confidence_score": 0.6,
+      "rationale": "WISC4 is a test type used in evaluations",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/tests/wisc4.ts"
+    },
+    {
+      "relationship": "implements_interface",
+      "source_id": "WISC4Index",
+      "target_id": "WISC4Result",
+      "confidence_score": 0.8,
+      "rationale": "WISC4Result contains array of WISC4Index",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/tests/wisc4.ts"
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Dashboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Pacientes",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Avaliacoes",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Testes",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Anamnese",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Laudos",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Documentos",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "IA Clinica",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Usuarios",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "contains_navigation",
+      "source_id": "AppSidebar",
+      "target_id": "Configuracoes",
+      "confidence_score": 1.0
+    },
+    {
+      "relationship": "represents_test",
+      "source_id": "WISC-IV",
+      "target_id": "WISC4Index",
+      "confidence_score": 0.7,
+      "rationale": "WISC-IV test results use WISC4Index interface for indices",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/tests/wisc4.ts"
+    },
+    {
+      "relationship": "represents_test",
+      "source_id": "WISC-IV",
+      "target_id": "WISC4Result",
+      "confidence_score": 0.7,
+      "rationale": "WISC-IV test results are represented by WISC4Result interface",
+      "source_file": "/home/andre/neuro/neuro-frontend/types/tests/wisc4.ts"
+    },
+    {
+      "source": "EvaluationContextBuilder",
+      "target": "EvaluationContext",
+      "relation": "creates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "EvaluationContextBuilder",
+      "target": "PatientInfo",
+      "relation": "creates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "EvaluationContextBuilder",
+      "target": "ReferralInfo",
+      "relation": "creates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "ReportGenerator",
+      "target": "EvaluationContext",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "ReportGenerator",
+      "target": "ReportDraft",
+      "relation": "creates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "ReportGenerator",
+      "target": "PromptBuilder",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "ConsistencyChecker",
+      "target": "EvaluationContext",
+      "relation": "validates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "ConsistencyChecker",
+      "target": "ReportDraft",
+      "relation": "validates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "ReportCompiler",
+      "target": "ReportDraft",
+      "relation": "compiles",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "laudo_generation_services",
+      "label": "Laudo Generation Services",
+      "nodes": [
+        "context_builder_service",
+        "section_generator_service",
+        "draft_generator_service"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "implementacao_laudo_com_ia.md"
+    },
+    {
+      "id": "clinical_domain_modules",
+      "label": "Clinical Domain Backend Modules",
+      "nodes": [
+        "apps_tests_module",
+        "apps_reports_module",
+        "apps_anamnesis_module",
+        "apps_evaluations_module",
+        "apps_patients_module"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md"
+    },
+    {
+      "id": "ai_providers",
+      "label": "AI Provider Infrastructure",
+      "nodes": [
+        "ollam_provider",
+        "openrouter_provider",
+        "apps_ai_module"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "QWEN.md"
+    },
+    {
+      "id": "cognitive_domains_in_report",
+      "label": "Cognitive Domains in Neuropsychological Report",
+      "member_nodes": [
+        "Linguagem",
+        "Funcoes Executivas",
+        "Atencao"
+      ],
+      "category": "Domain Group",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "wisc_iv_subtests_language",
+      "label": "WISC-IV Language Subtests",
+      "member_nodes": [
+        "Semelhancas",
+        "Vocabulario",
+        "Compreensao"
+      ],
+      "category": "Test Subset",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "wisc_iv_subtests_executive",
+      "label": "WISC-IV Executive Subtests",
+      "member_nodes": [
+        "Semelhancas",
+        "Compreensao",
+        "Conceitos Figurativos",
+        "Raciocinio Matricial",
+        "Sequencia de Numeros e Letras"
+      ],
+      "category": "Test Subset",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "wisc_iv_tests",
+      "label": "WISC-IV Cognitive Tests",
+      "member_nodes": [
+        "WISC-IV",
+        "WASI",
+        "WAIS-III"
+      ],
+      "category": "Test Group",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "infrastructure_stack",
+      "label": "NeuroAvalia Infrastructure Stack",
+      "member_nodes": [
+        "Next.js",
+        "Django API",
+        "PostgreSQL",
+        "Nginx",
+        "Docker"
+      ],
+      "category": "Architecture",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "frontend_stack",
+      "label": "Frontend Technology Stack",
+      "member_nodes": [
+        "Next.js",
+        "TailwindCSS",
+        "Autoprefixer"
+      ],
+      "category": "Technology Stack",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "report_generation_prompts",
+      "label": "Report Section Generation Prompts",
+      "member_nodes": [
+        "linguagem_prompt",
+        "funcoes_executivas_prompt",
+        "attention_prompt",
+        "base_system_prompt"
+      ],
+      "category": "AI Prompt Group",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "evaluation_data_types",
+      "label": "Evaluation Data Model Types",
+      "member_nodes": [
+        "Evaluation",
+        "TestApplication",
+        "EvaluationDocument",
+        "ProgressEntry",
+        "Report",
+        "AnamnesisInvite",
+        "AnamnesisResponse"
+      ],
+      "category": "Data Model",
+      "confidence_score": 0.8
+    },
+    {
+      "id": "navigation_items",
+      "label": "App Navigation Items",
+      "member_nodes": [
+        "Dashboard",
+        "Pacientes",
+        "Avaliacoes",
+        "Testes",
+        "Anamnese",
+        "Laudos",
+        "Documentos",
+        "IA Clinica",
+        "Usuarios",
+        "Configuracoes"
+      ],
+      "category": "UI Navigation",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "executive_functions",
+      "label": "Executive Function Components",
+      "member_nodes": [
+        "Planejamento",
+        "Controle Inibitorio",
+        "Flexibilidade Cognitiva",
+        "Monitoramento"
+      ],
+      "category": "Cognitive Function",
+      "confidence_score": 1.0
+    },
+    {
+      "id": "wisc4_type_definitions",
+      "label": "WISC4 TypeScript Interfaces",
+      "member_nodes": [
+        "WISC4Index",
+        "WISC4Result"
+      ],
+      "category": "Type Definitions",
+      "confidence_score": 1.0
+    }
+  ],
+  "input_tokens": 106627,
+  "output_tokens": 0
+}

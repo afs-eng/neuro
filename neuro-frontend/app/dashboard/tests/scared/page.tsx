@@ -24,25 +24,23 @@ const FORM_OPTIONS = [
   { value: "parent", label: "Pais/Cuidadores" },
 ];
 
-function getAlternateForm(form: string) {
-  return form === "parent" ? "child" : "parent";
-}
-
-function formatFormDescription(form: string) {
-  return form === "parent"
-    ? "Versão respondida por pais ou cuidadores."
-    : "Versão de autorrelato para criança ou adolescente.";
-}
-
 function SCAREDTestPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [scores, setScores] = useState<Record<string, string>>({});
+  
+  // Estados separados para cada formulário
+  const [childScores, setChildScores] = useState<Record<string, string>>({});
+  const [parentScores, setParentScores] = useState<Record<string, string>>({});
+  
   const [evaluation, setEvaluation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formsData, setFormsData] = useState<Record<string, ScaredFormData>>({});
   const [form, setForm] = useState<string>("child");
+  
+  // IDs das aplicações salvas
+  const [childApplicationId, setChildApplicationId] = useState<number | null>(null);
+  const [parentApplicationId, setParentApplicationId] = useState<number | null>(null);
 
   const evaluationId = searchParams.get("evaluation_id");
   const applicationId = searchParams.get("application_id");
@@ -51,12 +49,18 @@ function SCAREDTestPageContent() {
 
   const currentForm = formsData[form];
   const items = useMemo(() => currentForm?.items || [], [currentForm]);
-  const alternateForm = getAlternateForm(form);
-  const alternateFormLabel = FORM_OPTIONS.find((option) => option.value === alternateForm)?.label || "Outro formulário";
+  
+  // Escolhe qual state usar baseado no formulário atual
+  const currentScores = form === "child" ? childScores : parentScores;
+  const currentSetScores = form === "child" ? setChildScores : setParentScores;
+  const currentAppId = form === "child" ? childApplicationId : parentApplicationId;
+
+  const alternateForm = FORM_OPTIONS.find(o => o.value !== form)?.value || "parent";
+  const alternateFormLabel = FORM_OPTIONS.find(o => o.value === alternateForm)?.label || "Outro formulário";
 
   useEffect(() => {
     async function fetchData() {
-      if (!applicationId && (requestedForm === "child" || requestedForm === "parent")) {
+      if (requestedForm === "child" || requestedForm === "parent") {
         setForm(requestedForm);
       }
 
@@ -74,7 +78,7 @@ function SCAREDTestPageContent() {
           }
           if (result?.raw_payload) {
             const raw = result.raw_payload;
-            setForm(raw.form || "child");
+            const appForm = raw.form || "child";
             const existingScores: Record<string, string> = {};
             const responses = raw.responses || {};
             for (let i = 1; i <= 41; i++) {
@@ -83,7 +87,15 @@ function SCAREDTestPageContent() {
                 existingScores[key] = String(responses[key]);
               }
             }
-            setScores(existingScores);
+            
+            if (appForm === "child") {
+              setChildScores(existingScores);
+              setChildApplicationId(result.id);
+            } else {
+              setParentScores(existingScores);
+              setParentApplicationId(result.id);
+            }
+            setForm(appForm);
           }
         } catch {
           console.log("Teste não encontrado, redirecionando para formulário...");
@@ -116,8 +128,14 @@ function SCAREDTestPageContent() {
   }, [applicationId, evaluationId, isEditMode, requestedForm, router]);
 
   const clearForm = () => {
-    if (confirm("Deseja realmente limpar todos os campos do formulário?")) {
-      setScores({});
+    if (confirm("Deseja realmente limpar todos os campos do formulário atual?")) {
+      if (form === "child") {
+        setChildScores({});
+        setChildApplicationId(null);
+      } else {
+        setParentScores({});
+        setParentApplicationId(null);
+      }
     }
   };
 
@@ -134,11 +152,11 @@ function SCAREDTestPageContent() {
     const responseObj: Record<string, number> = {};
     for (let i = 1; i <= 41; i++) {
       const key = String(i);
-      responseObj[key] = parseInt(scores[key]) || 0;
+      responseObj[key] = parseInt(currentScores[key]) || 0;
     }
 
     const payload = {
-      application_id: applicationId ? parseInt(applicationId) : undefined,
+      application_id: currentAppId || undefined,
       evaluation_id: parseInt(evaluationId),
       form,
       gender: evaluation?.patient_sex || "M",
@@ -149,6 +167,13 @@ function SCAREDTestPageContent() {
     setSaving(true);
     try {
       const result = await api.post<{ application_id: number }>("/api/tests/scared/submit", payload);
+      
+      if (form === "child") {
+        setChildApplicationId(result.application_id);
+      } else {
+        setParentApplicationId(result.application_id);
+      }
+      
       router.push(`/dashboard/tests/scared/${result.application_id}/result?evaluation_id=${evaluationId}`);
     } catch (error: any) {
       console.error("Erro:", error);
@@ -156,6 +181,10 @@ function SCAREDTestPageContent() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSwitchForm = () => {
+    setForm(alternateForm);
   };
 
   if (loading) {
@@ -185,7 +214,9 @@ function SCAREDTestPageContent() {
               Itens do instrumento
               {isEditMode && <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Modo Edição</Badge>}
             </CardTitle>
-            <CardDescription>{formatFormDescription(form)}</CardDescription>
+            <CardDescription>
+              {form === "parent" ? "Versão respondida por pais ou cuidadores." : "Versão de autorrelato para criança ou adolescente."}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
@@ -217,11 +248,11 @@ function SCAREDTestPageContent() {
                         inputMode="numeric"
                         maxLength={1}
                         className="h-8 w-16 rounded-lg text-center"
-                        value={scores[String(item.item)] || ""}
+                        value={currentScores[String(item.item)] || ""}
                         onChange={(e) => {
                           const val = e.target.value;
                           if (val === "" || ["0", "1", "2"].includes(val)) {
-                            setScores({ ...scores, [String(item.item)]: val });
+                            currentSetScores({ ...currentScores, [String(item.item)]: val });
                           }
                         }}
                         onKeyDown={(e) => {
@@ -249,10 +280,10 @@ function SCAREDTestPageContent() {
                 <Button
                   variant="outline"
                   className="rounded-xl"
-                  onClick={() => router.push(`/dashboard/tests/scared?evaluation_id=${evaluationId}&form=${alternateForm}`)}
+                  onClick={handleSwitchForm}
                   disabled={saving}
                 >
-                  Abrir {alternateFormLabel}
+                  Preencher {alternateFormLabel}
                 </Button>
               )}
               <Button variant="outline" className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={clearForm} disabled={saving}>
@@ -292,8 +323,13 @@ function SCAREDTestPageContent() {
               <p>41 itens com escala Likert de 3 pontos</p>
             </div>
             <div>
-              <p className="font-medium text-slate-900">Aplicação selecionada</p>
-              <p>{formsData[form]?.label || FORM_OPTIONS.find((option) => option.value === form)?.label}</p>
+              <p className="font-medium text-slate-900">Status</p>
+              <p>
+                {form === "child" 
+                  ? childApplicationId ? "Autorrelato salvo" : "Autorrelato não salvo"
+                  : parentApplicationId ? "Pais/Cuidadores salvo" : "Pais/Cuidadores não salvo"
+                }
+              </p>
             </div>
           </CardContent>
         </Card>

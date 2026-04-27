@@ -3,6 +3,23 @@ WAIS3_NAME = "WAIS-III - Escala de Inteligência Wechsler para Adultos"
 WAIS3_MIN_AGE = 16
 WAIS3_MAX_AGE = 89
 
+WAIS3_SUBTEST_ORDER = [
+    "completar_figuras",
+    "vocabulario",
+    "codigos",
+    "semelhancas",
+    "cubos",
+    "aritmetica",
+    "raciocinio_matricial",
+    "digitos",
+    "informacao",
+    "arranjo_figuras",
+    "compreensao",
+    "procurar_simbolos",
+    "sequencia_numeros_letras",
+    "armar_objetos",
+]
+
 WAIS3_VERBAL_SUBTESTS = {
     "vocabulario": "Vocabulário",
     "semelhancas": "Semelhanças",
