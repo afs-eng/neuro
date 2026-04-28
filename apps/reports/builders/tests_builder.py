@@ -6,6 +6,9 @@ from apps.tests.bpa2.calculators import load_table as _load_bpa2_table
 from apps.tests.base.types import TestContext
 from apps.tests.registry import get_test_module
 from apps.tests.selectors import get_validated_test_applications_by_evaluation
+from apps.tests.wais3.constants import WAIS3_ALL_SUBTESTS
+from apps.tests.wais3.loaders import WAIS3NormLoader
+from apps.tests.wais3.norm_utils import resolve_age_range as _resolve_wais3_age_range
 from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
 
 
@@ -423,6 +426,102 @@ def _build_wisc_tables(payload: dict, evaluation, applied_on) -> dict:
     return tables
 
 
+def _wais3_age_group_for_application(evaluation, applied_on) -> str | None:
+    birth_date = getattr(getattr(evaluation, "patient", None), "birth_date", None)
+    if not birth_date:
+        return None
+    reference_date = applied_on or evaluation.start_date
+    if not reference_date:
+        return None
+    if isinstance(reference_date, str):
+        reference_date = date.fromisoformat(reference_date[:10])
+
+    years, months = _calcular_idade(birth_date, reference_date)
+    try:
+        return _resolve_wais3_age_range(years, months)
+    except ValueError:
+        return None
+
+
+def _wais3_reference_scores(loader: WAIS3NormLoader, age_group: str | None, subtest_key: str) -> tuple[str, str, str]:
+    if not age_group:
+        return ("-", "-", "-")
+
+    domain = "verbal" if subtest_key in {"vocabulario", "semelhancas", "aritmetica", "digitos", "informacao", "compreensao", "sequencia_numeros_letras"} else "execucao"
+    rows = loader._read_csv_rows(loader.base_path / "raw_to_scaled" / domain / f"{age_group}.csv")
+    if not rows:
+        return ("-", "-", "-")
+
+    values_by_scaled: dict[int, list[int]] = {}
+    max_raw: int | None = None
+    for row in rows:
+        raw_value = row.get("raw_score")
+        scaled_value = row.get(subtest_key)
+        try:
+            raw = int(float(str(raw_value).replace(",", ".")))
+            scaled = int(float(str(scaled_value).replace(",", ".")))
+        except (TypeError, ValueError):
+            continue
+        max_raw = raw if max_raw is None else max(max_raw, raw)
+        values_by_scaled.setdefault(scaled, []).append(raw)
+
+    def _format_range(scores: list[int]) -> str:
+        if not scores:
+            return "-"
+        start = min(scores)
+        end = max(scores)
+        return str(start) if start == end else f"{start}-{end}"
+
+    avg_values: list[int] = []
+    for scaled in range(8, 13):
+        avg_values.extend(values_by_scaled.get(scaled, []))
+
+    return (
+        str(max_raw) if max_raw is not None else "-",
+        _format_range(avg_values),
+        _format_range(values_by_scaled.get(5, [])),
+    )
+
+
+def _build_wais3_tables(payload: dict, evaluation, applied_on) -> dict:
+    age_group = _wais3_age_group_for_application(evaluation, applied_on)
+    loader = WAIS3NormLoader()
+    subtests = payload.get("subtestes") or {}
+    domains = {
+        "linguagem": ["semelhancas", "vocabulario", "compreensao"],
+        "gnosias_praxias": ["raciocinio_matricial", "cubos", "completar_figuras"],
+        "funcoes_executivas": ["semelhancas", "compreensao", "raciocinio_matricial", "aritmetica"],
+        "memoria_aprendizagem": ["sequencia_numeros_letras", "digitos", "aritmetica"],
+    }
+    tables = {}
+    for domain, codes in domains.items():
+        rows = []
+        for code in codes:
+            item = subtests.get(code)
+            if not item:
+                continue
+            score_max, score_mid, score_min = _wais3_reference_scores(loader, age_group, code)
+            rows.append(
+                {
+                    "label": item.get("nome") or WAIS3_ALL_SUBTESTS.get(code) or code,
+                    "maxScore": score_max,
+                    "avgScore": score_mid,
+                    "minScore": score_min,
+                    "obtainedScore": _format_number(item.get("pontos_brutos")),
+                    "classification": item.get("classificacao") or "-",
+                }
+            )
+        if domain == "linguagem":
+            rows.append(
+                {
+                    "label": "Fala Espontânea",
+                    "note": "Fala espontânea dentro do esperado para a sua idade",
+                }
+            )
+        tables[domain] = rows
+    return tables
+
+
 def build_result_rows(instrument_code: str, payload: dict) -> list[str]:
     if not payload:
         return []
@@ -495,6 +594,11 @@ def build_validated_tests_snapshot(evaluation) -> list[dict]:
             if item.instrument.code == "wisc4"
             else {}
         )
+        wais3_tables = (
+            _build_wais3_tables(structured_results, item.evaluation, item.applied_on)
+            if item.instrument.code == "wais3"
+            else {}
+        )
         bpa_chart_data = (
             _build_bpa2_chart_data(structured_results, item.evaluation, item.applied_on)
             if item.instrument.code == "bpa2"
@@ -520,6 +624,7 @@ def build_validated_tests_snapshot(evaluation) -> list[dict]:
                 "interpretation_text": clinical_interpretation,
                 "result_rows": result_rows,
                 "wisc_tables": wisc_tables,
+                "wais3_tables": wais3_tables,
                 "bpa_chart_data": bpa_chart_data,
                 "warnings": warnings,
             }

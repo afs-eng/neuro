@@ -149,6 +149,11 @@ function SCAREDTestPageContent() {
       ? Math.floor((new Date().getTime() - new Date(evaluation.patient_birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
       : 10;
 
+    if (calcAge > 18) {
+      alert("Este teste é indicado para pacientes de até 18 anos. A idade calculada é de " + calcAge + " anos.");
+      return;
+    }
+
     const responseObj: Record<string, number> = {};
     for (let i = 1; i <= 41; i++) {
       const key = String(i);

@@ -11,6 +11,7 @@ from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.ptbr_text_service import PtBrTextService
 from apps.reports.services.report_review_service import ReportReviewService
 from apps.reports.services.wisc4_standardization import WISC4StandardizationService
+from apps.reports.services.wais3_standardization import WAIS3StandardizationService
 from apps.tests.srs2.interpreters import interpret_srs2_results
 from apps.reports.services.section_registry import (
     get_section_config,
@@ -120,6 +121,19 @@ class ReportGenerationService:
                     "section": key,
                     "used_fallback": False,
                     "generation_path": "deterministic_wisc4_standardized",
+                },
+                [],
+            )
+
+        if WAIS3StandardizationService.supports(key, context):
+            return (
+                PtBrTextService.normalize(WAIS3StandardizationService.build(key, context)),
+                {
+                    "provider": "deterministic",
+                    "model": "standardized-wais3",
+                    "section": key,
+                    "used_fallback": False,
+                    "generation_path": "deterministic_wais3_standardized",
                 },
                 [],
             )

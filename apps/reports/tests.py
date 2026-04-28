@@ -2,10 +2,12 @@ from django.test import SimpleTestCase
 from xml.etree import ElementTree as ET
 from io import BytesIO
 from zipfile import ZipFile
+from datetime import date
 from docx import Document
 from docx.oxml import parse_xml
 from lxml import etree as LET
 
+from apps.reports.builders.tests_builder import _build_wais3_tables
 from apps.reports.builders.references_builder import build_references
 from apps.reports.services.report_export_service import ReportExportService
 from apps.reports.services.wisc4_standardization import WISC4StandardizationService
@@ -193,6 +195,81 @@ class WISC4ExportTableTests(SimpleTestCase):
             ],
         )
         self.assertEqual(rows[1], ["Semelhanças", "32-44", "6-16", "1", "23", "Média"])
+
+
+class WAIS3ExportTableTests(SimpleTestCase):
+    def test_build_wais3_tables_uses_normative_ranges_and_spontaneous_speech(self):
+        class Patient:
+            birth_date = date(2000, 1, 1)
+
+        class Evaluation:
+            patient = Patient()
+            start_date = date(2020, 6, 1)
+
+        payload = {
+            "subtestes": {
+                "semelhancas": {"nome": "Semelhanças", "pontos_brutos": 18, "classificacao": "Média"},
+                "vocabulario": {"nome": "Vocabulário", "pontos_brutos": 28, "classificacao": "Média"},
+                "compreensao": {"nome": "Compreensão", "pontos_brutos": 16, "classificacao": "Média"},
+            }
+        }
+
+        tables = _build_wais3_tables(payload, Evaluation(), date(2020, 6, 1))
+
+        self.assertEqual(tables["linguagem"][0], {
+            "label": "Semelhanças",
+            "maxScore": "38",
+            "avgScore": "17-28",
+            "minScore": "9-10",
+            "obtainedScore": "18",
+            "classification": "Média",
+        })
+        self.assertEqual(tables["linguagem"][1], {
+            "label": "Vocabulário",
+            "maxScore": "66",
+            "avgScore": "23-42",
+            "minScore": "11-14",
+            "obtainedScore": "28",
+            "classification": "Média",
+        })
+        self.assertEqual(tables["linguagem"][2], {
+            "label": "Compreensão",
+            "maxScore": "33",
+            "avgScore": "13-26",
+            "minScore": "5-6",
+            "obtainedScore": "16",
+            "classification": "Média",
+        })
+        self.assertEqual(tables["linguagem"][3], {
+            "label": "Fala Espontânea",
+            "note": "Fala espontânea dentro do esperado para a sua idade",
+        })
+
+    def test_wais3_domain_rows_use_dynamic_template_structure(self):
+        test = {
+            "wais3_tables": {
+                "linguagem": [
+                    {
+                        "label": "Semelhanças",
+                        "maxScore": "38",
+                        "avgScore": "17-28",
+                        "minScore": "9-10",
+                        "obtainedScore": "18",
+                        "classification": "Média",
+                    },
+                    {
+                        "label": "Fala Espontânea",
+                        "note": "Fala espontânea dentro do esperado para a sua idade",
+                    },
+                ]
+            }
+        }
+
+        rows = ReportExportService._wais3_domain_rows(test, "linguagem")
+
+        self.assertEqual(rows[0], ["Testes Utilizados", "Escore Máximo", "Escore Médio", "Escore Mínimo", "Escore Bruto", "Classificação"])
+        self.assertEqual(rows[1], ["Semelhanças", "38", "17-28", "9-10", "18", "Média"])
+        self.assertEqual(rows[2], ["Fala Espontânea", "Fala espontânea dentro do esperado para a sua idade", "", "", "", ""])
 
 
 class ReportExportChartSanitizationTests(SimpleTestCase):

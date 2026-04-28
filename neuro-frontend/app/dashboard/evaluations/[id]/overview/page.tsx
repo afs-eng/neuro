@@ -362,6 +362,7 @@ export default function EvaluationDetailPage() {
     if (activeTab === "documents") loadDocuments();
     if (activeTab === "evolution") loadProgressEntries();
     if (activeTab === "report") loadReports();
+    if (activeTab === "tests") loadInstruments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, evaluation]);
 
@@ -854,8 +855,8 @@ export default function EvaluationDetailPage() {
     if (age === null) return null;
     const rule = instruments.find((instrument) => instrument.code === instrumentCode);
     if (!rule) return null;
-    if (rule.min_age !== undefined && rule.min_age !== null && age < rule.min_age) return rule.age_message || null;
-    if (rule.max_age !== undefined && rule.max_age !== null && age > rule.max_age) return rule.age_message || null;
+    if ((rule.min_age != null) && age < rule.min_age) return rule.age_message || null;
+    if ((rule.max_age != null) && age > rule.max_age) return rule.age_message || null;
     return null;
   }
 
@@ -1255,62 +1256,104 @@ export default function EvaluationDetailPage() {
           )}
 
           {activeTab === "tests" && (
-            <SectionCard 
-              title="Testes Aplicados" 
-              description="Gerenciamento de instrumentos e baterias de testagem."
-              actions={
-                <Button className="gap-2 font-bold shadow-sm" onClick={openAddTestModal}>
-                  <Plus className="h-4 w-4" />
-                  Adicionar Instrumento
-                </Button>
-              }
-            >
-              {evaluation.tests.length === 0 ? (
-                <EmptyState
-                  title="Nenhum teste aplicado"
-                  description="Adicione instrumentos psicométricos para iniciar a coleta de dados."
-                  icon={<ClipboardList className="h-10 w-10 text-slate-200" />}
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-100">
-                        <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Instrumento</th>
-                        <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Aplicação</th>
-                        <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                        <th className="pb-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {evaluation.tests.map((test) => (
-                        <tr key={test.id} className="group border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                          <td className="py-5 font-bold text-slate-900">{getTestDisplayName(test)}</td>
-                          <td className="py-5 text-sm text-slate-500 font-bold">
-                            {test.applied_on ? new Date(test.applied_on).toLocaleDateString("pt-BR") : "Aguardando"}
-                          </td>
-                          <td className="py-5">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                              test.is_validated 
-                              ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
-                              : "bg-amber-50 text-amber-600 border-amber-100"
-                            }`}>
-                              {test.status}
-                            </span>
-                          </td>
-                          <td className="py-5 text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" className="font-bold text-primary" onClick={() => router.push(getTestUrl(test.instrument_code, test.id))}>Abrir</Button>
-                              <Button variant="ghost" size="sm" className="font-bold text-rose-500 hover:text-rose-600" onClick={() => removeTest(test.id)}>Remover</Button>
-                            </div>
-                          </td>
+            <div className="space-y-8">
+              <SectionCard 
+                title="Testes Aplicados" 
+                description="Gerenciamento de instrumentos e baterias de testagem."
+                actions={
+                  <Button className="gap-2 font-bold shadow-sm" onClick={openAddTestModal}>
+                    <Plus className="h-4 w-4" />
+                    Adicionar Instrumento
+                  </Button>
+                }
+              >
+                {evaluation.tests.length === 0 ? (
+                  <EmptyState
+                    title="Nenhum teste aplicado"
+                    description="Adicione instrumentos psicométricos para iniciar a coleta de dados."
+                    icon={<ClipboardList className="h-10 w-10 text-slate-200" />}
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Instrumento</th>
+                          <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Aplicação</th>
+                          <th className="pb-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                          <th className="pb-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {evaluation.tests.map((test) => (
+                          <tr key={test.id} className="group border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                            <td className="py-5 font-bold text-slate-900">{getTestDisplayName(test)}</td>
+                            <td className="py-5 text-sm text-slate-500 font-bold">
+                              {test.applied_on ? new Date(test.applied_on).toLocaleDateString("pt-BR") : "Aguardando"}
+                            </td>
+                            <td className="py-5">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                                test.is_validated 
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                                : "bg-amber-50 text-amber-600 border-amber-100"
+                              }`}>
+                                {test.status}
+                              </span>
+                            </td>
+                            <td className="py-5 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm" className="font-bold text-primary" onClick={() => router.push(getTestUrl(test.instrument_code, test.id))}>Abrir</Button>
+                                <Button variant="ghost" size="sm" className="font-bold text-rose-500 hover:text-rose-600" onClick={() => removeTest(test.id)}>Remover</Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </SectionCard>
+
+              {!loadingInstruments && instruments.length > 0 && (
+                <SectionCard 
+                  title="Instrumentos Disponíveis" 
+                  description="Instrumentos que podem ser adicionados a esta avaliação."
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {instruments
+                      .filter(i => !evaluation.tests.map(t => t.instrument_code).includes(i.code))
+                      .map((instrument) => {
+                        const ageRestriction = getInstrumentAgeRestriction(instrument.code);
+                        return (
+                          <div 
+                            key={instrument.id}
+                            className={`p-4 rounded-xl border transition-all ${
+                              ageRestriction 
+                                ? "border-rose-200 bg-rose-50" 
+                                : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm cursor-pointer"
+                            }`}
+                            onClick={() => !ageRestriction && addTest(instrument.id)}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-bold text-slate-900">{instrument.name}</p>
+                                <p className="text-sm text-slate-500">{instrument.code}</p>
+                              </div>
+                              {ageRestriction && (
+                                <AlertCircle className="h-5 w-5 text-rose-500 flex-shrink-0" />
+                              )}
+                            </div>
+                            <p className="mt-2 text-xs text-slate-500">Faixa etária: {getInstrumentAgeRangeLabel(instrument.code)}</p>
+                            {ageRestriction && (
+                              <p className="mt-2 text-xs text-rose-700 font-medium">{ageRestriction}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </SectionCard>
               )}
-            </SectionCard>
+            </div>
           )}
 
           {activeTab === "anamnesis" && (

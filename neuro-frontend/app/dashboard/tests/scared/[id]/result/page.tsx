@@ -330,7 +330,7 @@ function ResultCard({ result }: { result: SCAREDResult }) {
 
 export default function SCAREDResultPage() {
   const params = useParams();
-  const [searchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const [results, setResults] = useState<SCAREDResult[]>([]);
   const [loading, setLoading] = useState(true);
   const evaluationId = searchParams.get("evaluation_id");
@@ -339,27 +339,42 @@ export default function SCAREDResultPage() {
     const fetchResults = async () => {
       try {
         const { api } = await import("@/lib/api");
-        
-        if (evaluationId) {
-          const data = await api.get<any>(`/api/tests/applications?evaluation_id=${evaluationId}&instrument_code=scared`);
-          const applications = data.items || [];
-          
-          const scaredResults: SCAREDResult[] = [];
-          
-          for (const app of applications) {
-            try {
-              const resultData = await api.get<any>(`/api/tests/scared/result/${app.id}`);
-              scaredResults.push(resultData);
-            } catch (e) {
-              console.error("Erro ao buscar resultado:", app.id, e);
-            }
+        const scaredResults: SCAREDResult[] = [];
+        const seenApplicationIds = new Set<number>();
+
+        const appendResult = (resultData: SCAREDResult | null | undefined) => {
+          if (!resultData || seenApplicationIds.has(resultData.application_id)) return;
+          seenApplicationIds.add(resultData.application_id);
+          scaredResults.push(resultData);
+        };
+
+        if (params.id) {
+          try {
+            const primaryResult = await api.get<SCAREDResult>(`/api/tests/scared/result/${params.id}`);
+            appendResult(primaryResult);
+          } catch (e) {
+            console.error("Erro ao buscar resultado principal:", params.id, e);
           }
-          
-          setResults(scaredResults);
-        } else {
-          const data = await api.get<any>(`/api/tests/scared/result/${params.id}`);
-          setResults([data]);
         }
+
+        if (evaluationId) {
+          try {
+            const applications = await api.get<any[]>(`/api/tests/applications?evaluation_id=${evaluationId}&instrument_code=scared`);
+
+            for (const app of applications || []) {
+              try {
+                const resultData = await api.get<SCAREDResult>(`/api/tests/scared/result/${app.id}`);
+                appendResult(resultData);
+              } catch (e) {
+                console.error("Erro ao buscar resultado:", app.id, e);
+              }
+            }
+          } catch (e) {
+            console.error("Erro ao buscar aplicações SCARED da avaliação:", evaluationId, e);
+          }
+        }
+
+        setResults(scaredResults);
       } catch (e) {
         console.error(e);
       } finally {

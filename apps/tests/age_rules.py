@@ -54,6 +54,11 @@ INSTRUMENT_AGE_RULES = {
         "max_age": 17,
         "message": "O ETDAH-PAIS pode ser aplicado apenas entre 2 e 17 anos.",
     },
+    "scared": {
+        "min_age": None,
+        "max_age": 18,
+        "message": "O SCARED pode ser aplicado apenas até 18 anos.",
+    },
 }
 
 

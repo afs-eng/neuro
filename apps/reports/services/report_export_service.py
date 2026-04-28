@@ -416,7 +416,11 @@ class ReportExportService:
 
     @classmethod
     def _chart_series(cls, root, index: int):
-        return root.findall('.//c:ser', cls.CHART_NS)[index]
+        series = root.findall('.//c:ser', cls.CHART_NS)
+        if index >= len(series):
+            cls.logger.warning("Chart has %d series, requested index %d", len(series), index)
+            return None
+        return series[index]
 
     @classmethod
     def _set_chart_cache_points(cls, cache_element, values: list, tag_name: str):
@@ -553,6 +557,8 @@ class ReportExportService:
     @classmethod
     def _update_chart_series(cls, root, index: int, categories: list[str], values: list[float]):
         series = cls._chart_series(root, index)
+        if series is None:
+            return
         category_cache = series.find('.//c:cat//c:strCache', cls.CHART_NS)
         value_cache = series.find('.//c:val//c:numCache', cls.CHART_NS)
         cls._set_chart_cache_points(category_cache, categories, 'v')
@@ -627,12 +633,14 @@ class ReportExportService:
     @classmethod
     def _ravlt_chart_payload(cls, test: dict | None, context: dict | None = None):
         rows = cls._ravlt_rows(test, context)
-        if not rows or len(rows) < 4:
+        if not rows or len(rows) < 4 or not rows[0] or not isinstance(rows[0], list):
             return [], []
         categories = rows[0][1:]
         series_values = []
         for row in rows[1:4]:
-            series_values.append([cls._to_float(value) for value in row[1:]])
+            if not row or not isinstance(row, list):
+                continue
+            series_values.append([cls._to_float(value) for value in row[1:] or []])
         return categories, series_values
 
     @classmethod
@@ -1417,17 +1425,11 @@ class ReportExportService:
             for lead, tail in cls._wais3_global_bullet_parts(wais3_test):
                 p = document.add_paragraph()
                 cls._append_wisc_global_bullet(p, lead, tail)
-            append_table_with_interpretation(
-                cls._wais3_indices_rows(wais3_test),
-                "wisc",
-                sections.get("capacidade_cognitiva_global") or sections.get("eficiencia_intelectual") or cls._resolve_interpretation_text(None, None, wais3_test),
-                "Resultados Compostos do WAIS-III",
-            )
-            append_table_with_interpretation(
-                cls._wais3_subtests_rows(wais3_test),
-                "wisc",
-                None,
-                "Resultados dos Subtestes do WAIS-III",
+            append_chart(
+                "WAIS III - INDICES DE QIS",
+                cls._wais3_chart(wais3_test),
+                show_caption=False,
+                template_key="wais3",
             )
 
         cls._append_heading(
@@ -1873,6 +1875,17 @@ class ReportExportService:
             cls._format_caption_paragraph(anchor)
             table_index += 1
 
+        def section_or_test_interpretation(
+            section_key: str,
+            fallback_section_key: str | None,
+            test_payload: dict | None,
+        ) -> str:
+            return cls._resolve_interpretation_text(
+                sections.get(section_key),
+                sections.get(fallback_section_key) if fallback_section_key else None,
+                test_payload,
+            )
+
         def add_chart(
             caption: str,
             image_bytes: bytes | None,
@@ -1949,16 +1962,6 @@ class ReportExportService:
                 cls._wais3_chart(tests.get("wais3")),
                 show_caption=False,
                 template_key="wais3",
-            )
-            add_table(
-                "Resultados Compostos do WAIS-III",
-                cls._wais3_indices_rows(tests.get("wais3")),
-                "wisc",
-            )
-            add_table(
-                "Resultados dos Subtestes do WAIS-III",
-                cls._wais3_subtests_rows(tests.get("wais3")),
-                "wisc",
             )
 
         if is_adolescent and tests.get("wisc4"):
@@ -2639,12 +2642,15 @@ class ReportExportService:
 
     @classmethod
     def _wais3_payload(cls, test: dict | None) -> dict:
-        return (
-            (test or {}).get("structured_results")
-            or (test or {}).get("classified_payload")
-            or (test or {}).get("computed_payload")
+        if not test or not isinstance(test, dict):
+            return {}
+        payload = (
+            test.get("structured_results")
+            or test.get("classified_payload")
+            or test.get("computed_payload")
             or {}
         )
+        return payload if isinstance(payload, dict) else {}
 
     @classmethod
     def _wais3_intro_text(cls, test: dict | None, context: dict) -> str:
@@ -2690,6 +2696,8 @@ class ReportExportService:
     def _wais3_indices_rows(cls, test: dict | None):
         payload = cls._wais3_payload(test)
         indices = payload.get("indices") or {}
+        if not isinstance(indices, dict):
+            indices = {}
         rows = [["Índice", "Soma Ponderada", "Pontuação Composta", "Percentil", "IC 95%", "Classificação"]]
         for key in (
             "qi_total",
@@ -2701,7 +2709,7 @@ class ReportExportService:
             "velocidade_processamento",
         ):
             item = indices.get(key) or {}
-            if not item:
+            if not item or not isinstance(item, dict):
                 continue
             rows.append([
                 item.get("nome") or key,
@@ -2717,8 +2725,12 @@ class ReportExportService:
     def _wais3_subtests_rows(cls, test: dict | None):
         payload = cls._wais3_payload(test)
         subtests = payload.get("subtestes") or {}
+        if not isinstance(subtests, dict):
+            subtests = {}
         rows = [["Subteste", "Pontos Brutos", "Escore Ponderado", "Classificação", "Observação"]]
         for key, item in subtests.items():
+            if not isinstance(item, dict):
+                continue
             rows.append([
                 item.get("nome") or key,
                 cls._num(item.get("pontos_brutos")),
@@ -2730,19 +2742,35 @@ class ReportExportService:
 
     @classmethod
     def _wais3_domain_rows(cls, test: dict | None, section_key: str):
-        payload = cls._wais3_payload(test)
-        subtests = payload.get("subtestes") or {}
-        rows = [["Teste", "Pontos Brutos", "Escore Ponderado", "Classificação"]]
-        for subtest_key in WAIS3StandardizationService.DOMAIN_SUBTESTS.get(section_key, []):
-            item = subtests.get(subtest_key)
-            if not item:
+        table_rows = (test or {}).get("wais3_tables") or {}
+        domain_rows = table_rows.get(section_key) or []
+        rows = [[
+            "Testes Utilizados",
+            "Escore Máximo",
+            "Escore Médio",
+            "Escore Mínimo",
+            "Escore Bruto",
+            "Classificação",
+        ]]
+        for item in domain_rows:
+            if item.get("note"):
+                rows.append([
+                    item.get("label") or "-",
+                    item.get("note") or "-",
+                    "",
+                    "",
+                    "",
+                    "",
+                ])
                 continue
             rows.append(
                 [
-                    item.get("nome") or subtest_key,
-                    cls._num(item.get("pontos_brutos")),
-                    cls._num(item.get("escore_ponderado")),
-                    item.get("classificacao") or "-",
+                    item.get("label") or "-",
+                    item.get("maxScore") or "-",
+                    item.get("avgScore") or "-",
+                    item.get("minScore") or "-",
+                    item.get("obtainedScore") or "-",
+                    item.get("classification") or "-",
                 ]
             )
         return rows if len(rows) > 1 else None
