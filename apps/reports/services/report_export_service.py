@@ -4,10 +4,14 @@ from copy import deepcopy
 from io import BytesIO
 import math
 import logging
+import posixpath
 import re
 from pathlib import Path
+from pathlib import PurePosixPath
+from zipfile import ZipFile
 
 import matplotlib
+from lxml import etree as ET
 
 matplotlib.use("Agg")
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -33,6 +37,7 @@ from apps.reports.builders.references_builder import build_references
 from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.ptbr_text_service import PtBrTextService
 from apps.reports.services.wisc4_standardization import WISC4StandardizationService
+from apps.reports.services.wais3_standardization import WAIS3StandardizationService
 from apps.tests.bpa2.interpreters import build_clinical_summary, SUBTEST_OPENINGS
 from apps.tests.etdah_pais.interpreters import (
     FACTOR_LABELS as ETDAH_PAIS_FACTOR_LABELS,
@@ -46,10 +51,29 @@ from apps.tests.ravlt.norms import get_age_band as get_ravlt_age_band
 from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
 
 
+ET.register_namespace("a", "http://schemas.openxmlformats.org/drawingml/2006/main")
+ET.register_namespace("c", "http://schemas.openxmlformats.org/drawingml/2006/chart")
+ET.register_namespace("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006")
+ET.register_namespace("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
+ET.register_namespace("c14", "http://schemas.microsoft.com/office/drawing/2007/8/2/chart")
+ET.register_namespace("c16r2", "http://schemas.microsoft.com/office/drawing/2015/06/chart")
+ET.register_namespace("cx", "http://schemas.microsoft.com/office/drawing/2014/chartex")
+ET.register_namespace("cx1", "http://schemas.microsoft.com/office/drawing/2015/9/8/chartex")
+ET.register_namespace("cx2", "http://schemas.microsoft.com/office/drawing/2015/10/21/chartex")
+ET.register_namespace("cx3", "http://schemas.microsoft.com/office/drawing/2016/5/9/chartex")
+ET.register_namespace("cx4", "http://schemas.microsoft.com/office/drawing/2016/5/10/chartex")
+ET.register_namespace("cx5", "http://schemas.microsoft.com/office/drawing/2016/5/11/chartex")
+ET.register_namespace("cx6", "http://schemas.microsoft.com/office/drawing/2016/5/12/chartex")
+ET.register_namespace("cx7", "http://schemas.microsoft.com/office/drawing/2016/5/13/chartex")
+ET.register_namespace("cx8", "http://schemas.microsoft.com/office/drawing/2016/5/14/chartex")
+
+
 class ReportExportService:
     TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates_assets"
     DEFAULT_TEMPLATE_PATH = TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
     ADOLESCENT_TEMPLATE_PATH = TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
+    WAIS3_TEMPLATE_PATH = Path(settings.BASE_DIR) / "laudo_modelos" / "modelo-wais3.docx"
+    WISC4_TEMPLATE_PATH = Path(settings.BASE_DIR) / "laudo_modelos" / "Modelo-WISC4.docx"
     TABLE_STYLE_SOURCE_PATH = TEMPLATE_DIR / "Modelo-WISC.docx"
     FONT_NAME = "Times New Roman"
     BODY_SIZE = Pt(12)
@@ -59,6 +83,11 @@ class ReportExportService:
     CAPTION_SIZE = Pt(9)
     BODY_FIRST_LINE_INDENT = Cm(1.5)
     BODY_LINE_SPACING = 1.5
+    CHART_NS = {
+        "c": "http://schemas.openxmlformats.org/drawingml/2006/chart",
+        "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+        "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+    }
     IDENTIFICATION_LINE_SPACING = 1.15
     HEADING_SPACE_BEFORE = Pt(10)
     HEADING_SPACE_AFTER = Pt(4)
@@ -79,6 +108,7 @@ class ReportExportService:
     TABLE_TITLE_FILL = "538135"
     LOCAL_TIMES_NEW_ROMAN = Path("/mnt/c/Windows/Fonts/times.ttf")
     LOCAL_LIBERATION_SERIF = Path.home() / ".local/share/fonts/liberation/LiberationSerif-Regular.ttf"
+    MATPLOTLIB_FALLBACK_FONT = "DejaVu Serif"
     INTERPRETATION_LABELS = (
         "Interpretação clínica:",
         "Interpretação e Observações Clínicas:",
@@ -98,6 +128,9 @@ class ReportExportService:
 
         if WISC4StandardizationService.supports(section_key, context):
             return PtBrTextService.normalize(WISC4StandardizationService.build(section_key, context))
+
+        if WAIS3StandardizationService.supports(section_key, context):
+            return PtBrTextService.normalize(WAIS3StandardizationService.build(section_key, context))
 
         return ""
     INSTRUMENT_CATALOG = {
@@ -229,7 +262,7 @@ class ReportExportService:
             return font_manager.FontProperties(fname=str(cls.LOCAL_TIMES_NEW_ROMAN))
         if cls.LOCAL_LIBERATION_SERIF.exists():
             return font_manager.FontProperties(fname=str(cls.LOCAL_LIBERATION_SERIF))
-        return font_manager.FontProperties(family=cls.FONT_NAME)
+        return font_manager.FontProperties(family=cls.MATPLOTLIB_FALLBACK_FONT)
 
     @classmethod
     def _apply_figure_border(cls, fig, color: str = "#D9D9D9", linewidth: float = 1.0):
@@ -319,7 +352,7 @@ class ReportExportService:
             for section in report.sections.all()
         }
 
-        template_path = cls._select_template_path(report)
+        template_path = cls._select_template_path(report, context)
         if cls._is_adolescent_context(context, report):
             document = cls._build_adolescent_document(report, context, sections)
         elif not template_path.exists():
@@ -330,25 +363,722 @@ class ReportExportService:
             document = cls._build_fallback_document(report, context)
         else:
             document = Document(str(template_path))
-            cls._ensure_model_table_styles(document)
-            cls._apply_base_styles(document)
-            cls._replace_simple_sections(document, sections)
-            cls._rebuild_qualitative_section(document, sections, context)
+            if not cls._template_has_editable_body(document):
+                cls.logger.warning(
+                    "Template DOCX em %s não possui corpo editável. Gerando fallback com conteúdo do laudo.",
+                    template_path,
+                )
+                document = cls._build_fallback_document(report, context)
+            else:
+                cls._ensure_model_table_styles(document)
+                cls._apply_base_styles(document)
+                cls._replace_simple_sections(document, sections)
+                cls._rebuild_qualitative_section(document, sections, context)
 
         cls._ensure_model_table_styles(document)
         cls._normalize_model_header_footer(document)
 
         output = BytesIO()
         document.save(output)
-        return output.getvalue()
+        docx_bytes = output.getvalue()
+        if cls._find_test(context, "wisc4"):
+            docx_bytes = cls._populate_wisc4_excel_charts(docx_bytes, context)
+        if cls._find_test(context, "wais3") and not cls._is_adolescent_context(context, report):
+            docx_bytes = cls._populate_wais3_excel_charts(docx_bytes, context)
+        return docx_bytes
 
     @classmethod
-    def _select_template_path(cls, report: Report):
+    def _select_template_path(cls, report: Report, context: dict | None = None):
+        if context and cls._find_test(context, "wisc4") and cls.WISC4_TEMPLATE_PATH.exists():
+            return cls.WISC4_TEMPLATE_PATH
+        if context and cls._find_test(context, "wais3") and cls.WAIS3_TEMPLATE_PATH.exists():
+            return cls.WAIS3_TEMPLATE_PATH
         patient = getattr(report, "patient", None)
         age = getattr(patient, "age", None)
         if age is not None and age < 18 and cls.ADOLESCENT_TEMPLATE_PATH.exists():
             return cls.ADOLESCENT_TEMPLATE_PATH
         return cls.DEFAULT_TEMPLATE_PATH
+
+    @classmethod
+    def _extract_template_chart_blocks(cls, document: Document) -> list:
+        blocks = []
+        for child in document._body._element.iterchildren():
+            if cls._element_contains_chart(child):
+                blocks.append(deepcopy(child))
+        return blocks
+
+    @classmethod
+    def _element_contains_chart(cls, element) -> bool:
+        try:
+            return bool(element.xpath('.//c:chart', namespaces=cls.CHART_NS))
+        except TypeError:
+            return "c:chart" in getattr(element, "xml", "") or "charts/chart" in getattr(element, "xml", "")
+
+    @classmethod
+    def _chart_series(cls, root, index: int):
+        return root.findall('.//c:ser', cls.CHART_NS)[index]
+
+    @classmethod
+    def _set_chart_cache_points(cls, cache_element, values: list, tag_name: str):
+        if cache_element is None:
+            return
+        pt_count = cache_element.find('c:ptCount', cls.CHART_NS)
+        existing_points = cache_element.findall('c:pt', cls.CHART_NS)
+        existing_indexes = [point.get('idx', str(idx)) for idx, point in enumerate(existing_points)]
+        for child in list(cache_element.findall('c:pt', cls.CHART_NS)):
+            cache_element.remove(child)
+        if pt_count is None:
+            pt_count = ET.SubElement(cache_element, f'{{{cls.CHART_NS["c"]}}}ptCount')
+        pt_count.set('val', str(len(values)))
+        indexes = existing_indexes if len(existing_indexes) == len(values) else [str(idx) for idx, _ in enumerate(values)]
+        for idx, value in enumerate(values):
+            point = ET.SubElement(cache_element, f'{{{cls.CHART_NS["c"]}}}pt')
+            point.set('idx', indexes[idx])
+            value_node = ET.SubElement(point, f'{{{cls.CHART_NS["c"]}}}{tag_name}')
+            value_node.text = str(value)
+
+    @classmethod
+    def _replace_child(cls, parent, old_child, new_child):
+        children = list(parent)
+        index = children.index(old_child)
+        parent.remove(old_child)
+        parent.insert(index, new_child)
+
+    @classmethod
+    def _inline_series_title(cls, series):
+        tx = series.find('c:tx', cls.CHART_NS)
+        if tx is None:
+            return
+        str_ref = tx.find('c:strRef', cls.CHART_NS)
+        if str_ref is None:
+            return
+        cache = str_ref.find('c:strCache', cls.CHART_NS)
+        value = ""
+        if cache is not None:
+            point = cache.find('c:pt/c:v', cls.CHART_NS)
+            value = point.text if point is not None else ""
+        literal = ET.Element(f'{{{cls.CHART_NS["c"]}}}v')
+        literal.text = value
+        cls._replace_child(tx, str_ref, literal)
+
+    @classmethod
+    def _inline_string_categories(cls, category_node):
+        str_ref = category_node.find('c:strRef', cls.CHART_NS)
+        if str_ref is not None:
+            cache = str_ref.find('c:strCache', cls.CHART_NS)
+            literal = ET.Element(f'{{{cls.CHART_NS["c"]}}}strLit')
+            if cache is not None:
+                cls._copy_cache(cache, literal)
+            cls._replace_child(category_node, str_ref, literal)
+            return
+
+        multi_ref = category_node.find('c:multiLvlStrRef', cls.CHART_NS)
+        if multi_ref is not None:
+            cache = multi_ref.find('c:multiLvlStrCache', cls.CHART_NS)
+            literal = ET.Element(f'{{{cls.CHART_NS["c"]}}}strLit')
+            if cache is not None:
+                values_by_idx: dict[int, str] = {}
+                max_idx = -1
+                for level in cache.findall('c:lvl', cls.CHART_NS):
+                    for point in level.findall('c:pt', cls.CHART_NS):
+                        idx = int(point.get('idx', '0'))
+                        max_idx = max(max_idx, idx)
+                        text = point.findtext('c:v', default='', namespaces=cls.CHART_NS)
+                        if idx not in values_by_idx and text.strip():
+                            values_by_idx[idx] = text
+                pt_count = ET.SubElement(literal, f'{{{cls.CHART_NS["c"]}}}ptCount')
+                pt_count.set('val', str(max_idx + 1 if max_idx >= 0 else 0))
+                for idx in range(max_idx + 1):
+                    point = ET.SubElement(literal, f'{{{cls.CHART_NS["c"]}}}pt')
+                    point.set('idx', str(idx))
+                    value_node = ET.SubElement(point, f'{{{cls.CHART_NS["c"]}}}v')
+                    value_node.text = values_by_idx.get(idx, '')
+            cls._replace_child(category_node, multi_ref, literal)
+
+    @classmethod
+    def _inline_numeric_values(cls, value_node):
+        num_ref = value_node.find('c:numRef', cls.CHART_NS)
+        if num_ref is None:
+            return
+        cache = num_ref.find('c:numCache', cls.CHART_NS)
+        literal = ET.Element(f'{{{cls.CHART_NS["c"]}}}numLit')
+        if cache is not None:
+            cls._copy_cache(cache, literal)
+        cls._replace_child(value_node, num_ref, literal)
+
+    @classmethod
+    def _inline_cached_reference(cls, node):
+        if node is None:
+            return
+
+        str_ref = node.find('c:strRef', cls.CHART_NS)
+        if str_ref is not None:
+            cache = str_ref.find('c:strCache', cls.CHART_NS)
+            literal = ET.Element(f'{{{cls.CHART_NS["c"]}}}strLit')
+            if cache is not None:
+                cls._copy_cache(cache, literal)
+            cls._replace_child(node, str_ref, literal)
+            return
+
+        multi_ref = node.find('c:multiLvlStrRef', cls.CHART_NS)
+        if multi_ref is not None:
+            cls._inline_string_categories(node)
+            return
+
+        cls._inline_numeric_values(node)
+
+    @classmethod
+    def _copy_cache(cls, source_cache, target_literal):
+        format_code = source_cache.find('c:formatCode', cls.CHART_NS)
+        if format_code is not None:
+            cloned_format = ET.SubElement(target_literal, f'{{{cls.CHART_NS["c"]}}}formatCode')
+            cloned_format.text = format_code.text
+        pt_count = source_cache.find('c:ptCount', cls.CHART_NS)
+        if pt_count is not None:
+            cloned_count = ET.SubElement(target_literal, f'{{{cls.CHART_NS["c"]}}}ptCount')
+            cloned_count.set('val', pt_count.get('val', '0'))
+        for point in source_cache.findall('c:pt', cls.CHART_NS):
+            target_literal.append(deepcopy(point))
+
+    @classmethod
+    def _strip_external_chart_relationships(cls, rels_bytes: bytes) -> bytes:
+        root = ET.fromstring(rels_bytes)
+        for rel in list(root):
+            target_mode = rel.attrib.get('TargetMode')
+            rel_type = rel.attrib.get('Type', '')
+            if target_mode == 'External' or rel_type.endswith('/oleObject'):
+                root.remove(rel)
+        return ET.tostring(root, encoding='utf-8', xml_declaration=True)
+
+    @classmethod
+    def _update_chart_series(cls, root, index: int, categories: list[str], values: list[float]):
+        series = cls._chart_series(root, index)
+        category_cache = series.find('.//c:cat//c:strCache', cls.CHART_NS)
+        value_cache = series.find('.//c:val//c:numCache', cls.CHART_NS)
+        cls._set_chart_cache_points(category_cache, categories, 'v')
+        cls._set_chart_cache_points(value_cache, values, 'v')
+        cls._inline_series_title(series)
+        category_node = series.find('c:cat', cls.CHART_NS)
+        cls._inline_cached_reference(category_node)
+        value_node = series.find('c:val', cls.CHART_NS)
+        cls._inline_cached_reference(value_node)
+
+    @classmethod
+    def _detach_chart_external_data(cls, root):
+        for parent in root.iter():
+            for child in list(parent):
+                if child.tag == f'{{{cls.CHART_NS["c"]}}}externalData':
+                    parent.remove(child)
+
+    @classmethod
+    def _sanitize_chart_root(cls, root):
+        cls._detach_chart_external_data(root)
+        for series in root.findall('.//c:ser', cls.CHART_NS):
+            cls._inline_series_title(series)
+            for tag_name in ('cat', 'xVal', 'val', 'yVal', 'bubbleSize'):
+                cls._inline_cached_reference(series.find(f'c:{tag_name}', cls.CHART_NS))
+
+    @classmethod
+    def _sanitize_chart_xml_bytes(cls, chart_bytes: bytes) -> bytes:
+        root = ET.fromstring(chart_bytes)
+        cls._sanitize_chart_root(root)
+        return ET.tostring(root, encoding='utf-8', xml_declaration=True)
+
+    @classmethod
+    def _wisc4_chart_payload(cls, test: dict | None):
+        payload = cls._wisc_payload(test)
+        labels, values = [], []
+        index_labels = {"icv": "ICV", "iop": "IOP", "imt": "IMO", "ivp": "IVP"}
+        for code in ("icv", "iop", "imt", "ivp"):
+            item = next((entry for entry in payload.get("indices") or [] if entry.get("indice") == code), None)
+            if not item:
+                continue
+            labels.append(index_labels[code])
+            values.append(cls._to_float(item.get("escore_composto")))
+        qit = payload.get("qit_data") or {}
+        if qit.get("escore_composto"):
+            labels.append("QI Total")
+            values.append(cls._to_float(qit.get("escore_composto")))
+        for key, label in (("gai_data", "GAI"), ("cpi_data", "CPI")):
+            item = payload.get(key) or {}
+            if item.get("escore_composto"):
+                labels.append(label)
+                values.append(cls._to_float(item.get("escore_composto")))
+        return labels, values
+
+    @classmethod
+    def _bpa_excel_series(cls, test: dict | None):
+        chart_data = (test or {}).get("bpa_chart_data") or {}
+        domains = {item.get("label"): item.get("values") or {} for item in chart_data.get("domains") or []}
+        categories = ["Escore Máximo", "Escore Médio", "Escore Minímo", "Escore Bruto", "Percentil Obtido"]
+        order = [
+            "ATENÇÃO CONCENTRADA",
+            "ATENÇÃO DIVIDIDA",
+            "ATENÇÃO ALTERNADA",
+            "ATENÇÃO GERAL",
+        ]
+        key_order = ["maximo", "medio", "minimo", "bruto", "percentil"]
+        series = []
+        for label in order:
+            values = domains.get(label) or {}
+            series.append([cls._to_float(values.get(key, 0)) for key in key_order])
+        return categories, series
+
+    @classmethod
+    def _ravlt_chart_payload(cls, test: dict | None, context: dict | None = None):
+        rows = cls._ravlt_rows(test, context)
+        if not rows or len(rows) < 4:
+            return [], []
+        categories = rows[0][1:]
+        series_values = []
+        for row in rows[1:4]:
+            series_values.append([cls._to_float(value) for value in row[1:]])
+        return categories, series_values
+
+    @classmethod
+    def _fdt_chart_payload(cls, test: dict | None, automatic: bool):
+        payload = (test or {}).get("classified_payload") or {}
+        categories = [
+            "Tempo Médio",
+            "Tempo Obtido",
+            "Erros",
+            "Desempenho %",
+            "Indicativo de Déficit",
+            "Indicativo de Dificuldade Discreta",
+            "Sem Indicativo de Déficit",
+        ]
+        metric_map = {
+            item.get("codigo"): item for item in payload.get("metric_results") or [] if item.get("codigo")
+        }
+        errors = payload.get("erros") or {}
+        order = (
+            ("contagem", "leitura")
+            if automatic
+            else ("escolha", "alternancia", "inibicao", "flexibilidade")
+        )
+        series_values = []
+        for code in order:
+            metric = metric_map.get(code)
+            if not metric:
+                continue
+            performance = cls._fdt_table_result(metric.get("percentil_num")).get("desempenho") or 0
+            error_count = (errors.get(code) or {}).get("qtde_erros")
+            series_values.append(
+                [
+                    cls._to_float(metric.get("media")),
+                    cls._to_float(metric.get("valor")),
+                    cls._to_float(error_count if error_count is not None else 0),
+                    cls._to_float(performance),
+                    5.0,
+                    25.0,
+                    50.0,
+                ]
+            )
+        return categories, series_values
+
+    @classmethod
+    def _etdah_pais_chart_values(cls, test: dict | None):
+        results = ((test or {}).get("classified_payload") or {}).get("results") or {}
+        return [
+            cls._extract_percentile_value((results.get(key) or {}).get("percentile_text") or (results.get(key) or {}).get("percentil"))
+            for key in ("fator_1", "fator_2", "fator_3", "fator_4", "escore_geral")
+        ]
+
+    @classmethod
+    def _etdah_ad_chart_values(cls, test: dict | None):
+        results = ((test or {}).get("classified_payload") or {}).get("results") or {}
+        return [
+            cls._extract_percentile_value((results.get(key) or {}).get("percentile_text") or (results.get(key) or {}).get("percentil"))
+            for key in ("D", "I", "AE", "AAMA", "H")
+        ]
+
+    @classmethod
+    def _scared_self_chart_values(cls, test: dict | None):
+        rows = ((test or {}).get("classified_payload") or {}).get("analise_geral") or []
+        return [float(item.get("percentil") or item.get("percentual") or 0) for item in rows]
+
+    @classmethod
+    def _scared_parent_chart_series(cls, test: dict | None):
+        rows = ((test or {}).get("classified_payload") or {}).get("analise_geral") or []
+        lower = []
+        cutoff = []
+        upper = []
+        patient = []
+        for item in rows:
+            max_percent = float(item.get("nota_corte") or 0)
+            lower.append(round(max_percent * (2 / 3), 2))
+            cutoff.append(max_percent)
+            upper.append(round(max_percent * (4 / 3), 2))
+            patient.append(float(item.get("percentual") or 0))
+        return [lower, cutoff, upper, patient]
+
+    @classmethod
+    def _srs2_chart_values(cls, test: dict | None):
+        rows = ((test or {}).get("classified_payload") or {}).get("resultados") or []
+        return [float(item.get("tscore") or 0) for item in rows]
+
+    @classmethod
+    def _document_chart_targets(cls, docx_bytes: bytes) -> list[str]:
+        with ZipFile(BytesIO(docx_bytes), "r") as source_zip:
+            document_root = ET.fromstring(source_zip.read("word/document.xml"))
+            rels_root = ET.fromstring(source_zip.read("word/_rels/document.xml.rels"))
+
+        relationship_ns = "http://schemas.openxmlformats.org/package/2006/relationships"
+        relationship_type = (
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"
+        )
+        rel_map = {
+            rel.get("Id"): f"word/{rel.get('Target')}"
+            for rel in rels_root.findall(f"{{{relationship_ns}}}Relationship")
+            if rel.get("Type") == relationship_type and rel.get("Id") and rel.get("Target")
+        }
+
+        chart_targets: list[str] = []
+        for chart in document_root.findall('.//c:chart', cls.CHART_NS):
+            rel_id = chart.get(f'{{{cls.CHART_NS["r"]}}}id')
+            target = rel_map.get(rel_id)
+            if target:
+                chart_targets.append(target)
+        return chart_targets
+
+    @classmethod
+    def _resolve_package_target(cls, source_part: str, target: str) -> str:
+        source_path = PurePosixPath(source_part)
+        if target.startswith('/'):
+            return target.lstrip('/')
+        resolved = posixpath.normpath((source_path.parent / target).as_posix())
+        return resolved.lstrip('./')
+
+    @classmethod
+    def _prune_unused_chart_parts(cls, docx_bytes: bytes) -> bytes:
+        used_chart_parts = set(cls._document_chart_targets(docx_bytes))
+        if not used_chart_parts:
+            return docx_bytes
+
+        with ZipFile(BytesIO(docx_bytes), 'r') as source_zip:
+            names = set(source_zip.namelist())
+            used_support_parts: set[str] = set()
+            document_rels_root = ET.fromstring(source_zip.read('word/_rels/document.xml.rels'))
+            for chart_part in used_chart_parts:
+                rels_part = f"word/charts/_rels/{PurePosixPath(chart_part).name}.rels"
+                if rels_part not in names:
+                    continue
+                rels_root = ET.fromstring(source_zip.read(rels_part))
+                for rel in rels_root.findall('{http://schemas.openxmlformats.org/package/2006/relationships}Relationship'):
+                    target = rel.get('Target')
+                    if not target or rel.get('TargetMode') == 'External':
+                        continue
+                    used_support_parts.add(cls._resolve_package_target(chart_part, target))
+
+            content_types_root = ET.fromstring(source_zip.read('[Content_Types].xml'))
+            kept_parts = set(names)
+            relationship_ns = '{http://schemas.openxmlformats.org/package/2006/relationships}Relationship'
+            chart_relationship_type = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart'
+            for rel in list(document_rels_root.findall(relationship_ns)):
+                if rel.get('Type') != chart_relationship_type:
+                    continue
+                target = rel.get('Target')
+                if not target:
+                    continue
+                part_name = cls._resolve_package_target('word/document.xml', target)
+                if part_name not in used_chart_parts:
+                    document_rels_root.remove(rel)
+            for name in list(names):
+                if re.fullmatch(r'word/charts/chart\d+\.xml', name) and name not in used_chart_parts:
+                    kept_parts.discard(name)
+                    kept_parts.discard(f"word/charts/_rels/{PurePosixPath(name).name}.rels")
+                elif re.fullmatch(r'word/charts/(style|colors)\d+\.xml', name) and name not in used_support_parts:
+                    kept_parts.discard(name)
+                elif re.fullmatch(r'word/drawings/drawing\d+\.xml', name) and name not in used_support_parts:
+                    kept_parts.discard(name)
+                elif re.fullmatch(r'word/drawings/_rels/drawing\d+\.xml\.rels', name):
+                    drawing_part = name.replace('/_rels/', '/').replace('.rels', '')
+                    if drawing_part not in kept_parts:
+                        kept_parts.discard(name)
+
+            for override in list(content_types_root):
+                part_name = (override.get('PartName') or '').lstrip('/')
+                if part_name and part_name not in kept_parts:
+                    content_types_root.remove(override)
+
+            output_buffer = BytesIO()
+            with ZipFile(output_buffer, 'w') as target_zip:
+                for item in source_zip.infolist():
+                    if item.filename not in kept_parts and item.filename != '[Content_Types].xml':
+                        continue
+                    if item.filename == '[Content_Types].xml':
+                        data = ET.tostring(content_types_root, encoding='utf-8', xml_declaration=True)
+                    elif item.filename == 'word/_rels/document.xml.rels':
+                        data = ET.tostring(document_rels_root, encoding='utf-8', xml_declaration=True)
+                    else:
+                        data = source_zip.read(item.filename)
+                    target_zip.writestr(item, data)
+        return output_buffer.getvalue()
+
+    @classmethod
+    def _populate_wisc4_excel_charts(cls, docx_bytes: bytes, context: dict) -> bytes:
+        replacements: dict[str, bytes] = {}
+        chart_targets = iter(cls._document_chart_targets(docx_bytes))
+
+        def load_chart(name: str):
+            with ZipFile(BytesIO(docx_bytes), 'r') as source_zip:
+                return ET.fromstring(source_zip.read(name))
+
+        def dump_chart(name: str, root):
+            replacements[name] = ET.tostring(root, encoding='utf-8', xml_declaration=True)
+
+        def next_chart_target() -> str | None:
+            return next(chart_targets, None)
+
+        wisc_test = cls._find_test(context, 'wisc4')
+        if wisc_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, values = cls._wisc4_chart_payload(wisc_test)
+            cls._update_chart_series(root, 0, categories, values)
+            dump_chart(chart_name, root)
+
+        bpa_test = cls._find_test(context, 'bpa2')
+        if bpa_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._bpa_excel_series(bpa_test)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        ravlt_test = cls._find_test(context, 'ravlt')
+        if ravlt_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._ravlt_chart_payload(ravlt_test, context)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        fdt_test = cls._find_test(context, 'fdt')
+        if fdt_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._fdt_chart_payload(fdt_test, automatic=True)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._fdt_chart_payload(fdt_test, automatic=False)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        etdah_pais_test = cls._find_test(context, 'etdah_pais')
+        if etdah_pais_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            cls._update_chart_series(root, 0, ['F1 - R.E.', 'F2 - H.I.', 'F3 - C.A.', 'F4 - At.', 'TOTAL'], cls._etdah_pais_chart_values(etdah_pais_test))
+            dump_chart(chart_name, root)
+
+        etdah_ad_test = cls._find_test(context, 'etdah_ad')
+        if etdah_ad_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            cls._update_chart_series(root, 0, ['F1 - D', 'F2 - I', 'F3 - AE', 'F4 - AMAA', 'F5 - H'], cls._etdah_ad_chart_values(etdah_ad_test))
+            dump_chart(chart_name, root)
+
+        scared_tests = cls._find_tests(context, 'scared')
+        scared_self = next((item for item in scared_tests if (((item.get('classified_payload') or {}).get('form_type') or (item.get('raw_payload') or {}).get('form')) != 'parent')), None)
+        scared_parent = next((item for item in scared_tests if (((item.get('classified_payload') or {}).get('form_type') or (item.get('raw_payload') or {}).get('form')) == 'parent')), None)
+        if scared_self:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            cls._update_chart_series(root, 0, ['Panic / S.S.', 'AG', 'AS', 'FS', 'EE', 'TOTAL'], cls._scared_self_chart_values(scared_self))
+            dump_chart(chart_name, root)
+        elif scared_tests:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            cls._update_chart_series(root, 0, ['Panic / S.S.', 'AG', 'AS', 'FS', 'EE', 'TOTAL'], [0, 0, 0, 0, 0, 0])
+            dump_chart(chart_name, root)
+        if scared_parent:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories = ['Pa/SS', 'AG', 'AS', 'FS', 'EE', 'TOTAL']
+            for idx, values in enumerate(cls._scared_parent_chart_series(scared_parent)):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+        elif scared_tests:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories = ['Pa/SS', 'AG', 'AS', 'FS', 'EE', 'TOTAL']
+            for idx in range(4):
+                cls._update_chart_series(root, idx, categories, [0, 0, 0, 0, 0, 0])
+            dump_chart(chart_name, root)
+
+        srs2_test = cls._find_test(context, 'srs2')
+        if srs2_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories = ['Perc.S', 'Cog.S', 'Com.S', 'Mot.S', 'PRR', 'CIS', 'TOTAL']
+            cls._update_chart_series(root, 0, categories, cls._srs2_chart_values(srs2_test))
+            dump_chart(chart_name, root)
+
+        source_buffer = BytesIO(docx_bytes)
+        output_buffer = BytesIO()
+        with ZipFile(source_buffer, 'r') as source_zip, ZipFile(output_buffer, 'w') as target_zip:
+            for item in source_zip.infolist():
+                data = replacements.get(item.filename, source_zip.read(item.filename))
+                if re.fullmatch(r'word/charts/chart\d+\.xml', item.filename):
+                    data = cls._sanitize_chart_xml_bytes(data)
+                if item.filename.startswith('word/charts/_rels/chart') and item.filename.endswith('.rels'):
+                    data = cls._strip_external_chart_relationships(data)
+                target_zip.writestr(item, data)
+        return cls._prune_unused_chart_parts(output_buffer.getvalue())
+
+    @classmethod
+    def _wais3_chart_payload(cls, test: dict | None):
+        payload = cls._wais3_payload(test)
+        indices = payload.get("indices") or {}
+        items = [
+            ("ICV", indices.get("compreensao_verbal")),
+            ("IOP", indices.get("organizacao_perceptual")),
+            ("IMO", indices.get("memoria_operacional")),
+            ("IVP", indices.get("velocidade_processamento")),
+            ("QI Verbal", indices.get("qi_verbal")),
+            ("QI Execução", indices.get("qi_execucao")),
+            ("GAI", indices.get("gai")),
+            ("QI Total", indices.get("qi_total")),
+        ]
+        labels = []
+        values = []
+        for label, item in items:
+            score = (item or {}).get("pontuacao_composta")
+            if score is None:
+                continue
+            labels.append(label)
+            values.append(float(score))
+        return labels, values
+
+    @classmethod
+    def _populate_wais3_excel_charts(cls, docx_bytes: bytes, context: dict) -> bytes:
+        replacements: dict[str, bytes] = {}
+        chart_targets = iter(cls._document_chart_targets(docx_bytes))
+
+        def load_chart(name: str):
+            with ZipFile(BytesIO(docx_bytes), 'r') as source_zip:
+                return ET.fromstring(source_zip.read(name))
+
+        def dump_chart(name: str, root):
+            replacements[name] = ET.tostring(root, encoding='utf-8', xml_declaration=True)
+
+        def next_chart_target() -> str | None:
+            return next(chart_targets, None)
+
+        wais3_test = cls._find_test(context, 'wais3')
+        if wais3_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, values = cls._wais3_chart_payload(wais3_test)
+            cls._update_chart_series(root, 0, categories, values)
+            dump_chart(chart_name, root)
+
+        bpa_test = cls._find_test(context, 'bpa2')
+        if bpa_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._bpa_excel_series(bpa_test)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        ravlt_test = cls._find_test(context, 'ravlt')
+        if ravlt_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._ravlt_chart_payload(ravlt_test, context)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        fdt_test = cls._find_test(context, 'fdt')
+        if fdt_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._fdt_chart_payload(fdt_test, automatic=True)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._fdt_chart_payload(fdt_test, automatic=False)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        etdah_ad_test = cls._find_test(context, 'etdah_ad')
+        if etdah_ad_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            cls._update_chart_series(root, 0, ['F1 - D', 'F2 - I', 'F3 - AE', 'F4 - AMAA', 'F5 - H'], cls._etdah_ad_chart_values(etdah_ad_test))
+            dump_chart(chart_name, root)
+
+        srs2_test = cls._find_test(context, 'srs2')
+        if srs2_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories = ['Perc.S', 'Cog.S', 'Com.S', 'Mot.S', 'PRR', 'CIS', 'TOTAL']
+            cls._update_chart_series(root, 0, categories, cls._srs2_chart_values(srs2_test))
+            dump_chart(chart_name, root)
+
+        source_buffer = BytesIO(docx_bytes)
+        output_buffer = BytesIO()
+        with ZipFile(source_buffer, 'r') as source_zip, ZipFile(output_buffer, 'w') as target_zip:
+            for item in source_zip.infolist():
+                data = replacements.get(item.filename, source_zip.read(item.filename))
+                if re.fullmatch(r'word/charts/chart\d+\.xml', item.filename):
+                    data = cls._sanitize_chart_xml_bytes(data)
+                if item.filename.startswith('word/charts/_rels/chart') and item.filename.endswith('.rels'):
+                    data = cls._strip_external_chart_relationships(data)
+                target_zip.writestr(item, data)
+        return cls._prune_unused_chart_parts(output_buffer.getvalue())
 
     @classmethod
     def _build_fallback_document(cls, report: Report, context: dict):
@@ -385,25 +1115,45 @@ class ReportExportService:
         cls._append_label_value(document, "Idade", cls._age_text(context))
 
         body_text = str(report.final_text or report.edited_text or report.generated_text or "")
-        for raw_line in body_text.splitlines():
-            line = raw_line.strip()
-            if not line:
-                continue
-            if line.startswith("### "):
-                cls._append_subheading(document, line[4:].strip())
-                continue
-            if line.startswith("## "):
-                cls._append_heading(document, line[3:].strip())
-                continue
-            cls._append_paragraph(document, line)
+        if body_text.strip():
+            for raw_line in body_text.splitlines():
+                line = raw_line.strip()
+                if not line:
+                    continue
+                if line.startswith("### "):
+                    cls._append_subheading(document, line[4:].strip())
+                    continue
+                if line.startswith("## "):
+                    cls._append_heading(document, line[3:].strip())
+                    continue
+                cls._append_paragraph(document, line)
+        else:
+            appended_section = False
+            for section in report.sections.all():
+                section_text = str(section.content_edited or section.content_generated or "").strip()
+                if not section_text:
+                    continue
+                appended_section = True
+                cls._append_heading(document, section.title or section.key.replace("_", " ").title())
+                for raw_line in section_text.splitlines():
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    cls._append_paragraph(document, line)
 
-        if not body_text.strip():
-            cls._append_paragraph(
-                document,
-                "O laudo ainda não possui conteúdo textual consolidado para exportação.",
-            )
+            if not appended_section:
+                cls._append_paragraph(
+                    document,
+                    "O laudo ainda não possui conteúdo textual consolidado para exportação.",
+                )
 
         return document
+
+    @classmethod
+    def _template_has_editable_body(cls, document: Document) -> bool:
+        if document.tables:
+            return True
+        return any(paragraph.text.strip() for paragraph in document.paragraphs)
 
     @classmethod
     def _is_adolescent_document(cls, document: Document, context: dict) -> bool:
@@ -457,10 +1207,16 @@ class ReportExportService:
     def _build_adolescent_document(
         cls, report, context: dict, sections: dict[str, str]
     ):
-        template_path = cls._select_template_path(report)
+        wisc_test = cls._find_test(context, "wisc4")
+        template_path = (
+            cls.WISC4_TEMPLATE_PATH
+            if wisc_test and cls.WISC4_TEMPLATE_PATH.exists()
+            else cls._select_template_path(report, context)
+        )
         document = (
             Document(str(template_path)) if template_path.exists() else Document()
         )
+        template_chart_blocks = cls._extract_template_chart_blocks(document)
         cls._ensure_model_table_styles(document)
         cls._clear_document_body(document)
         cls._apply_base_styles(document)
@@ -475,6 +1231,18 @@ class ReportExportService:
         )
         table_index = 1
         chart_index = 1
+        template_chart_map = {
+            "wisc4": template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
+            "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
+            "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
+            "fdt_auto": template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
+            "fdt_control": template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
+            "etdah_pais": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
+            "etdah_ad": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
+            "scared_pair": template_chart_blocks[7] if len(template_chart_blocks) > 7 else None,
+            "srs2": template_chart_blocks[9] if len(template_chart_blocks) > 9 else None,
+        }
+
         def append_table_with_interpretation(
             rows,
             table_key: str,
@@ -499,8 +1267,22 @@ class ReportExportService:
             width=None,
             height=None,
             show_caption: bool = True,
+            template_key: str | None = None,
         ):
             nonlocal chart_index
+            if template_key and template_chart_map.get(template_key) is not None:
+                cls._append_body_element_before_sectpr(document, template_chart_map[template_key])
+                if show_caption:
+                    p = document.add_paragraph()
+                    r = p.add_run(cls._chart_caption_text(chart_index, caption))
+                    r.font.name = cls.FONT_NAME
+                    r.font.size = cls.BODY_SIZE
+                    cls._format_caption_paragraph(p)
+                if note:
+                    note_paragraph = document.add_paragraph(note)
+                    cls._format_chart_legend_paragraph(note_paragraph)
+                chart_index += 1
+                return
             if not image_bytes:
                 return
             cls._append_chart(
@@ -580,7 +1362,6 @@ class ReportExportService:
 
         patient_title = "da paciente" if (context.get("patient") or {}).get("sex") == "F" else "do paciente"
         cls._append_heading(document, "5. ANÁLISE QUALITATIVA")
-        wisc_test = cls._find_test(context, "wisc4")
         wais3_test = cls._find_test(context, "wais3")
         if wisc_test:
             cls._append_subheading(document, f"5.1. Desempenho {patient_title} no WISC-IV")
@@ -590,6 +1371,7 @@ class ReportExportService:
                 wisc_chart,
                 cls._wisc_chart_legend(chart_index),
                 show_caption=False,
+                template_key="wisc4",
             )
             cls._append_wisc_global_block(document, wisc_test, context)
             cls._append_subheading(document, "5.2. Subescalas WISC-IV")
@@ -665,6 +1447,7 @@ class ReportExportService:
         append_chart(
             "BPA-2 Resultados da Avaliação da Atenção",
             cls._bpa_chart_bytes(cls._find_test(context, "bpa2")),
+            template_key="bpa2",
         )
         cls._append_bpa_interpretation_block(document, cls._find_test(context, "bpa2"), context)
 
@@ -674,7 +1457,11 @@ class ReportExportService:
         )
         ravlt_interpretation = sections.get("ravlt") or sections.get("memoria_aprendizagem")
         cls._append_ravlt_conceptual_paragraph(document)
-        append_chart("RAVLT Resultados", cls._ravlt_chart(cls._find_test(context, "ravlt")))
+        append_chart(
+            "RAVLT Resultados",
+            cls._ravlt_chart(cls._find_test(context, "ravlt")),
+            template_key="ravlt",
+        )
         append_table_with_interpretation(
             cls._ravlt_rows(cls._find_test(context, "ravlt"), context),
             "ravlt",
@@ -697,12 +1484,14 @@ class ReportExportService:
             cls._fdt_chart(cls._find_test(context, "fdt"), automatic=True),
             width=Cm(14),
             height=Cm(10),
+            template_key="fdt_auto",
         )
         append_chart(
             "FDT Processos Controlados",
             cls._fdt_chart(cls._find_test(context, "fdt"), automatic=False),
             width=Cm(14),
             height=Cm(10),
+            template_key="fdt_control",
         )
 
         if cls._find_test(context, "etdah_pais"):
@@ -721,6 +1510,7 @@ class ReportExportService:
             append_chart(
                 "E-TDAH-PAIS Percentis",
                 cls._etdah_chart(cls._find_test(context, "etdah_pais")),
+                template_key="etdah_pais",
             )
 
         if cls._find_test(context, "etdah_ad"):
@@ -740,6 +1530,7 @@ class ReportExportService:
             append_chart(
                 "E-TDAH-AD - Percentis",
                 cls._etdah_chart(cls._find_test(context, "etdah_ad")),
+                template_key="etdah_ad",
             )
 
         scared_tests = cls._find_tests(context, "scared")
@@ -752,6 +1543,7 @@ class ReportExportService:
                 document,
                 "O Screen for Child Anxiety Related Emotional Disorders – SCARED é um instrumento de rastreio destinado à identificação de sintomas ansiosos em crianças e adolescentes, avaliando manifestações relacionadas a pânico, ansiedade generalizada, ansiedade de separação, fobia social e evitação escolar (Birmaher et al., 1999).",
             )
+            inserted_scared_pair = False
             for scared_test in scared_tests:
                 form_label = cls._scared_form_label(scared_test)
                 append_table_with_interpretation(
@@ -760,10 +1552,13 @@ class ReportExportService:
                     cls._resolve_interpretation_text(None, None, scared_test),
                     f"SCARED - Resultados {form_label}",
                 )
-                append_chart(
-                    cls._scared_form_title(scared_test),
-                    cls._scared_chart(scared_test),
-                )
+                if not inserted_scared_pair:
+                    append_chart(
+                        cls._scared_form_title(scared_test),
+                        cls._scared_chart(scared_test),
+                        template_key="scared_pair",
+                    )
+                    inserted_scared_pair = True
 
         if cls._find_test(context, "epq_j"):
             cls._append_heading(
@@ -804,6 +1599,7 @@ class ReportExportService:
             append_chart(
                 "SRS-2 Resultados",
                 cls._srs2_chart(srs2_test),
+                template_key="srs2",
             )
         cls._append_heading(document, "14. CONCLUSÃO")
         cls._append_paragraph(
@@ -950,7 +1746,7 @@ class ReportExportService:
             "IDENTIFICAÇÃO": "DESCRIÇÃO DA DEMANDA",
             "DESCRIÇÃO DA DEMANDA": "PROCEDIMENTOS",
             "PROCEDIMENTOS": "ANÁLISE",
-            "ANÁLISE": "ANÁLISE QUALIDATIVA",
+            "ANÁLISE": "ANÁLISE QUALITATIVA",
             "Conclusão": "Sugestões de Conduta (Encaminhamentos):",
             "Sugestões de Conduta (Encaminhamentos):": "Considerações Finais",
             "Referências Bibliográficas": None,
@@ -981,7 +1777,7 @@ class ReportExportService:
     def _rebuild_qualitative_section(
         cls, document: Document, sections: dict[str, str], context: dict
     ):
-        start = cls._find_paragraph(document, "ANÁLISE QUALIDATIVA")
+        start = cls._find_paragraph(document, "ANÁLISE QUALITATIVA")
         end = cls._find_paragraph(document, "Conclusão")
         if start is None or end is None:
             return
@@ -995,6 +1791,31 @@ class ReportExportService:
         table_index = 1
         chart_index = 1
         anchor = start
+        template_chart_blocks = cls._extract_template_chart_blocks(document)
+        template_chart_map = {}
+        if tests.get("wisc4"):
+            template_chart_map = {
+                "wisc4": template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
+                "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
+                "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
+                "fdt_auto": template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
+                "fdt_control": template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
+                "etdah_pais": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
+                "etdah_ad": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
+                "scared_pair": template_chart_blocks[7] if len(template_chart_blocks) > 7 else None,
+                "srs2": template_chart_blocks[9] if len(template_chart_blocks) > 9 else None,
+            }
+        elif tests.get("wais3"):
+            template_chart_map = {
+                "wais3": template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
+                "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
+                "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
+                "fdt_auto": template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
+                "fdt_control": template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
+                "etdah_ad": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
+                "srs2": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
+            }
+
         def add_title(text: str):
             nonlocal anchor
             anchor = cls._insert_paragraph_after(anchor, PtBrTextService.normalize(text))
@@ -1059,8 +1880,23 @@ class ReportExportService:
             width=None,
             height=None,
             show_caption: bool = True,
+            template_key: str | None = None,
         ):
             nonlocal anchor, chart_index
+            if template_key and template_chart_map.get(template_key) is not None:
+                anchor = cls._insert_paragraph_after(anchor, "")
+                anchor._p.addnext(deepcopy(template_chart_map[template_key]))
+                anchor = Paragraph(anchor._p.getnext(), anchor._parent)
+                if show_caption:
+                    anchor = cls._insert_paragraph_after(
+                        anchor, cls._chart_caption_text(chart_index, caption)
+                    )
+                    cls._format_caption_paragraph(anchor)
+                if note:
+                    anchor = cls._insert_paragraph_after(anchor, note)
+                    cls._format_chart_legend_paragraph(anchor)
+                chart_index += 1
+                return
             if not image_bytes:
                 return
             anchor = cls._insert_paragraph_after(anchor, "")
@@ -1095,6 +1931,7 @@ class ReportExportService:
                 cls._wisc_chart(tests.get("wisc4")),
                 cls._wisc_chart_legend(chart_index),
                 show_caption=False,
+                template_key="wisc4",
             )
             add_text(cls._wisc_global_intro_text(tests.get("wisc4"), context))
             for lead, tail in cls._wisc_global_bullet_parts(tests.get("wisc4")):
@@ -1107,6 +1944,12 @@ class ReportExportService:
             add_text(cls._wais3_intro_text(tests.get("wais3"), context))
             for lead, tail in cls._wais3_global_bullet_parts(tests.get("wais3")):
                 add_text(f"- {lead} {tail}")
+            add_chart(
+                "WAIS III - INDICES DE QIS",
+                cls._wais3_chart(tests.get("wais3")),
+                show_caption=False,
+                template_key="wais3",
+            )
             add_table(
                 "Resultados Compostos do WAIS-III",
                 cls._wais3_indices_rows(tests.get("wais3")),
@@ -1157,13 +2000,18 @@ class ReportExportService:
             add_chart(
                 "BPA-2 Resultados da Avaliação da Atenção",
                 cls._bpa_chart_bytes(tests.get("bpa2")),
+                template_key="bpa2",
             )
             anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
 
             add_title("7. RAVLT – REY AUDITORY VERBAL LEARNING TEST")
             ravlt_interpretation = sections.get("ravlt", sections.get("memoria_aprendizagem", ""))
             anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
-            add_chart("RAVLT Resultados", cls._ravlt_chart(tests.get("ravlt")))
+            add_chart(
+                "RAVLT Resultados",
+                cls._ravlt_chart(tests.get("ravlt")),
+                template_key="ravlt",
+            )
             add_table(
                 cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
             )
@@ -1189,12 +2037,14 @@ class ReportExportService:
                 cls._fdt_chart(tests.get("fdt"), automatic=True),
                 width=Cm(14),
                 height=Cm(10),
+                template_key="fdt_auto",
             )
             add_chart(
                 "FDT Processos Controlados",
                 cls._fdt_chart(tests.get("fdt"), automatic=False),
                 width=Cm(14),
                 height=Cm(10),
+                template_key="fdt_control",
             )
 
             if tests.get("etdah_pais"):
@@ -1211,6 +2061,7 @@ class ReportExportService:
                 add_chart(
                     "E-TDAH-PAIS Percentis",
                     cls._etdah_chart(tests.get("etdah_pais")),
+                    template_key="etdah_pais",
                 )
 
             if tests.get("etdah_ad"):
@@ -1225,11 +2076,16 @@ class ReportExportService:
                     cls._etdah_rows(tests.get("etdah_ad")),
                     "etdah",
                 )
-                add_chart("E-TDAH-AD Percentis", cls._etdah_chart(tests.get("etdah_ad")))
+                add_chart(
+                    "E-TDAH-AD Percentis",
+                    cls._etdah_chart(tests.get("etdah_ad")),
+                    template_key="etdah_ad",
+                )
 
             scared_tests = cls._find_tests(context, "scared")
             if scared_tests:
                 add_title("11. SCARED")
+                inserted_scared_pair = False
                 for scared_test in scared_tests:
                     form_label = cls._scared_form_label(scared_test)
                     add_table(
@@ -1243,10 +2099,13 @@ class ReportExportService:
                             cls._resolve_interpretation_text(None, None, scared_test)
                         ),
                     )
-                    add_chart(
-                        cls._scared_form_title(scared_test),
-                        cls._scared_chart(scared_test),
-                    )
+                    if not inserted_scared_pair:
+                        add_chart(
+                            cls._scared_form_title(scared_test),
+                            cls._scared_chart(scared_test),
+                            template_key="scared_pair",
+                        )
+                        inserted_scared_pair = True
 
             if tests.get("epq_j"):
                 add_title("12. EPQ-J")
@@ -1274,7 +2133,168 @@ class ReportExportService:
                     )
                 )
                 add_table("SRS-2 Resultados", cls._srs2_rows(srs2_test), "srs2")
-                add_chart("SRS-2 Resultados", cls._srs2_chart(srs2_test))
+                add_chart(
+                    "SRS-2 Resultados",
+                    cls._srs2_chart(srs2_test),
+                    template_key="srs2",
+                )
+        elif tests.get("wais3"):
+            add_title("Subescalas WAIS III")
+
+            add_title("Linguagem")
+            add_table(
+                "Resultado da escala Linguagem",
+                cls._wais3_domain_rows(tests.get("wais3"), "linguagem"),
+                "wisc",
+            )
+            add_text(cls._wisc_section_text(sections, "linguagem", context))
+
+            add_title("Gnosias e Praxias")
+            add_table(
+                "Resultados da escala Gnosias e praxias",
+                cls._wais3_domain_rows(tests.get("wais3"), "gnosias_praxias"),
+                "wisc",
+            )
+            add_text(cls._wisc_section_text(sections, "gnosias_praxias", context))
+
+            add_title("Função Executiva")
+            add_table(
+                "Resultados da escala Função Executiva",
+                cls._wais3_domain_rows(tests.get("wais3"), "funcoes_executivas"),
+                "wisc",
+            )
+            add_text(cls._wisc_section_text(sections, "funcoes_executivas", context))
+
+            add_title("Memória e Aprendizagem")
+            add_table(
+                "Resultados da escala Memória e Aprendizagem",
+                cls._wais3_domain_rows(tests.get("wais3"), "memoria_aprendizagem"),
+                "wisc",
+            )
+            add_text(cls._wisc_section_text(sections, "memoria_aprendizagem", context))
+
+            if tests.get("bpa2"):
+                add_title("6. BPA-2 Bateria Psicológica para Avaliação da Atenção")
+                add_text(
+                    "A Bateria Psicológica para Avaliação da Atenção – BPA-2 tem como objetivo mensurar a capacidade geral de atenção e avaliar individualmente atenção concentrada, atenção dividida e atenção alternada."
+                )
+                add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
+                anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
+                add_chart(
+                    "BPA-2 apresenta os resultados da avaliação da atenção",
+                    cls._bpa_chart_bytes(tests.get("bpa2")),
+                    template_key="bpa2",
+                )
+
+            if tests.get("ravlt"):
+                add_title("7. RAVLT Rey Auditory Verbal Learning Test")
+                anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
+                add_chart(
+                    "RAVLT Resultados",
+                    cls._ravlt_chart(tests.get("ravlt")),
+                    template_key="ravlt",
+                )
+                add_table(
+                    cls._ravlt_table_caption(),
+                    cls._ravlt_rows(tests.get("ravlt"), context),
+                    "ravlt",
+                )
+                ravlt_interpretation = sections.get("ravlt") or sections.get("memoria_aprendizagem")
+                if ravlt_interpretation:
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor, cls._normalize_interpretation_text(ravlt_interpretation)
+                    )
+
+            if tests.get("fdt"):
+                add_title("8. FDT – TESTE DOS CINCO DÍGITOS")
+                add_text(cls._fdt_description_text())
+                add_table(
+                    "FDT Processos Automáticos e Controlados",
+                    cls._fdt_rows(tests.get("fdt")),
+                    "fdt",
+                )
+                fdt_interpretation = sections.get("fdt") or sections.get("funcoes_executivas")
+                if fdt_interpretation:
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor, cls._normalize_interpretation_text(fdt_interpretation)
+                    )
+                add_chart(
+                    "FDT Processos Automáticos",
+                    cls._fdt_chart(tests.get("fdt"), automatic=True),
+                    width=Cm(14),
+                    height=Cm(10),
+                    template_key="fdt_auto",
+                )
+                add_chart(
+                    "FDT Processos Controlados",
+                    cls._fdt_chart(tests.get("fdt"), automatic=False),
+                    width=Cm(14),
+                    height=Cm(10),
+                    template_key="fdt_control",
+                )
+
+            if tests.get("etdah_ad"):
+                add_title("9. E-TDAH-AD")
+                add_table(
+                    "Resultados do E-TDAH-AD",
+                    cls._etdah_rows(tests.get("etdah_ad")),
+                    "etdah",
+                )
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        section_or_test_interpretation("etdah_ad", None, tests.get("etdah_ad"))
+                    ),
+                )
+                add_chart(
+                    "E-TDAH-AD Percentis",
+                    cls._etdah_chart(tests.get("etdah_ad")),
+                    template_key="etdah_ad",
+                )
+
+            if tests.get("iphexa"):
+                add_title("10. IPHEXA")
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        cls._resolve_interpretation_text(
+                            sections.get("aspectos_emocionais_comportamentais"),
+                            None,
+                            tests.get("iphexa"),
+                        )
+                    ),
+                )
+
+            if tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij"):
+                ebadep_test = tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij")
+                add_title("11. EBADEP-A")
+                add_table("Resultados da EBADEP", cls._ebadep_rows(ebadep_test), "scale_summary")
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        cls._resolve_interpretation_text(
+                            sections.get("aspectos_emocionais_comportamentais"),
+                            None,
+                            ebadep_test,
+                        )
+                    ),
+                )
+
+            if tests.get("srs2"):
+                srs2_test = tests.get("srs2")
+                add_title("12. SRS-2 Escala de Responsividade Social")
+                add_table("SRS-2 Resultados", cls._srs2_rows(srs2_test), "srs2")
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        section_or_test_interpretation("srs2", None, srs2_test)
+                    ),
+                )
+                add_chart(
+                    "SRS-2 Resultados",
+                    cls._srs2_chart(srs2_test),
+                    template_key="srs2",
+                )
         else:
             add_title("5.1. Atenção")
             add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
@@ -1391,6 +2411,17 @@ class ReportExportService:
         if text is not None:
             new_paragraph.add_run(text)
         return new_paragraph
+
+    @classmethod
+    def _append_body_element_before_sectpr(cls, document: Document, element):
+        body = document._body._element
+        sect_pr = next((child for child in body.iterchildren() if child.tag.endswith('sectPr')), None)
+        copied = deepcopy(element)
+        if sect_pr is None:
+            body.append(copied)
+        else:
+            sect_pr.addprevious(copied)
+        return copied
 
     @classmethod
     def _insert_table_after(cls, paragraph, rows: list[list[str]], table_key: str | None = None):
@@ -1696,6 +2727,49 @@ class ReportExportService:
                 item.get("warning") or "",
             ])
         return rows if len(rows) > 1 else None
+
+    @classmethod
+    def _wais3_domain_rows(cls, test: dict | None, section_key: str):
+        payload = cls._wais3_payload(test)
+        subtests = payload.get("subtestes") or {}
+        rows = [["Teste", "Pontos Brutos", "Escore Ponderado", "Classificação"]]
+        for subtest_key in WAIS3StandardizationService.DOMAIN_SUBTESTS.get(section_key, []):
+            item = subtests.get(subtest_key)
+            if not item:
+                continue
+            rows.append(
+                [
+                    item.get("nome") or subtest_key,
+                    cls._num(item.get("pontos_brutos")),
+                    cls._num(item.get("escore_ponderado")),
+                    item.get("classificacao") or "-",
+                ]
+            )
+        return rows if len(rows) > 1 else None
+
+    @classmethod
+    def _wais3_chart(cls, test: dict | None):
+        payload = cls._wais3_payload(test)
+        indices = payload.get("indices") or {}
+        items = [
+            ("ICV", indices.get("compreensao_verbal")),
+            ("IOP", indices.get("organizacao_perceptual")),
+            ("IMO", indices.get("memoria_operacional")),
+            ("IVP", indices.get("velocidade_processamento")),
+            ("QIV", indices.get("qi_verbal")),
+            ("QIE", indices.get("qi_execucao")),
+            ("GAI", indices.get("gai")),
+            ("QIT", indices.get("qi_total")),
+        ]
+        labels = []
+        values = []
+        for label, item in items:
+            score = (item or {}).get("pontuacao_composta")
+            if score is None:
+                continue
+            labels.append(label)
+            values.append(float(score))
+        return cls._build_chart_png("bar", "Desempenho do paciente no WAIS III", labels, values, "Pontuação Composta")
 
     @classmethod
     def _append_wisc_global_bullet(cls, paragraph, lead: str, tail: str):
@@ -3225,6 +4299,25 @@ class ReportExportService:
         return str(value).replace(".", ",")
 
     @staticmethod
+    def _to_float(value, default: float = 0.0) -> float:
+        if value in (None, "", "-"):
+            return default
+        if isinstance(value, (int, float)):
+            return float(value)
+        text = str(value).strip()
+        if not text:
+            return default
+        text = text.replace("%", "").replace(" ", "")
+        if "," in text and "." in text:
+            text = text.replace(".", "").replace(",", ".")
+        else:
+            text = text.replace(",", ".")
+        try:
+            return float(text)
+        except ValueError:
+            return default
+
+    @staticmethod
     def _parse_iso_date(value):
         if not value:
             return None
@@ -3595,8 +4688,16 @@ class ReportExportService:
         ax.spines["bottom"].set_color("#94A3B8")
 
         if kind == "bar":
+            colors = extra.get("colors") or "#2F6DB3"
             bars = ax.bar(
-                labels, values, color="#2F6DB3", edgecolor="#1E3A5F", linewidth=0.6
+                labels,
+                values,
+                color=colors,
+                edgecolor=extra.get("edgecolor", "#1E3A5F"),
+                linewidth=0.6,
+                yerr=extra.get("errors"),
+                ecolor="#1E3A5F",
+                capsize=3 if extra.get("errors") else 0,
             )
             for bar, value in zip(bars, values):
                 ax.text(
@@ -3633,9 +4734,14 @@ class ReportExportService:
             ax.set_xticks(x_positions)
             ax.set_xticklabels(labels)
 
-        ymax = max(values + extra.get("expected", []) + extra.get("minimum", []) + [1])
-        ax.set_ylim(0, ymax * 1.2)
-        ax.tick_params(axis="x", labelrotation=0, labelsize=8, length=0)
+        ymax = extra.get("y_max")
+        if ymax is None:
+            ymax = max(values + extra.get("expected", []) + extra.get("minimum", []) + [1]) * 1.2
+        ymin = extra.get("y_min", 0)
+        ax.set_ylim(ymin, ymax)
+        if extra.get("y_ticks") is not None:
+            ax.set_yticks(extra["y_ticks"])
+        ax.tick_params(axis="x", labelrotation=extra.get("x_rotation", 0), labelsize=8, length=0)
         ax.tick_params(axis="y", labelsize=8, length=0)
         if label_font:
             for tick in ax.get_xticklabels() + ax.get_yticklabels():
@@ -3818,12 +4924,11 @@ class ReportExportService:
     def _ravlt_chart(cls, test: dict | None):
         payload = (test or {}).get("classified_payload") or {}
         chart = payload.get("chart") or {}
-
         labels = chart.get("labels") or []
         series = chart.get("series") or []
-        y_axis = chart.get("y_axis") or {}
         if not labels or not series:
             return None
+        y_axis = chart.get("y_axis") or {}
 
         regular_font = cls._chart_font()
 
