@@ -6,7 +6,7 @@ from apps.tests.bpa2.calculators import load_table as _load_bpa2_table
 from apps.tests.base.types import TestContext
 from apps.tests.registry import get_test_module
 from apps.tests.selectors import get_validated_test_applications_by_evaluation
-from apps.tests.wais3.constants import WAIS3_ALL_SUBTESTS
+from apps.tests.wais3.constants import WAIS3_ALL_SUBTESTS, classify_scaled_score
 from apps.tests.wais3.loaders import WAIS3NormLoader
 from apps.tests.wais3.norm_utils import resolve_age_range as _resolve_wais3_age_range
 from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
@@ -46,6 +46,20 @@ def _format_number(value) -> str:
     if isinstance(value, float):
         return f"{value:.2f}".rstrip("0").rstrip(".")
     return str(value)
+
+
+def _parse_score_range(value: str | None) -> tuple[int, int] | None:
+    if not value or value == "-":
+        return None
+    text = str(value).strip()
+    if "-" in text:
+        start_text, end_text = text.split("-", 1)
+    else:
+        start_text = end_text = text
+    try:
+        return int(start_text.strip()), int(end_text.strip())
+    except ValueError:
+        return None
 
 
 def _format_result_line(label: str, *parts) -> str:
@@ -501,6 +515,21 @@ def _build_wais3_tables(payload: dict, evaluation, applied_on) -> dict:
             if not item:
                 continue
             score_max, score_mid, score_min = _wais3_reference_scores(loader, age_group, code)
+            classification = item.get("classificacao") or "-"
+            raw_score = item.get("pontos_brutos")
+            try:
+                scaled_score = loader.get_scaled_score(code, int(raw_score), age_group) if age_group and raw_score not in (None, "") else None
+            except (TypeError, ValueError):
+                scaled_score = None
+            if scaled_score is not None:
+                classification = classify_scaled_score(scaled_score) or classification
+            try:
+                raw_score_int = int(raw_score) if raw_score not in (None, "") else None
+            except (TypeError, ValueError):
+                raw_score_int = None
+            avg_range = _parse_score_range(score_mid)
+            if raw_score_int is not None and avg_range and avg_range[0] <= raw_score_int <= avg_range[1]:
+                classification = "Média"
             rows.append(
                 {
                     "label": item.get("nome") or WAIS3_ALL_SUBTESTS.get(code) or code,
@@ -508,7 +537,7 @@ def _build_wais3_tables(payload: dict, evaluation, applied_on) -> dict:
                     "avgScore": score_mid,
                     "minScore": score_min,
                     "obtainedScore": _format_number(item.get("pontos_brutos")),
-                    "classification": item.get("classificacao") or "-",
+                    "classification": classification,
                 }
             )
         if domain == "linguagem":

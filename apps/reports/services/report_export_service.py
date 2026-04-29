@@ -72,8 +72,8 @@ class ReportExportService:
     TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates_assets"
     DEFAULT_TEMPLATE_PATH = TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
     ADOLESCENT_TEMPLATE_PATH = TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
-    WAIS3_TEMPLATE_PATH = Path(settings.BASE_DIR) / "laudo_modelos" / "modelo-wais3.docx"
-    WISC4_TEMPLATE_PATH = Path(settings.BASE_DIR) / "laudo_modelos" / "Modelo-WISC4.docx"
+    WAIS3_TEMPLATE_PATH = TEMPLATE_DIR / "Modelo-WAIS3.docx"
+    WISC4_TEMPLATE_PATH = TEMPLATE_DIR / "Modelo-WISC4.docx"
     TABLE_STYLE_SOURCE_PATH = TEMPLATE_DIR / "Modelo-WISC.docx"
     FONT_NAME = "Times New Roman"
     BODY_SIZE = Pt(12)
@@ -372,7 +372,7 @@ class ReportExportService:
             else:
                 cls._ensure_model_table_styles(document)
                 cls._apply_base_styles(document)
-                cls._replace_simple_sections(document, sections)
+                cls._replace_simple_sections(document, report, sections, context)
                 cls._rebuild_qualitative_section(document, sections, context)
 
         cls._ensure_model_table_styles(document)
@@ -381,6 +381,8 @@ class ReportExportService:
         output = BytesIO()
         document.save(output)
         docx_bytes = output.getvalue()
+        if template_path.exists():
+            docx_bytes = cls._restore_template_header_footer(docx_bytes, template_path)
         if cls._find_test(context, "wisc4"):
             docx_bytes = cls._populate_wisc4_excel_charts(docx_bytes, context)
         if cls._find_test(context, "wais3") and not cls._is_adolescent_context(context, report):
@@ -1428,7 +1430,7 @@ class ReportExportService:
             append_chart(
                 "WAIS III - INDICES DE QIS",
                 cls._wais3_chart(wais3_test),
-                show_caption=False,
+                show_caption=True,
                 template_key="wais3",
             )
 
@@ -1656,13 +1658,18 @@ class ReportExportService:
     @classmethod
     def _apply_page_layout(cls, document: Document):
         for section in document.sections:
-            section.top_margin = Cm(3)
-            section.bottom_margin = Cm(2)
-            section.left_margin = Cm(2)
-            section.right_margin = Cm(2)
-            section.header_distance = Cm(1.27)
-            section.footer_distance = Cm(1.27)
             sect_pr = section._sectPr
+            has_header_footer_refs = any(
+                child.tag in {qn("w:headerReference"), qn("w:footerReference")}
+                for child in sect_pr
+            )
+            if not has_header_footer_refs:
+                section.top_margin = Cm(3)
+                section.bottom_margin = Cm(2)
+                section.left_margin = Cm(2)
+                section.right_margin = Cm(2)
+                section.header_distance = Cm(1.27)
+                section.footer_distance = Cm(1.27)
             pg_mar = sect_pr.find(qn("w:pgMar"))
             if pg_mar is None:
                 pg_mar = OxmlElement("w:pgMar")
@@ -1676,6 +1683,102 @@ class ReportExportService:
                 for run in paragraph.runs:
                     if run.text == "pág. ":
                         run.text = "pág."
+
+    @classmethod
+    def _restore_template_header_footer(cls, docx_bytes: bytes, template_path: Path) -> bytes:
+        with ZipFile(BytesIO(docx_bytes), "r") as output_zip, ZipFile(str(template_path), "r") as template_zip:
+            template_names = set(template_zip.namelist())
+            output_names = set(output_zip.namelist())
+            template_document_xml = template_zip.read("word/document.xml")
+            template_document_rels_xml = template_zip.read("word/_rels/document.xml.rels")
+            output_document_xml = output_zip.read("word/document.xml")
+            output_document_rels_xml = output_zip.read("word/_rels/document.xml.rels")
+
+            template_document_root = ET.fromstring(template_document_xml)
+            output_document_root = ET.fromstring(output_document_xml)
+            template_rels_root = ET.fromstring(template_document_rels_xml)
+            output_rels_root = ET.fromstring(output_document_rels_xml)
+
+            relationship_ns = "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship"
+            word_ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+            office_rel_ns = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+            header_footer_types = {
+                f"{office_rel_ns}header",
+                f"{office_rel_ns}footer",
+            }
+
+            for rel in list(output_rels_root.findall(relationship_ns)):
+                if rel.get("Type") in header_footer_types:
+                    output_rels_root.remove(rel)
+            for rel in template_rels_root.findall(relationship_ns):
+                if rel.get("Type") in header_footer_types:
+                    output_rels_root.append(deepcopy(rel))
+
+            output_body = output_document_root.find(f".//{word_ns}body")
+            template_body = template_document_root.find(f".//{word_ns}body")
+            output_sect_pr = output_body.find(f"{word_ns}sectPr") if output_body is not None else None
+            template_sect_pr = template_body.find(f"{word_ns}sectPr") if template_body is not None else None
+            if output_body is not None and template_sect_pr is not None:
+                if output_sect_pr is not None:
+                    output_body.remove(output_sect_pr)
+                output_body.append(deepcopy(template_sect_pr))
+
+            parts_to_copy: set[str] = {
+                "word/document.xml",
+                "word/_rels/document.xml.rels",
+            }
+            for rel in template_rels_root.findall(relationship_ns):
+                if rel.get("Type") not in header_footer_types:
+                    continue
+                target = rel.get("Target")
+                if not target:
+                    continue
+                part_name = cls._resolve_package_target("word/document.xml", target)
+                parts_to_copy.add(part_name)
+                rels_name = f"word/_rels/{PurePosixPath(part_name).name}.rels"
+                if rels_name in template_names:
+                    parts_to_copy.add(rels_name)
+                    rels_root = ET.fromstring(template_zip.read(rels_name))
+                    for sub_rel in rels_root.findall(relationship_ns):
+                        sub_target = sub_rel.get("Target")
+                        if not sub_target or sub_rel.get("TargetMode") == "External":
+                            continue
+                        parts_to_copy.add(cls._resolve_package_target(part_name, sub_target))
+
+            content_types_root = ET.fromstring(output_zip.read("[Content_Types].xml"))
+            template_content_types_root = ET.fromstring(template_zip.read("[Content_Types].xml"))
+            existing_overrides = {
+                override.get("PartName")
+                for override in content_types_root
+                if override.tag.endswith("Override")
+            }
+            for override in template_content_types_root:
+                part_name = override.get("PartName")
+                normalized = (part_name or "").lstrip("/")
+                if normalized not in parts_to_copy or part_name in existing_overrides:
+                    continue
+                content_types_root.append(deepcopy(override))
+
+            output_buffer = BytesIO()
+            with ZipFile(output_buffer, "w") as target_zip:
+                for item in output_zip.infolist():
+                    if item.filename == "word/document.xml":
+                        data = ET.tostring(output_document_root, encoding="utf-8", xml_declaration=True)
+                    elif item.filename == "word/_rels/document.xml.rels":
+                        data = ET.tostring(output_rels_root, encoding="utf-8", xml_declaration=True)
+                    elif item.filename == "[Content_Types].xml":
+                        data = ET.tostring(content_types_root, encoding="utf-8", xml_declaration=True)
+                    elif item.filename in parts_to_copy and item.filename in template_names:
+                        data = template_zip.read(item.filename)
+                    else:
+                        data = output_zip.read(item.filename)
+                    target_zip.writestr(item, data)
+
+                missing_parts = parts_to_copy - output_names
+                for name in sorted(missing_parts):
+                    target_zip.writestr(name, template_zip.read(name))
+
+            return output_buffer.getvalue()
 
     @classmethod
     def _ensure_model_table_styles(cls, document: Document):
@@ -1715,16 +1818,10 @@ class ReportExportService:
                 continue
 
     @classmethod
-    def _replace_simple_sections(cls, document: Document, sections: dict[str, str]):
+    def _replace_simple_sections(cls, document: Document, report, sections: dict[str, str], context: dict):
         replacements = {
             "IDENTIFICAÇÃO": sections.get(
                 "identificacao", "Sem conteúdo disponível para esta seção."
-            ),
-            "DESCRIÇÃO DA DEMANDA": sections.get(
-                "descricao_demanda", "Sem conteúdo disponível para esta seção."
-            ),
-            "PROCEDIMENTOS": sections.get(
-                "procedimentos", "Sem conteúdo disponível para esta seção."
             ),
             "ANÁLISE": sections.get(
                 "historia_pessoal", "Sem conteúdo disponível para esta seção."
@@ -1760,6 +1857,9 @@ class ReportExportService:
                 document, heading, boundaries.get(heading), text
             )
 
+        cls._replace_wais3_demand_block(document, sections, context)
+        cls._replace_wais3_procedures_block(document, report, sections, context)
+
     @classmethod
     def _replace_block_between_headings(
         cls, document: Document, start_heading: str, end_heading: str | None, text: str
@@ -1776,6 +1876,58 @@ class ReportExportService:
             cls._format_body_paragraph(anchor)
 
     @classmethod
+    def _replace_wais3_demand_block(cls, document: Document, sections: dict[str, str], context: dict):
+        start = cls._find_paragraph(document, "DESCRIÇÃO DA DEMANDA")
+        if start is None:
+            return
+        end = cls._find_paragraph(document, "PROCEDIMENTOS")
+        cls._remove_nodes_between(start, end)
+        anchor = cls._insert_paragraph_after(start, "Motivo do Encaminhamento")
+        cls._format_subtitle_paragraph(anchor)
+        anchor = cls._insert_paragraph_after(anchor, "")
+        cls._append_body_text_with_bold_label(anchor, cls._wais3_demand_text(sections, context))
+        cls._format_body_paragraph(anchor)
+
+    @classmethod
+    def _replace_wais3_procedures_block(cls, document: Document, report, sections: dict[str, str], context: dict):
+        start = cls._find_paragraph(document, "PROCEDIMENTOS")
+        if start is None:
+            return
+        end = cls._find_paragraph(document, "ANÁLISE")
+        cls._remove_nodes_between(start, end)
+        anchor = cls._insert_paragraph_after(start, "")
+        cls._append_body_text_with_bold_label(anchor, cls._wais3_procedures_intro_text(report, sections))
+        cls._format_body_paragraph(anchor)
+        for item in cls._procedure_items(context):
+            anchor = cls._insert_paragraph_after(anchor, "")
+            cls._append_procedure_bullet_runs(anchor, item["name"], item["description"])
+
+    @classmethod
+    def _wais3_demand_text(cls, sections: dict[str, str], context: dict) -> str:
+        section_text = PtBrTextService.normalize(sections.get("descricao_demanda") or "")
+        if section_text and section_text != "Sem conteúdo disponível para esta seção.":
+            return section_text
+        patient_name = cls._patient_reference_name(context)
+        evaluation = (context or {}).get("evaluation") or {}
+        complaint = evaluation.get("referral_reason") or "queixas cognitivas e comportamentais"
+        purpose = (evaluation.get("purpose") or cls.FIXED_PURPOSE).lower()
+        return (
+            f"O paciente {patient_name} foi encaminhado para avaliação neuropsicológica por apresentar queixas relacionadas a {complaint}. "
+            "Foram relatadas dificuldades em domínios cognitivos e comportamentais, com repercussões no funcionamento cotidiano. "
+            f"Levando em consideração a demanda apresentada, objetivou-se avaliar as funções cognitivas, aspectos comportamentais, emocionais e sociais, a fim de compreender seu funcionamento global e subsidiar {purpose}."
+        )
+
+    @classmethod
+    def _wais3_procedures_intro_text(cls, report, sections: dict[str, str]) -> str:
+        section_text = PtBrTextService.normalize(sections.get("procedimentos") or "")
+        if section_text and section_text != "Sem conteúdo disponível para esta seção.":
+            return section_text
+        testing_sessions = getattr(getattr(report, "evaluation", None), "testing_sessions_count", None)
+        if testing_sessions:
+            return f"Para esta avaliação foram realizadas: uma sessão de anamnese, {testing_sessions} sessões de testagem com o paciente e uma sessão de devolutiva."
+        return "Para esta avaliação foram realizadas entrevista clínica inicial, sessões de testagem com o paciente e devolutiva clínica, conforme a necessidade do caso."
+
+    @classmethod
     def _rebuild_qualitative_section(
         cls, document: Document, sections: dict[str, str], context: dict
     ):
@@ -1784,6 +1936,7 @@ class ReportExportService:
         if start is None or end is None:
             return
 
+        template_chart_blocks = cls._extract_template_chart_blocks(document)
         cls._remove_nodes_between(start, end)
         tests = {
             item.get("instrument_code"): item
@@ -1793,7 +1946,6 @@ class ReportExportService:
         table_index = 1
         chart_index = 1
         anchor = start
-        template_chart_blocks = cls._extract_template_chart_blocks(document)
         template_chart_map = {}
         if tests.get("wisc4"):
             template_chart_map = {
@@ -1854,10 +2006,10 @@ class ReportExportService:
                     p.paragraph_format.tab_stops.add_tab_stop(Cm(1.1))
                 else:
                     anchor = cls._insert_paragraph_after(anchor, "")
-                    cls._append_body_text_with_bold_label(anchor, line)
                     if line.startswith("Capacidade Cognitiva Global:"):
                         cls._append_wisc_intro_paragraph(anchor, line)
                     else:
+                        cls._append_body_text_with_bold_label(anchor, line)
                         cls._format_left_body_paragraph(anchor)
 
         def add_table(caption: str, rows: list[list[str]] | None, table_key: str):
@@ -1950,18 +2102,26 @@ class ReportExportService:
             for lead, tail in cls._wisc_global_bullet_parts(tests.get("wisc4")):
                 add_text(f"- {lead} {tail}")
         elif tests.get("wais3"):
-            add_title(f"5.1. Desempenho {patient_title} no WAIS-III")
             add_text(
                 "A Escala de Inteligência Wechsler para Adultos – Terceira Edição (WAIS-III) é um instrumento destinado à avaliação da capacidade intelectual global em adultos, permitindo analisar habilidades verbais, não verbais, memória operacional e velocidade de processamento."
             )
             add_text(cls._wais3_intro_text(tests.get("wais3"), context))
             for lead, tail in cls._wais3_global_bullet_parts(tests.get("wais3")):
                 add_text(f"- {lead} {tail}")
+            add_title(f"Desempenho {patient_title} no WAIS III")
             add_chart(
                 "WAIS III - INDICES DE QIS",
                 cls._wais3_chart(tests.get("wais3")),
-                show_caption=False,
+                show_caption=True,
                 template_key="wais3",
+            )
+            anchor = cls._insert_interpretation_block_after(
+                anchor,
+                cls._normalize_interpretation_text(
+                    section_or_test_interpretation(
+                        "eficiencia_intelectual", None, tests.get("wais3")
+                    )
+                ),
             )
 
         if is_adolescent and tests.get("wisc4"):
@@ -2160,9 +2320,9 @@ class ReportExportService:
             )
             add_text(cls._wisc_section_text(sections, "gnosias_praxias", context))
 
-            add_title("Função Executiva")
+            add_title("Funções Executivas")
             add_table(
-                "Resultados da escala Função Executiva",
+                "Resultados da escala Funções Executivas",
                 cls._wais3_domain_rows(tests.get("wais3"), "funcoes_executivas"),
                 "wisc",
             )
@@ -2177,7 +2337,7 @@ class ReportExportService:
             add_text(cls._wisc_section_text(sections, "memoria_aprendizagem", context))
 
             if tests.get("bpa2"):
-                add_title("6. BPA-2 Bateria Psicológica para Avaliação da Atenção")
+                add_title("BPA-2 Bateria Psicológica para Avaliação da Atenção")
                 add_text(
                     "A Bateria Psicológica para Avaliação da Atenção – BPA-2 tem como objetivo mensurar a capacidade geral de atenção e avaliar individualmente atenção concentrada, atenção dividida e atenção alternada."
                 )
@@ -2190,7 +2350,7 @@ class ReportExportService:
                 )
 
             if tests.get("ravlt"):
-                add_title("7. RAVLT Rey Auditory Verbal Learning Test")
+                add_title("RAVLT Rey Auditory Verbal Learning Test")
                 anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
                 add_chart(
                     "RAVLT Resultados",
@@ -2209,7 +2369,7 @@ class ReportExportService:
                     )
 
             if tests.get("fdt"):
-                add_title("8. FDT – TESTE DOS CINCO DÍGITOS")
+                add_title("FDT- TESTE DOS CINCO DÍGITOS")
                 add_text(cls._fdt_description_text())
                 add_table(
                     "FDT Processos Automáticos e Controlados",
@@ -2237,7 +2397,7 @@ class ReportExportService:
                 )
 
             if tests.get("etdah_ad"):
-                add_title("9. E-TDAH-AD")
+                add_title("ETDAH-AD")
                 add_table(
                     "Resultados do E-TDAH-AD",
                     cls._etdah_rows(tests.get("etdah_ad")),
@@ -2256,7 +2416,7 @@ class ReportExportService:
                 )
 
             if tests.get("iphexa"):
-                add_title("10. IPHEXA")
+                add_title("iphexa Inventário de Personalidade Hexadimensional")
                 anchor = cls._insert_interpretation_block_after(
                     anchor,
                     cls._normalize_interpretation_text(
@@ -2270,7 +2430,7 @@ class ReportExportService:
 
             if tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij"):
                 ebadep_test = tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij")
-                add_title("11. EBADEP-A")
+                add_title("EBADEP-A")
                 add_table("Resultados da EBADEP", cls._ebadep_rows(ebadep_test), "scale_summary")
                 anchor = cls._insert_interpretation_block_after(
                     anchor,
@@ -2285,7 +2445,7 @@ class ReportExportService:
 
             if tests.get("srs2"):
                 srs2_test = tests.get("srs2")
-                add_title("12. SRS-2 Escala de Responsividade Social")
+                add_title("SRS-2 Escala de Responsividade Social")
                 add_table("SRS-2 Resultados", cls._srs2_rows(srs2_test), "srs2")
                 anchor = cls._insert_interpretation_block_after(
                     anchor,
@@ -2655,17 +2815,16 @@ class ReportExportService:
     @classmethod
     def _wais3_intro_text(cls, test: dict | None, context: dict) -> str:
         payload = cls._wais3_payload(test)
-        patient_label = "A paciente" if (context.get("patient") or {}).get("sex") == "F" else "O paciente"
         indices = payload.get("indices") or {}
         qit = indices.get("qi_total") or {}
         if qit.get("pontuacao_composta") is None:
             return (
-                f"Capacidade Cognitiva Global: {patient_label} realizou o WAIS-III, instrumento destinado à avaliação do funcionamento intelectual global em adultos. No momento, as tabelas normativas de conversão de pontos brutos em escores ponderados ainda não estão preenchidas de forma suficiente para cálculo automatizado dos índices compostos, percentis e intervalos de confiança."
+                "Capacidade Cognitiva Global: O paciente realizou a Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III), instrumento destinado à avaliação do funcionamento intelectual global em adultos. No momento, as tabelas normativas de conversão de pontos brutos em escores ponderados ainda não estão preenchidas de forma suficiente para cálculo automatizado dos índices compostos, percentis e intervalos de confiança."
             )
         return (
-            f"Capacidade Cognitiva Global: {patient_label} obteve, a partir da escala WAIS-III, QI Total "
-            f"({qit.get('pontuacao_composta', 'não informado')}), classificado como {qit.get('classificacao', 'não informada')}. "
-            f"Em relação aos índices fatoriais, apresentou os seguintes resultados:"
+            "Capacidade Cognitiva Global: O paciente obteve, a partir da Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III), "
+            f"Quociente de Inteligência Total (QIT = {qit.get('pontuacao_composta', 'não informado')}), permanecendo na classificação {qit.get('classificacao', 'não informada')} quando comparado à média geral da população normativa. "
+            "Em relação aos índices fatoriais, apresentou os seguintes resultados:"
         )
 
     @classmethod
@@ -2673,12 +2832,13 @@ class ReportExportService:
         payload = cls._wais3_payload(test)
         indices = payload.get("indices") or {}
         definitions = [
-            ("QI Verbal", indices.get("qi_verbal"), "Representa o desempenho em habilidades verbais, conhecimento adquirido e raciocínio mediado por linguagem."),
-            ("QI de Execução", indices.get("qi_execucao"), "Representa o desempenho em raciocínio não verbal, organização perceptual e solução de problemas visuoespaciais."),
-            ("Compreensão Verbal", indices.get("compreensao_verbal"), "Reflete o repertório verbal, a formação de conceitos e a compreensão de informações apresentadas verbalmente."),
-            ("Organização Perceptual", indices.get("organizacao_perceptual"), "Reflete o raciocínio perceptual, análise visuoespacial e integração de estímulos não verbais."),
-            ("Memória Operacional", indices.get("memoria_operacional"), "Reflete a capacidade de manter e manipular informações mentalmente durante tarefas cognitivas."),
-            ("Velocidade de Processamento", indices.get("velocidade_processamento"), "Reflete a rapidez e a precisão na execução de tarefas simples com demanda visuomotora."),
+            ("Compreensão Verbal (ICV)", indices.get("compreensao_verbal"), "Avaliou o conhecimento verbal adquirido, o raciocínio verbal, a formação de conceitos e a compreensão verbal."),
+            ("Organização Perceptual (IOP)", indices.get("organizacao_perceptual"), "Avaliou o raciocínio não verbal, a organização perceptual, a análise visuoespacial e a solução de problemas com estímulos visuais."),
+            ("Memória Operacional (IMO)", indices.get("memoria_operacional"), "Avaliou atenção, concentração, memória operacional e manipulação mental de informações."),
+            ("Velocidade de Processamento (IVP)", indices.get("velocidade_processamento"), "Avaliou rapidez, precisão, eficiência visuomotora e velocidade em tarefas simples e automatizadas."),
+            ("Quociente Intelectual Verbal (QIV)", indices.get("qi_verbal"), "Avaliou recursos verbais globais, compreensão, expressão verbal e raciocínio mediado pela linguagem."),
+            ("Quociente de Execução (QIE)", indices.get("qi_execucao"), "Avaliou raciocínio não verbal, organização visuoespacial, atenção a detalhes e solução prática de problemas."),
+            ("Índice de Habilidade Geral (GAI)", indices.get("gai"), "Estimou habilidades intelectuais gerais com menor influência da memória operacional e da velocidade de processamento."),
         ]
         rows: list[tuple[str, str]] = []
         for label, item, description in definitions:
@@ -3000,28 +3160,35 @@ class ReportExportService:
 
     @classmethod
     def _append_procedure_bullet(cls, document, name: str, description: str):
-        name = PtBrTextService.normalize(name)
-        description = PtBrTextService.normalize(description)
         try:
             p = document.add_paragraph(style="List Bullet")
-            bullet_run = None
+            cls._append_procedure_bullet_runs(p, name, description, add_bullet_prefix=False)
         except KeyError:
             p = document.add_paragraph()
-            bullet_run = p.add_run("• ")
+            cls._append_procedure_bullet_runs(p, name, description, add_bullet_prefix=True)
+
+    @classmethod
+    def _append_procedure_bullet_runs(
+        cls, paragraph, name: str, description: str, add_bullet_prefix: bool = True
+    ):
+        name = PtBrTextService.normalize(name)
+        description = PtBrTextService.normalize(description)
+        if add_bullet_prefix:
+            bullet_run = paragraph.add_run("• ")
             bullet_run.font.name = cls.FONT_NAME
             bullet_run.font.size = cls.BODY_SIZE
-        label_run = p.add_run(f"{name}: ")
+        label_run = paragraph.add_run(f"{name}: ")
         label_run.font.name = cls.FONT_NAME
         label_run.font.size = cls.BODY_SIZE
         label_run.bold = True
-        value_run = p.add_run(description)
+        value_run = paragraph.add_run(description)
         value_run.font.name = cls.FONT_NAME
         value_run.font.size = cls.BODY_SIZE
-        p.paragraph_format.space_before = Pt(0)
-        p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.line_spacing = 1.0
-        p.paragraph_format.left_indent = Cm(0.75)
-        p.paragraph_format.first_line_indent = Cm(-0.25)
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = Pt(0)
+        paragraph.paragraph_format.line_spacing = 1.0
+        paragraph.paragraph_format.left_indent = Cm(0.75)
+        paragraph.paragraph_format.first_line_indent = Cm(-0.25)
 
     @classmethod
     def _append_numbered_item(cls, document, text: str):
@@ -3229,7 +3396,7 @@ class ReportExportService:
         subtests = payload.get("subtestes") or []
         if not subtests:
             return
-        patient_name = ((context or {}).get("patient") or {}).get("full_name") or "Paciente"
+        patient_name = cls._patient_reference_name(context or {})
         cls._append_paragraph(document, cls._bpa_intro_text(patient_name))
         for code in ("ac", "ad", "aa", "ag"):
             item = next((subtest for subtest in subtests if (subtest.get("codigo") or "").lower() == code), None)
@@ -3246,7 +3413,7 @@ class ReportExportService:
         subtests = payload.get("subtestes") or []
         if not subtests:
             return anchor
-        patient_name = ((context or {}).get("patient") or {}).get("full_name") or "Paciente"
+        patient_name = cls._patient_reference_name(context or {})
         anchor = cls._insert_interpretation_block_after(anchor, cls._bpa_intro_text(patient_name))
         for code in ("ac", "ad", "aa", "ag"):
             item = next((subtest for subtest in subtests if (subtest.get("codigo") or "").lower() == code), None)
@@ -3278,8 +3445,7 @@ class ReportExportService:
         results = payload.get("results") or {}
         if not results:
             return
-        patient_name = ((context or {}).get("patient") or {}).get("full_name") or "Paciente"
-        first_name = patient_name.split()[0] if patient_name.strip() else "Paciente"
+        first_name = cls._patient_reference_name(context or {})
         cls._append_paragraph(
             document,
             f"Interpretação e Observações Clínicas: A avaliação comportamental de {first_name} por meio da Escala E-TDAH-PAIS permitiu investigar aspectos relacionados à regulação emocional, hiperatividade/impulsividade, comportamento adaptativo e atenção, a partir da percepção dos responsáveis, fornecendo subsídios para a compreensão do funcionamento comportamental no contexto familiar e cotidiano.",
@@ -3299,8 +3465,7 @@ class ReportExportService:
         results = payload.get("results") or {}
         if not results:
             return anchor
-        patient_name = ((context or {}).get("patient") or {}).get("full_name") or "Paciente"
-        first_name = patient_name.split()[0] if patient_name.strip() else "Paciente"
+        first_name = cls._patient_reference_name(context or {})
         anchor = cls._insert_interpretation_block_after(
             anchor,
             f"Interpretação e Observações Clínicas: A avaliação comportamental de {first_name} por meio da Escala E-TDAH-PAIS permitiu investigar aspectos relacionados à regulação emocional, hiperatividade/impulsividade, comportamento adaptativo e atenção, a partir da percepção dos responsáveis, fornecendo subsídios para a compreensão do funcionamento comportamental no contexto familiar e cotidiano.",
@@ -3556,6 +3721,10 @@ class ReportExportService:
 
     @classmethod
     def _adolescent_instruments(cls, context: dict):
+        return cls._procedure_items(context)
+
+    @classmethod
+    def _procedure_items(cls, context: dict):
         validated_codes = []
         seen_codes = {"anamnese"}
         for test in context.get("validated_tests") or []:
@@ -3598,6 +3767,11 @@ class ReportExportService:
             )
 
         return items
+
+    @staticmethod
+    def _patient_reference_name(context: dict) -> str:
+        patient_name = ((context or {}).get("patient") or {}).get("full_name") or "Paciente"
+        return patient_name.strip().split()[0] if patient_name.strip() else "Paciente"
 
     @staticmethod
     def _split_bullets(text: str):

@@ -1,5 +1,6 @@
 from django.test import SimpleTestCase
 from xml.etree import ElementTree as ET
+from copy import deepcopy
 from io import BytesIO
 from zipfile import ZipFile
 from datetime import date
@@ -198,7 +199,7 @@ class WISC4ExportTableTests(SimpleTestCase):
 
 
 class WAIS3ExportTableTests(SimpleTestCase):
-    def test_build_wais3_tables_uses_normative_ranges_and_spontaneous_speech(self):
+    def _evaluation(self):
         class Patient:
             birth_date = date(2000, 1, 1)
 
@@ -206,6 +207,9 @@ class WAIS3ExportTableTests(SimpleTestCase):
             patient = Patient()
             start_date = date(2020, 6, 1)
 
+        return Evaluation()
+
+    def test_build_wais3_tables_uses_normative_ranges_and_spontaneous_speech(self):
         payload = {
             "subtestes": {
                 "semelhancas": {"nome": "Semelhanças", "pontos_brutos": 18, "classificacao": "Média"},
@@ -214,7 +218,7 @@ class WAIS3ExportTableTests(SimpleTestCase):
             }
         }
 
-        tables = _build_wais3_tables(payload, Evaluation(), date(2020, 6, 1))
+        tables = _build_wais3_tables(payload, self._evaluation(), date(2020, 6, 1))
 
         self.assertEqual(tables["linguagem"][0], {
             "label": "Semelhanças",
@@ -245,6 +249,88 @@ class WAIS3ExportTableTests(SimpleTestCase):
             "note": "Fala espontânea dentro do esperado para a sua idade",
         })
 
+    def test_build_wais3_tables_recomputes_classification_from_normative_table(self):
+        payload = {
+            "subtestes": {
+                "vocabulario": {
+                    "nome": "Vocabulário",
+                    "pontos_brutos": 39,
+                    "classificacao": "Média Superior",
+                },
+            }
+        }
+
+        tables = _build_wais3_tables(payload, self._evaluation(), date(2020, 6, 1))
+
+        self.assertEqual(tables["linguagem"][0], {
+            "label": "Vocabulário",
+            "maxScore": "66",
+            "avgScore": "23-42",
+            "minScore": "11-14",
+            "obtainedScore": "39",
+            "classification": "Média",
+        })
+
+    def test_build_wais3_tables_uses_normative_classification_across_domains(self):
+        payload = {
+            "subtestes": {
+                "semelhancas": {"nome": "Semelhanças", "pontos_brutos": 28, "classificacao": "Média Superior"},
+                "vocabulario": {"nome": "Vocabulário", "pontos_brutos": 42, "classificacao": "Média Superior"},
+                "compreensao": {"nome": "Compreensão", "pontos_brutos": 26, "classificacao": "Média Superior"},
+                "raciocinio_matricial": {"nome": "Raciocínio Matricial", "pontos_brutos": 21, "classificacao": "Média Superior"},
+                "cubos": {"nome": "Cubos", "pontos_brutos": 44, "classificacao": "Média Superior"},
+                "completar_figuras": {"nome": "Completar Figuras", "pontos_brutos": 21, "classificacao": "Média Superior"},
+                "aritmetica": {"nome": "Aritmética", "pontos_brutos": 14, "classificacao": "Média Superior"},
+                "sequencia_numeros_letras": {"nome": "Sequência de Números e Letras", "pontos_brutos": 11, "classificacao": "Média Superior"},
+                "digitos": {"nome": "Dígitos", "pontos_brutos": 17, "classificacao": "Média Superior"},
+            }
+        }
+
+        tables = _build_wais3_tables(payload, self._evaluation(), date(2020, 6, 1))
+
+        expected = {
+            "linguagem": {
+                "Semelhanças": "Média",
+                "Vocabulário": "Média",
+                "Compreensão": "Média",
+            },
+            "gnosias_praxias": {
+                "Raciocínio Matricial": "Média",
+                "Cubos": "Média",
+                "Completar Figuras": "Média",
+            },
+            "funcoes_executivas": {
+                "Semelhanças": "Média",
+                "Compreensão": "Média",
+                "Raciocínio Matricial": "Média",
+                "Aritmética": "Média",
+            },
+            "memoria_aprendizagem": {
+                "Sequência de Números e Letras": "Média",
+                "Dígitos": "Média",
+                "Aritmética": "Média",
+            },
+        }
+
+        for domain, rows in tables.items():
+            for row in rows:
+                if row.get("note"):
+                    continue
+                self.assertEqual(row["classification"], expected[domain][row["label"]])
+
+    def test_build_wais3_tables_keeps_non_average_normative_classification(self):
+        payload = {
+            "subtestes": {
+                "vocabulario": {"nome": "Vocabulário", "pontos_brutos": 11, "classificacao": "Média Superior"},
+                "cubos": {"nome": "Cubos", "pontos_brutos": 45, "classificacao": "Média"},
+            }
+        }
+
+        tables = _build_wais3_tables(payload, self._evaluation(), date(2020, 6, 1))
+
+        self.assertEqual(tables["linguagem"][0]["classification"], "Limítrofe")
+        self.assertEqual(tables["gnosias_praxias"][0]["classification"], "Média Superior")
+
     def test_wais3_domain_rows_use_dynamic_template_structure(self):
         test = {
             "wais3_tables": {
@@ -273,6 +359,317 @@ class WAIS3ExportTableTests(SimpleTestCase):
 
 
 class ReportExportChartSanitizationTests(SimpleTestCase):
+    def test_wais3_template_is_organized_under_templates_assets(self):
+        self.assertEqual(
+            ReportExportService.WAIS3_TEMPLATE_PATH,
+            ReportExportService.TEMPLATE_DIR / "Modelo-WAIS3.docx",
+        )
+        self.assertTrue(ReportExportService.WAIS3_TEMPLATE_PATH.exists())
+
+    def test_wisc4_template_is_organized_under_templates_assets(self):
+        self.assertEqual(
+            ReportExportService.WISC4_TEMPLATE_PATH,
+            ReportExportService.TEMPLATE_DIR / "Modelo-WISC4.docx",
+        )
+        self.assertTrue(ReportExportService.WISC4_TEMPLATE_PATH.exists())
+
+    def _report_stub(self):
+        class Report:
+            evaluation = None
+
+        return Report()
+
+    def test_apply_base_styles_preserves_template_header_footer_layout(self):
+        document = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
+        section = document.sections[0]
+
+        original = {
+            "top": section.top_margin,
+            "bottom": section.bottom_margin,
+            "left": section.left_margin,
+            "right": section.right_margin,
+            "header": section.header_distance,
+            "footer": section.footer_distance,
+        }
+
+        ReportExportService._apply_base_styles(document)
+
+        self.assertEqual(section.top_margin, original["top"])
+        self.assertEqual(section.bottom_margin, original["bottom"])
+        self.assertEqual(section.left_margin, original["left"])
+        self.assertEqual(section.right_margin, original["right"])
+        self.assertEqual(section.header_distance, original["header"])
+        self.assertEqual(section.footer_distance, original["footer"])
+
+    def test_restore_template_header_footer_replaces_exported_header_with_template(self):
+        template_bytes = ReportExportService.WAIS3_TEMPLATE_PATH.read_bytes()
+        mutated = template_bytes.replace(b"word/media/image4.jpeg", b"word/media/image1.jpeg")
+
+        restored = ReportExportService._restore_template_header_footer(
+            mutated,
+            ReportExportService.WAIS3_TEMPLATE_PATH,
+        )
+
+        with ZipFile(BytesIO(restored), "r") as archive:
+            header_xml = archive.read("word/header1.xml")
+            header_rels = archive.read("word/_rels/header1.xml.rels")
+
+        with ZipFile(BytesIO(template_bytes), "r") as template_archive:
+            expected_header_xml = template_archive.read("word/header1.xml")
+            expected_header_rels = template_archive.read("word/_rels/header1.xml.rels")
+
+        self.assertEqual(header_xml, expected_header_xml)
+        self.assertEqual(header_rels, expected_header_rels)
+
+    def test_restore_template_header_footer_restores_document_section_references(self):
+        template_bytes = ReportExportService.WAIS3_TEMPLATE_PATH.read_bytes()
+
+        with ZipFile(BytesIO(template_bytes), "r") as archive:
+            document_xml = archive.read("word/document.xml").decode("utf-8")
+
+        mutated_document_xml = document_xml.replace(
+            '<w:sectPr w:rsidR="00F43DEA" w:rsidRPr="00A64CAA" w:rsidSect="00C77ADB"><w:headerReference w:type="default" r:id="rId18"/><w:footerReference w:type="default" r:id="rId19"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1701" w:right="1134" w:bottom="1304" w:left="1418" w:header="397" w:footer="283" w:gutter="0"/><w:cols w:space="720"/><w:formProt w:val="0"/><w:docGrid w:linePitch="326" w:charSpace="8192"/></w:sectPr>',
+            '',
+        )
+
+        buffer = BytesIO()
+        with ZipFile(BytesIO(template_bytes), "r") as source_zip, ZipFile(buffer, "w") as target_zip:
+            for item in source_zip.infolist():
+                data = source_zip.read(item.filename)
+                if item.filename == "word/document.xml":
+                    data = mutated_document_xml.encode("utf-8")
+                target_zip.writestr(item, data)
+
+        restored = ReportExportService._restore_template_header_footer(
+            buffer.getvalue(),
+            ReportExportService.WAIS3_TEMPLATE_PATH,
+        )
+
+        with ZipFile(BytesIO(restored), "r") as archive:
+            restored_document_xml = archive.read("word/document.xml").decode("utf-8")
+
+        self.assertIn("sectPr", restored_document_xml)
+        self.assertIn("headerReference", restored_document_xml)
+        self.assertIn("footerReference", restored_document_xml)
+
+    def test_rebuild_qualitative_section_preserves_template_chart_for_wais3(self):
+        template = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
+        template_chart_blocks = ReportExportService._extract_template_chart_blocks(template)
+
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        start._p.addnext(deepcopy(template_chart_blocks[0]))
+        end = document.add_paragraph("Conclusão")
+        start._p.getnext().addnext(end._p)
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={},
+            context={
+                "patient": {"sex": "F"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wais3",
+                        "structured_results": {
+                            "indices": {
+                                "qi_total": {
+                                    "pontuacao_composta": 95,
+                                    "classificacao": "Média",
+                                }
+                            }
+                        },
+                    }
+                ],
+            },
+        )
+
+        self.assertTrue(ReportExportService._extract_template_chart_blocks(document))
+
+    def test_rebuild_qualitative_section_uses_wais3_model_titles_and_order(self):
+        template = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
+        template_chart_blocks = ReportExportService._extract_template_chart_blocks(template)
+
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        start._p.addnext(deepcopy(template_chart_blocks[0]))
+        end = document.add_paragraph("Conclusão")
+        start._p.getnext().addnext(end._p)
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={
+                "eficiencia_intelectual": "Interpretação global do WAIS3.",
+                "linguagem": "Interpretação da linguagem.",
+            },
+            context={
+                "patient": {"sex": "M"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wais3",
+                        "structured_results": {
+                            "indices": {
+                                "qi_total": {
+                                    "pontuacao_composta": 95,
+                                    "classificacao": "Média",
+                                },
+                                "qi_verbal": {
+                                    "pontuacao_composta": 93,
+                                    "classificacao": "Média",
+                                },
+                                "qi_execucao": {
+                                    "pontuacao_composta": 91,
+                                    "classificacao": "Média",
+                                },
+                                "compreensao_verbal": {
+                                    "pontuacao_composta": 94,
+                                    "classificacao": "Média",
+                                },
+                                "organizacao_perceptual": {
+                                    "pontuacao_composta": 92,
+                                    "classificacao": "Média",
+                                },
+                                "memoria_operacional": {
+                                    "pontuacao_composta": 96,
+                                    "classificacao": "Média",
+                                },
+                                "velocidade_processamento": {
+                                    "pontuacao_composta": 90,
+                                    "classificacao": "Média",
+                                },
+                            }
+                        },
+                        "wais3_tables": {
+                            "linguagem": [
+                                {
+                                    "label": "Semelhanças",
+                                    "maxScore": "38",
+                                    "avgScore": "17-28",
+                                    "minScore": "9-10",
+                                    "obtainedScore": "18",
+                                    "classification": "Média",
+                                }
+                            ]
+                        },
+                    }
+                ],
+            },
+        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+
+        self.assertIn("Desempenho do paciente no WAIS III", texts)
+        self.assertIn("Subescalas WAIS III", texts)
+        self.assertIn("Gráfico 1 WAIS III - INDICES DE QIS", texts)
+        self.assertNotIn("5.1. Desempenho do paciente no WAIS-III", texts)
+
+        desempenho_index = texts.index("Desempenho do paciente no WAIS III")
+        interpretacao_index = next(
+            i for i, text in enumerate(texts) if "Interpretação global do WAIS3." in text
+        )
+        subescalas_index = texts.index("Subescalas WAIS III")
+
+        self.assertLess(desempenho_index, interpretacao_index)
+        self.assertLess(interpretacao_index, subescalas_index)
+
+    def test_rebuild_qualitative_section_does_not_duplicate_wais3_global_intro(self):
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        end = document.add_paragraph("Conclusão")
+        start._p.addnext(end._p)
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={},
+            context={
+                "patient": {"sex": "M"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wais3",
+                        "structured_results": {
+                            "indices": {
+                                "qi_total": {
+                                    "pontuacao_composta": 98,
+                                    "classificacao": "Média",
+                                },
+                                "qi_verbal": {
+                                    "pontuacao_composta": 99,
+                                    "classificacao": "Média",
+                                },
+                                "qi_execucao": {
+                                    "pontuacao_composta": 99,
+                                    "classificacao": "Média",
+                                },
+                                "compreensao_verbal": {
+                                    "pontuacao_composta": 102,
+                                    "classificacao": "Média",
+                                },
+                                "organizacao_perceptual": {
+                                    "pontuacao_composta": 96,
+                                    "classificacao": "Média",
+                                },
+                                "memoria_operacional": {
+                                    "pontuacao_composta": 90,
+                                    "classificacao": "Média",
+                                },
+                                "velocidade_processamento": {
+                                    "pontuacao_composta": 105,
+                                    "classificacao": "Média",
+                                },
+                            }
+                        },
+                    }
+                ],
+            },
+        )
+
+        global_lines = [
+            p.text.strip()
+            for p in document.paragraphs
+            if p.text.strip().startswith("Capacidade Cognitiva Global:")
+        ]
+
+        self.assertEqual(len(global_lines), 1)
+        self.assertEqual(global_lines[0].count("Capacidade Cognitiva Global:"), 1)
+
+    def test_replace_simple_sections_uses_wais3_skill_structure_for_demand_and_procedures(self):
+        document = Document()
+        document.add_paragraph("IDENTIFICAÇÃO")
+        document.add_paragraph("DESCRIÇÃO DA DEMANDA")
+        document.add_paragraph("PROCEDIMENTOS")
+        document.add_paragraph("ANÁLISE")
+
+        ReportExportService._replace_simple_sections(
+            document,
+            self._report_stub(),
+            sections={
+                "identificacao": "Identificação pronta.",
+                "descricao_demanda": "O paciente Marcos foi encaminhado para avaliação neuropsicológica por apresentar queixas relacionadas a desatenção e esquecimentos frequentes.",
+                "procedimentos": "Para esta avaliação foram realizadas: uma sessão de anamnese, 05 sessões de testagem com o paciente e uma sessão de devolutiva.",
+                "historia_pessoal": "História pessoal resumida.",
+            },
+            context={
+                "patient": {"full_name": "Marcos Henrique Carvalho Santos"},
+                "validated_tests": [
+                    {"instrument_code": "wais3"},
+                    {"instrument_code": "bpa2"},
+                ],
+            },
+        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+
+        self.assertIn("Motivo do Encaminhamento", texts)
+        self.assertIn(
+            "Para esta avaliação foram realizadas: uma sessão de anamnese, 05 sessões de testagem com o paciente e uma sessão de devolutiva.",
+            texts,
+        )
+        self.assertTrue(
+            any("Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III)" in text for text in texts)
+        )
+        self.assertTrue(
+            any("Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2)" in text for text in texts)
+        )
+
     def test_sanitize_chart_xml_inlines_cached_refs_and_removes_external_data(self):
         chart_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
 <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">

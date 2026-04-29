@@ -87,38 +87,6 @@ Regras etárias centralizadas em `apps/tests/age_rules.py`.
 
 ---
 
-## Módulo de Laudo com IA (`laudo_ia_python_adolescente/`)
-
-Pacote Python independente com lógica de geração de rascunho de laudo neuropsicológico assistida por IA, adaptada para o **modelo adolescente**.
-
-```
-laudo_ia_python_adolescente/laudo_ai/
-├── schemas.py              # contexto estruturado da avaliação
-├── section_generators.py   # geração do rascunho por seções
-├── section_catalog.py      # catálogo de títulos das seções
-├── templates.py            # partes fixas do documento
-├── prompt_builder.py       # montagem de prompts para LLM
-├── llm_client.py           # cliente de LLM
-├── context_builder.py      # construção do contexto a partir dos dados
-├── consistency.py          # verificações de consistência
-├── compiler.py             # compilação do texto final
-├── bibliography.py         # referências bibliográficas
-├── enums.py                # enumerações
-└── example_usage_adolescente.py  # exemplo de uso
-```
-
-**Fluxo de geração do laudo:**
-1. Montar contexto estruturado da avaliação
-2. Gerar rascunho por seções (partes fixas + IA para seções interpretativas)
-3. Permitir revisão clínica no sistema
-4. Compilar texto final
-5. Exportar para `.docx`
-
-Instrumentos incluídos no modelo adolescente: `E-TDAH-PAIS`, `E-TDAH-AD`, `EPQ-J`.
-Removidos do modelo: `SNAP-IV`, `HTP`.
-
----
-
 ## Estrutura do Projeto
 
 ```
@@ -143,7 +111,6 @@ neuro/
 │   ├── services/                   # Consumo da API
 │   ├── lib/                        # Utilitários (api.ts)
 │   └── types/                      # Tipos TypeScript
-├── laudo_ia_python_adolescente/    # Geração de laudo com IA (modelo adolescente)
 ├── infra/                          # Artefatos de infraestrutura
 ├── theme/                          # Tailwind (lado Django)
 ├── manage.py                       # CLI Django
@@ -336,8 +303,6 @@ Detalhes completos em `DEPLOY.md`.
 | `DEPLOY.md` | Deploy para Render + Vercel |
 | `DOCKER_INSTRUCTIONS.md` | Instruções Docker |
 | `FRONTEND_STRUCTURE.md` | Estrutura do frontend Next.js |
-| `laudo_ia_python_adolescente/README.md` | Geração de laudo IA — modelo adolescente |
-
 ---
 
 ## Convenções de Desenvolvimento
