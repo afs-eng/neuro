@@ -567,6 +567,12 @@ class ReportGenerationService:
 
     @classmethod
     def _build_conclusion_text(cls, report: Report, context: dict) -> str:
+        if cls._is_adolescent_case(context) and any(
+            item.get("instrument_code") == "wisc4"
+            for item in (context.get("validated_tests") or [])
+        ):
+            return cls._build_wisc4_adolescent_conclusion(report, context)
+
         name = cls._patient_name(context)
         first_name = cls._patient_first_name(context)
         evaluation = context.get("evaluation") or {}
@@ -722,6 +728,129 @@ class ReportGenerationService:
                 "Em análise clínica.",
             ]
         )
+
+    @classmethod
+    def _build_wisc4_adolescent_conclusion(cls, report: Report, context: dict) -> str:
+        name = cls._patient_name(context)
+        first_name = cls._patient_first_name(context)
+        evaluation = context.get("evaluation") or {}
+        hypothesis = (evaluation.get("clinical_hypothesis") or "em investigação clínica").strip()
+        validated_tests = context.get("validated_tests") or []
+        wisc4_test = next(
+            (item for item in validated_tests if item.get("instrument_code") == "wisc4"),
+            {},
+        )
+        structured = wisc4_test.get("structured_results") or {}
+        qit = structured.get("qit_data") or {}
+        indices = {item.get("indice"): item for item in structured.get("indices") or []}
+
+        cognitive_text = cls._section_text(report, "capacidade_cognitiva_global")
+        language_text = cls._section_text(report, "linguagem")
+        executive_text = cls._section_text(report, "funcoes_executivas")
+        attention_text = cls._section_text(report, "atencao")
+        memory_text = cls._section_text(report, "memoria_aprendizagem")
+        praxis_text = cls._section_text(report, "gnosias_praxias")
+        emotional_text = cls._section_text(report, "aspectos_emocionais_comportamentais")
+        social_text = cls._section_text(report, "srs2")
+
+        qit_class = qit.get("classificacao") or "não informada"
+        if cls._has_any_keyword(cognitive_text, ("heterog", "variável", "misto")):
+            general_summary = "funcionamento neuropsicológico heterogêneo"
+            preserved = "recursos preservados em parte do raciocínio verbal e da mediação estruturada"
+            impaired = "fragilidades em eficiência cognitiva, autorregulação e adaptação a demandas complexas"
+            profile = "heterogêneo"
+            wisc_synthesis = "dissociação entre raciocínio verbal relativamente mais preservado e maior vulnerabilidade em organização perceptual, memória operacional e velocidade de processamento"
+            functional_impact = "impacto sobre aprendizagem, autonomia e ritmo de resposta diante de tarefas mais complexas"
+        elif cls._has_any_keyword(cognitive_text, ("inferior", "limítrofe", "baixo", "fragil")) or qit_class in {"Limítrofe", "Extremamente Baixo", "Inferior", "Média Inferior"}:
+            general_summary = "funcionamento neuropsicológico com fragilidades cognitivas clinicamente relevantes"
+            preserved = "recursos relativamente mais preservados em tarefas mediadas por estrutura e apoio"
+            impaired = "vulnerabilidades em raciocínio, memória operacional, velocidade de processamento e adaptação funcional"
+            profile = "heterogêneo"
+            wisc_synthesis = "rebaixamento do funcionamento intelectual global com maior vulnerabilidade nos índices de eficiência cognitiva"
+            functional_impact = "repercussões sobre o desempenho acadêmico, a autonomia e a organização do comportamento"
+        else:
+            general_summary = "funcionamento neuropsicológico globalmente preservado"
+            preserved = "recursos cognitivos compatíveis com a faixa esperada"
+            impaired = "fragilidades pontuais de menor intensidade"
+            profile = "relativamente homogêneo"
+            wisc_synthesis = "distribuição relativamente estável entre os índices fatoriais"
+            functional_impact = "repercussões mais circunscritas em situações de maior exigência"
+
+        intellectual_sentence = (
+            f"{name} apresenta funcionamento neuropsicológico caracterizado por {general_summary}, com {preserved} e {impaired}."
+        )
+
+        indices_sentence = (
+            f"Na Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV), apresentou Quociente de Inteligência Total classificado como {qit_class}, com perfil {profile}, evidenciando {wisc_synthesis}. Esse padrão sugere {functional_impact}."
+        )
+
+        attention_sentence = (
+            f"No domínio atencional e executivo, os resultados indicam {cls._domain_summary(attention_text, executive_text, 'atencionais e executivas')}, com repercussões em organização, monitoramento, flexibilidade cognitiva e consistência do desempenho cotidiano."
+        )
+
+        memory_sentence = (
+            f"A avaliação da memória e aprendizagem evidenciou {cls._single_domain_summary(memory_text, 'recursos oscilantes em retenção, manipulação mental de informações e aprendizagem verbal')}, sugerindo impacto sobre seguimento de instruções, memorização sequencial e consolidação de conteúdos."
+        )
+
+        language_sentence = (
+            f"Nos domínios de linguagem, gnosias e praxias, observou-se {cls._domain_summary(language_text, praxis_text, 'recursos mistos entre linguagem e organização visuoconstrutiva')}, devendo tais achados ser interpretados em conjunto com o desempenho acadêmico e a observação clínica."
+        )
+
+        emotional_sentence = (
+            f"Nos aspectos emocionais e comportamentais, os instrumentos aplicados indicaram {cls._single_domain_summary(emotional_text, 'participação de fatores afetivos e autorregulatórios na expressão funcional do caso')}, compondo um perfil que exige leitura integrada com a anamnese e com o contexto escolar e familiar."
+        )
+
+        if social_text or any(item.get("instrument_code") == "srs2" for item in validated_tests):
+            social_sentence = (
+                f"Na avaliação do funcionamento social, os resultados da SRS-2 indicaram {cls._single_domain_summary(social_text, 'indicadores que devem ser correlacionados à comunicação social, à reciprocidade e ao contexto do desenvolvimento')}, devendo ser interpretados em conjunto com observação clínica, história do desenvolvimento e fatores contextuais."
+            )
+        else:
+            social_sentence = (
+                f"Na avaliação do funcionamento social, os dados disponíveis sugerem que a análise da comunicação social e da reciprocidade interpessoal de {first_name} deve permanecer articulada à observação clínica e à história do desenvolvimento."
+            )
+
+        integrated_sentence = (
+            f"Diante da integração dos resultados das testagens, das observações clínicas e dos dados da anamnese, conclui-se que {name} apresenta um funcionamento neuropsicológico compatível com {hypothesis}."
+        )
+
+        hypothesis_lines = [
+            "Hipótese Diagnóstica:",
+            f"- há hipótese diagnóstica de {hypothesis}, conforme critérios do DSM-5-TR™;",
+        ]
+
+        dynamic_sentence = (
+            "Ressalta-se que o ser humano possui natureza dinâmica, não definitiva e não cristalizada. Sendo assim, os resultados aqui expostos dizem respeito ao funcionamento cognitivo, emocional, comportamental e adaptativo no momento presente, podendo haver alterações posteriores, a depender das contingências ambientais vivenciadas e do acompanhamento recebido."
+        )
+
+        return "\n\n".join(
+            [
+                intellectual_sentence,
+                indices_sentence,
+                attention_sentence,
+                memory_sentence,
+                language_sentence,
+                emotional_sentence,
+                social_sentence,
+                integrated_sentence,
+                "\n".join(hypothesis_lines),
+                dynamic_sentence,
+            ]
+        )
+
+    @classmethod
+    def _single_domain_summary(cls, text: str, fallback: str) -> str:
+        if cls._has_any_keyword(text, ("preservad", "adequad", "esperad", "média")):
+            return "recursos globalmente preservados dentro da faixa esperada"
+        if cls._has_any_keyword(text, ("heterog", "oscil", "misto", "vari")):
+            return "perfil heterogêneo, com oscilação entre recursos preservados e fragilidades específicas"
+        if cls._has_any_keyword(text, ("inferior", "limítrofe", "baixo", "fragil", "preju")):
+            return "fragilidades clinicamente relevantes"
+        return fallback
+
+    @classmethod
+    def _domain_summary(cls, primary_text: str, secondary_text: str, fallback: str) -> str:
+        combined = f"{primary_text} {secondary_text}".strip()
+        return cls._single_domain_summary(combined, fallback)
 
     @classmethod
     def _tests_interpretation_blocks(cls, tests: list[dict]) -> str:

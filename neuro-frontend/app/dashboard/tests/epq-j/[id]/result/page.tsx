@@ -19,7 +19,7 @@ const FEMININO = {
 const MASCULINO = {
   P: [[0,0,5,"MUITO BAIXO"], [1,1,20,"BAIXO"], [2,2,30,"MEDIO"], [3,3,40,"MEDIO"], [4,4,60,"MEDIO"], [5,6,70,"MEDIO"], [7,7,80,"ALTO"], [8,11,90,"ALTO"], [12,14,99,"MUITO ALTO"]],
   E: [[0,4,5,"MUITO BAIXO"], [5,6,10,"BAIXO"], [7,8,20,"BAIXO"], [9,9,30,"MEDIO"], [10,10,50,"MEDIO"], [11,11,70,"MEDIO"], [12,12,90,"ALTO"]],
-  N: [[0,2,5,"MUITO BAIXO"], [3,3,10,"BAIXO"], [4,5,20,"BAIXO"], [6,6,30,"MEDIO"], [7,7,40,"MEDIO"], [8,8,50,"MEDIO"], [9,9,60,"MEDIO"], [10,11,70,"MEDIO"], [12,12,80,"ALTO"], [13,14,90,"ALTO"], [17,18,99,"MUITO ALTO"]],
+  N: [[0,2,5,"MUITO BAIXO"], [3,3,10,"BAIXO"], [4,5,20,"BAIXO"], [6,6,30,"MEDIO"], [7,7,40,"MEDIO"], [8,8,50,"MEDIO"], [9,9,60,"MEDIO"], [10,11,70,"MEDIO"], [12,12,80,"ALTO"], [13,16,90,"ALTO"], [17,18,99,"MUITO ALTO"]],
   S: [[0,3,5,"MUITO BAIXO"], [4,5,10,"BAIXO"], [6,6,20,"BAIXO"], [7,8,30,"MEDIO"], [9,9,40,"MEDIO"], [10,11,50,"MEDIO"], [12,12,60,"MEDIO"], [13,13,70,"MEDIO"], [14,14,80,"ALTO"], [15,15,90,"ALTO"], [16,16,99,"MUITO ALTO"]],
 };
 
@@ -56,40 +56,62 @@ function getClassificacaoStyle(classificacao: string) {
   return CLASSIFICACOES[key] || "bg-slate-100 text-slate-700 border-slate-200";
 }
 
+function parseResponseValue(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === "") {
+    return undefined;
+  }
+
+  const parsed = typeof value === "number" ? value : parseInt(String(value), 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function formatAppliedOn(value: unknown): string {
+  if (!value) {
+    return new Date().toLocaleDateString("pt-BR");
+  }
+
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
+}
+
 function EPQJResultPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams();
   const [evaluationId, setEvaluationId] = useState(searchParams.get("evaluation_id") || "");
+  const [application, setApplication] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const paciente = searchParams.get("paciente") || "";
   const nome = searchParams.get("nome") || "";
-  const sexo = searchParams.get("sexo") || "M";
-  const p = parseInt(searchParams.get("p") || "0");
-  const e = parseInt(searchParams.get("e") || "0");
-  const n = parseInt(searchParams.get("n") || "0");
-  const s = parseInt(searchParams.get("s") || "0");
+  const sexo = application?.computed_payload?.sexo || application?.classified_payload?.sexo || searchParams.get("sexo") || "M";
+  const backendResultados = application?.computed_payload?.resultados || application?.classified_payload?.fatores || null;
+  const p = backendResultados?.P?.escore ?? parseInt(searchParams.get("p") || "0", 10);
+  const e = backendResultados?.E?.escore ?? parseInt(searchParams.get("e") || "0", 10);
+  const n = backendResultados?.N?.escore ?? parseInt(searchParams.get("n") || "0", 10);
+  const s = backendResultados?.S?.escore ?? parseInt(searchParams.get("s") || "0", 10);
 
-  // Pegar respostas dos itens da URL
   const respostas: Record<number, number> = {};
-  for (let i = 1; i <= 60; i++) {
-    const val = searchParams.get(`r${i}`);
-    if (val !== null) {
-      respostas[i] = parseInt(val);
+  for (let i = 1; i <= 60; i += 1) {
+    const rawValue = application?.raw_payload?.[`item_${String(i).padStart(2, "0")}`]
+      ?? application?.raw_payload?.[`item_${i}`]
+      ?? searchParams.get(`r${i}`);
+    const parsedValue = parseResponseValue(rawValue);
+    if (parsedValue !== undefined) {
+      respostas[i] = parsedValue;
     }
   }
 
   // Montar array de respostas para display (4 colunas)
   const linhasRespostas = [];
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 15; i += 1) {
     linhasRespostas.push([i + 1, i + 16, i + 31, i + 46]);
   }
 
   const normas = sexo === "F" ? FEMININO : MASCULINO;
-  const resP = classificar(p, normas.P);
-  const resE = classificar(e, normas.E);
-  const resN = classificar(n, normas.N);
-  const resS = classificar(s, normas.S);
+  const resP = backendResultados?.P || classificar(p, normas.P);
+  const resE = backendResultados?.E || classificar(e, normas.E);
+  const resN = backendResultados?.N || classificar(n, normas.N);
+  const resS = backendResultados?.S || classificar(s, normas.S);
 
   const RESULTADOS = {
     P: { bruto: p, percentil: resP.percentil, classificacao: resP.classificacao },
@@ -99,8 +121,8 @@ function EPQJResultPageContent() {
   };
 
   const DADOS_AVALIADO = {
-    nome: nome,
-    dataAplicacao: new Date().toLocaleDateString("pt-BR"),
+    nome: application?.patient_name || nome,
+    dataAplicacao: formatAppliedOn(application?.applied_on),
     sexo: sexo === "F" ? "Feminino" : "Masculino",
     tabelaNormativa: sexo === "F" ? "Feminino" : "Masculino",
   };
@@ -108,6 +130,29 @@ function EPQJResultPageContent() {
   const getBarWidth = (percentil: number) => {
     return `${Math.min(100, Math.max(0, percentil))}%`;
   };
+
+  useEffect(() => {
+    async function loadApplicationData() {
+      if (!params.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const result = await api.get<any>(`/api/tests/applications/${params.id}`);
+        setApplication(result);
+        if (result?.evaluation_id) {
+          setEvaluationId(String(result.evaluation_id));
+        }
+      } catch (error) {
+        console.error("Erro ao buscar resultado do EPQ-J:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadApplicationData();
+  }, [params.id]);
 
   useEffect(() => {
     if (evaluationId) return;
@@ -131,6 +176,10 @@ function EPQJResultPageContent() {
   const backHref = useMemo(() => {
     return evaluationId ? `/dashboard/evaluations/${evaluationId}?tab=overview` : "/dashboard/evaluations?tab=overview";
   }, [evaluationId]);
+
+  if (loading && !application) {
+    return <div className="py-16 text-center text-slate-500">Carregando resultado...</div>;
+  }
 
   return (
     <div className="space-y-6">

@@ -11,16 +11,16 @@ class WAIS3StandardizationService:
     }
 
     DOMAIN_SUBTESTS = {
-        "funcoes_executivas": ["semelhancas", "compreensao", "raciocinio_matricial", "aritmetica"],
+        "funcoes_executivas": ["semelhancas", "compreensao", "raciocinio_matricial"],
         "linguagem": ["semelhancas", "vocabulario", "compreensao"],
-        "gnosias_praxias": ["raciocinio_matricial", "cubos", "completar_figuras"],
-        "memoria_aprendizagem": ["sequencia_numeros_letras", "digitos", "aritmetica"],
+        "gnosias_praxias": ["raciocinio_matricial", "cubos"],
+        "memoria_aprendizagem": ["sequencia_numeros_letras", "digitos"],
     }
 
     DOMAIN_INTROS = {
         "funcoes_executivas": (
             "Interpretação e Observações Clínicas: A avaliação das funções executivas de {patient} foi realizada "
-            "por meio dos subtestes Semelhanças, Compreensão, Raciocínio Matricial e Aritmética "
+            "por meio dos subtestes Semelhanças, Compreensão e Raciocínio Matricial "
             "da Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III). "
             "Esses subtestes permitem examinar habilidades de raciocínio abstrato, categorização "
             "conceitual, julgamento prático e resolução de problemas, domínios diretamente "
@@ -36,14 +36,14 @@ class WAIS3StandardizationService:
         ),
         "gnosias_praxias": (
             "Interpretação e Observações Clínicas: A avaliação das habilidades visuoperceptivas e construtivas de "
-            "{patient} foi realizada por meio dos subtestes Raciocínio Matricial, Cubos e Completar Figuras "
+            "{patient} foi realizada por meio dos subtestes Raciocínio Matricial e Cubos "
             "da Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III). "
             "Esses subtestes investigam processos de percepção visual, integração "
             "visomotora, análise de padrões e organização espacial."
         ),
         "memoria_aprendizagem": (
             "Interpretação e Observações Clínicas: A avaliação da memória e aprendizagem de {patient} foi "
-            "realizada por meio dos subtestes Sequência de Números e Letras, Dígitos e Aritmética "
+            "realizada por meio dos subtestes Sequência de Números e Letras e Dígitos "
             "da Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III). "
             "Esses instrumentos examinam processos de memória operacional auditiva, atenção "
             "sustentada, manipulação de informações e capacidade de atualização cognitiva."
@@ -81,12 +81,6 @@ class WAIS3StandardizationService:
             "indicando "
             f"{WAIS3StandardizationService._level_phrase(item, 'praxias construtivas, organização visomotora, planejamento da ação e integração espacial')}"
         ),
-        "completar_figuras": lambda item: (
-            "No subteste Completar Figuras, o desempenho "
-            f"situou-se na faixa {WAIS3StandardizationService._classification(item)}, "
-            "indicando "
-            f"{WAIS3StandardizationService._level_phrase(item, 'percepção visual, atenção a detalhes, reconhecimento de objetos e integração visuoperceptiva')}"
-        ),
         "sequencia_numeros_letras": lambda item: (
             "No subteste Sequência de Números e Letras, o resultado "
             f"situou-se na faixa {WAIS3StandardizationService._classification(item)}, "
@@ -98,12 +92,6 @@ class WAIS3StandardizationService:
             f"situou-se na faixa {WAIS3StandardizationService._classification(item)}, "
             "indicando "
             f"{WAIS3StandardizationService._level_phrase(item, 'atenção auditiva imediata, manutenção sequencial de informações verbais e sustentação atencional')}"
-        ),
-        "aritmetica": lambda item: (
-            "No subteste Aritmética, o desempenho "
-            f"situou-se na faixa {WAIS3StandardizationService._classification(item)}, "
-            "indicando "
-            f"{WAIS3StandardizationService._level_phrase(item, 'raciocínio aritmético mental, cálculo rápido, memória operacional num��rica e concentração')}"
         ),
     }
 
@@ -198,19 +186,19 @@ class WAIS3StandardizationService:
         
         rows = []
         definitions = [
-            ("QI Verbal (QIV)", qiv, "Recursos verbais, compreensão e expressão"),
-            ("QI de Execução (QIE)", qie, "Raciocínio não verbal e solução de problemas"),
             ("Compreensão Verbal (ICV)", icv, "Conhecimento verbal e raciocínio verbal"),
             ("Organização Perceptual (IOP)", iop, "Raciocínio visual e integração espacial"),
             ("Memória Operacional (IMO)", imo, "Atenção e manipulação mental"),
             ("Velocidade de Processamento (IVP)", ivp, "Rapidez e eficiência visuomotora"),
+            ("QI Verbal (QIV)", qiv, "Recursos verbais, compreensão e expressão"),
+            ("QI de Execução (QIE)", qie, "Raciocínio não verbal e solução de problemas"),
         ]
         
         if gai.get("pontuacao_composta"):
             definitions.append(("Habilidade Geral (GAI)", gai, "Índice geral sem memória e velocidade"))
         
         for label, item, _ in definitions:
-            score = item.get("pontuacao_compuesta") if item.get("pontuacao_composta") is not None else item.get("pontuacao_composta")
+            score = item.get("pontuacao_composta")
             classification = item.get("classificacao")
             if score is not None:
                 rows.append(f"- {label}: {score} — {classification or 'não classificado'}")
@@ -235,7 +223,7 @@ class WAIS3StandardizationService:
         subtests = payload.get("subtestes") or {}
         
         intro = cls.DOMAIN_INTROS.get(section_key, "").format(patient=patient)
-        
+
         sentences = []
         for subtest_key in domain_subtests:
             if subtest_key in subtests:
@@ -263,9 +251,26 @@ class WAIS3StandardizationService:
                 closing_key = "mixed"
         
         closing = cls.DOMAIN_CLOSINGS.get(section_key, {}).get(closing_key, "")
-        
-        parts = [intro] + sentences + [closing]
+
+        extras = []
+        if section_key == "linguagem":
+            extras.append(
+                "A fala espontânea deve ser interpretada em conjunto com a observação clínica direta, considerando fluência, articulação, ritmo, inteligibilidade, prosódia e funcionalidade comunicativa quando tais dados estiverem disponíveis."
+            )
+        elif section_key == "memoria_aprendizagem" and cls._has_test(context, "ravlt"):
+            extras.append(
+                "Os achados de memória operacional devem ser analisados em conjunto com o desempenho obtido no RAVLT, especialmente quanto à curva de aprendizagem, evocação tardia e reconhecimento."
+            )
+
+        parts = [intro] + sentences + extras + [closing]
         return "\n\n".join(parts)
+
+    @staticmethod
+    def _has_test(context: dict, instrument_code: str) -> bool:
+        for test in context.get("validated_tests") or []:
+            if test.get("instrument_code") == instrument_code:
+                return True
+        return False
 
     @staticmethod
     def _classification(item: dict) -> str:

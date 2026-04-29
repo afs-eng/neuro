@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from io import BytesIO
-import math
 import logging
 import posixpath
 import re
@@ -20,7 +19,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import font_manager
 from matplotlib.patches import Rectangle
-from django.conf import settings
 from docx import Document
 from docx.table import Table
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
@@ -316,9 +314,9 @@ class ReportExportService:
         content = str(report.final_text or report.edited_text or "")
         created_at = report.created_at.strftime("%d/%m/%Y") if report.created_at else ""
         patient_name = report.patient.full_name if report.patient else ""
-        author_name = cls.FIXED_AUTHOR
+        author_name = ReportExportService.FIXED_AUTHOR
         interested_party = report.interested_party or patient_name
-        purpose = cls.FIXED_PURPOSE
+        purpose = ReportExportService.FIXED_PURPOSE
 
         return f"""
         <html>
@@ -381,13 +379,22 @@ class ReportExportService:
         output = BytesIO()
         document.save(output)
         docx_bytes = output.getvalue()
-        if template_path.exists():
-            docx_bytes = cls._restore_template_header_footer(docx_bytes, template_path)
+        header_footer_template_path = cls._header_footer_template_path(template_path, report, context)
+        if header_footer_template_path.exists():
+            docx_bytes = cls._restore_template_header_footer(docx_bytes, header_footer_template_path)
         if cls._find_test(context, "wisc4"):
             docx_bytes = cls._populate_wisc4_excel_charts(docx_bytes, context)
         if cls._find_test(context, "wais3") and not cls._is_adolescent_context(context, report):
             docx_bytes = cls._populate_wais3_excel_charts(docx_bytes, context)
         return docx_bytes
+
+    @classmethod
+    def _header_footer_template_path(cls, template_path: Path, report, context: dict) -> Path:
+        if cls._is_adolescent_context(context, report):
+            return cls.ADOLESCENT_TEMPLATE_PATH
+        if cls._find_test(context, "wais3") and template_path.exists():
+            return template_path
+        return cls.DEFAULT_TEMPLATE_PATH
 
     @classmethod
     def _select_template_path(cls, report: Report, context: dict | None = None):
@@ -1097,7 +1104,6 @@ class ReportExportService:
         cls._apply_base_styles(document)
 
         patient = context.get("patient") or {}
-        evaluation = context.get("evaluation") or {}
         author_name = cls.FIXED_AUTHOR
         interested_party = (
             report.interested_party
@@ -1371,21 +1377,23 @@ class ReportExportService:
         )
 
         patient_title = "da paciente" if (context.get("patient") or {}).get("sex") == "F" else "do paciente"
-        cls._append_heading(document, "5. ANÁLISE QUALITATIVA")
+        cls._append_heading(document, "5. ANÁLISE QUANTITATIVA")
         wais3_test = cls._find_test(context, "wais3")
         if wisc_test:
-            cls._append_subheading(document, f"5.1. Desempenho {patient_title} no WISC-IV")
+            cls._append_subheading(document, "5.1. WISC-IV – Capacidade Cognitiva Global")
+            cls._append_wisc_global_block(document, wisc_test, context)
+            cls._append_subheading(document, "5.2. Desempenho nos Índices Fatoriais")
             wisc_chart = cls._wisc_chart(wisc_test)
             append_chart(
-                "WISC-IV - INDICES DE QIS",
+                "WISC-IV - INDICES DE QI",
                 wisc_chart,
                 cls._wisc_chart_legend(chart_index),
                 show_caption=False,
                 template_key="wisc4",
             )
-            cls._append_wisc_global_block(document, wisc_test, context)
-            cls._append_subheading(document, "5.2. Subescalas WISC-IV")
-            cls._append_subheading(document, "5.2.1. Função Executiva")
+            cls._append_wisc_indices_block(document, wisc_test)
+            cls._append_subheading(document, "5.3. Subescalas WISC-IV")
+            cls._append_subheading(document, "5.3.1. Funções Executivas")
             append_table_with_interpretation(
                 cls._wisc_rows(
                     cls._find_test(context, "wisc4"), context, "funcoes_executivas"
@@ -1394,14 +1402,14 @@ class ReportExportService:
                 cls._wisc_section_text(sections, "funcoes_executivas", context),
                 "Resultados da Função Executiva",
             )
-            cls._append_subheading(document, "5.2.2. Linguagem")
+            cls._append_subheading(document, "5.3.2. Linguagem")
             append_table_with_interpretation(
                 cls._wisc_rows(cls._find_test(context, "wisc4"), context, "linguagem"),
                 "wisc",
                 cls._wisc_section_text(sections, "linguagem", context),
                 "Resultados da Linguagem",
             )
-            cls._append_subheading(document, "5.2.3. Gnosias e Praxias")
+            cls._append_subheading(document, "5.3.3. Gnosias e Praxias")
             append_table_with_interpretation(
                 cls._wisc_rows(
                     cls._find_test(context, "wisc4"), context, "gnosias_praxias"
@@ -1410,7 +1418,7 @@ class ReportExportService:
                 cls._wisc_section_text(sections, "gnosias_praxias", context),
                 "Resultados de Gnosias e Praxias",
             )
-            cls._append_subheading(document, "5.2.4. Memória e Aprendizagem")
+            cls._append_subheading(document, "5.3.4. Memória e Aprendizagem")
             append_table_with_interpretation(
                 cls._wisc_memory_rows(cls._find_test(context, "wisc4"), context),
                 "wisc",
@@ -1419,10 +1427,6 @@ class ReportExportService:
             )
         elif wais3_test:
             cls._append_subheading(document, f"5.1. Desempenho {patient_title} no WAIS-III")
-            cls._append_paragraph(
-                document,
-                "A Escala de Inteligência Wechsler para Adultos – Terceira Edição (WAIS-III) é um instrumento destinado à avaliação da capacidade intelectual global em adultos, permitindo analisar habilidades verbais, não verbais, memória operacional e velocidade de processamento.",
-            )
             cls._append_paragraph(document, cls._wais3_intro_text(wais3_test, context))
             for lead, tail in cls._wais3_global_bullet_parts(wais3_test):
                 p = document.add_paragraph()
@@ -1434,79 +1438,84 @@ class ReportExportService:
                 template_key="wais3",
             )
 
-        cls._append_heading(
-            document,
-            "6. BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO",
-        )
-        cls._append_paragraph(
-            document,
-            "A Bateria Psicológica para Avaliação da Atenção-2 (BPA-2) mensura a capacidade geral de atenção, avaliando individualmente atenção concentrada, dividida, alternada e geral.",
-        )
-        append_table_with_interpretation(
-            cls._bpa_rows(cls._find_test(context, "bpa2"), context),
-            "bpa",
-            None,
-            "Atenção BPA-2 Resultados",
-        )
-        append_chart(
-            "BPA-2 Resultados da Avaliação da Atenção",
-            cls._bpa_chart_bytes(cls._find_test(context, "bpa2")),
-            template_key="bpa2",
-        )
-        cls._append_bpa_interpretation_block(document, cls._find_test(context, "bpa2"), context)
+        next_section_number = 6
 
-        cls._append_heading(
-            document,
-            "7. RAVLT – REY AUDITORY VERBAL LEARNING TEST",
-        )
-        ravlt_interpretation = sections.get("ravlt") or sections.get("memoria_aprendizagem")
-        cls._append_ravlt_conceptual_paragraph(document)
-        append_chart(
-            "RAVLT Resultados",
-            cls._ravlt_chart(cls._find_test(context, "ravlt")),
-            template_key="ravlt",
-        )
-        append_table_with_interpretation(
-            cls._ravlt_rows(cls._find_test(context, "ravlt"), context),
-            "ravlt",
-            ravlt_interpretation,
-            cls._ravlt_table_caption(),
-        )
+        def append_section_heading(title: str):
+            nonlocal next_section_number
+            cls._append_heading(document, f"{next_section_number}. {title}")
+            next_section_number += 1
 
-        cls._append_heading(
-            document, "8. FDT – TESTE DOS CINCO DÍGITOS"
-        )
-        cls._append_paragraph(document, cls._fdt_description_text())
-        append_table_with_interpretation(
-            cls._fdt_rows(cls._find_test(context, "fdt")),
-            "fdt",
-            sections.get("fdt") or sections.get("funcoes_executivas"),
-            "FDT Processos Automáticos e Controlados",
-        )
-        append_chart(
-            "FDT Processos Automáticos",
-            cls._fdt_chart(cls._find_test(context, "fdt"), automatic=True),
-            width=Cm(14),
-            height=Cm(10),
-            template_key="fdt_auto",
-        )
-        append_chart(
-            "FDT Processos Controlados",
-            cls._fdt_chart(cls._find_test(context, "fdt"), automatic=False),
-            width=Cm(14),
-            height=Cm(10),
-            template_key="fdt_control",
-        )
+        bpa2_test = cls._find_test(context, "bpa2")
+        if bpa2_test:
+            append_section_heading("BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO")
+            cls._append_paragraph(
+                document,
+                "A Bateria Psicológica para Avaliação da Atenção-2 (BPA-2) mensura a capacidade geral de atenção, avaliando individualmente atenção concentrada, dividida, alternada e geral.",
+            )
+            append_table_with_interpretation(
+                cls._bpa_rows(bpa2_test, context),
+                "bpa",
+                None,
+                "Atenção BPA-2 Resultados",
+            )
+            append_chart(
+                "BPA-2 Resultados da Avaliação da Atenção",
+                cls._bpa_chart_bytes(bpa2_test),
+                template_key="bpa2",
+            )
+            cls._append_bpa_interpretation_block(document, bpa2_test, context)
+
+        ravlt_test = cls._find_test(context, "ravlt")
+        if ravlt_test:
+            append_section_heading("RAVLT – REY AUDITORY VERBAL LEARNING TEST")
+            ravlt_interpretation = sections.get("ravlt") or sections.get("memoria_aprendizagem")
+            cls._append_ravlt_conceptual_paragraph(document)
+            append_chart(
+                "RAVLT Resultados",
+                cls._ravlt_chart(ravlt_test),
+                template_key="ravlt",
+            )
+            append_table_with_interpretation(
+                cls._ravlt_rows(ravlt_test, context),
+                "ravlt",
+                ravlt_interpretation,
+                cls._ravlt_table_caption(),
+            )
+
+        fdt_test = cls._find_test(context, "fdt")
+        if fdt_test:
+            append_section_heading("FDT – TESTE DOS CINCO DÍGITOS")
+            cls._append_paragraph(document, cls._fdt_description_text())
+            append_table_with_interpretation(
+                cls._fdt_rows(fdt_test),
+                "fdt",
+                sections.get("fdt") or sections.get("funcoes_executivas"),
+                "FDT Processos Automáticos e Controlados",
+            )
+            append_chart(
+                "FDT Processos Automáticos",
+                cls._fdt_chart(fdt_test, automatic=True),
+                width=Cm(14),
+                height=Cm(10),
+                template_key="fdt_auto",
+            )
+            append_chart(
+                "FDT Processos Controlados",
+                cls._fdt_chart(fdt_test, automatic=False),
+                width=Cm(14),
+                height=Cm(10),
+                template_key="fdt_control",
+            )
 
         if cls._find_test(context, "etdah_pais"):
-            cls._append_heading(document, "9. E-TDAH-PAIS")
+            append_section_heading("E-TDAH-PAIS")
             cls._append_paragraph(
                 document,
                 "A Escala E-TDAH-PAIS tem como objetivo identificar manifestações comportamentais e emocionais associadas ao Transtorno do Déficit de Atenção e Hiperatividade (TDAH) a partir da percepção dos pais ou responsáveis, avaliando domínios relacionados à regulação emocional, impulsividade, comportamento adaptativo e atenção. O instrumento fornece indicadores quantitativos e qualitativos do funcionamento atencional e comportamental, permitindo compreender o impacto desses aspectos no cotidiano da criança (Benczik, 2005).",
             )
             append_table_with_interpretation(
                 cls._etdah_rows(cls._find_test(context, "etdah_pais")),
-                "etdah",
+                "etdah_pais",
                 None,
                 "Resultados do E-TDAH-PAIS",
             )
@@ -1518,31 +1527,32 @@ class ReportExportService:
             )
 
         if cls._find_test(context, "etdah_ad"):
-            cls._append_heading(document, "10. E-TDAH-AD")
+            append_section_heading("E-TDAH-AD")
             cls._append_paragraph(
                 document,
                 "O E-TDAH-AD investiga sintomas relacionados à atenção, hiperatividade, impulsividade e aspectos emocionais a partir do autorrelato do adolescente.",
             )
             append_table_with_interpretation(
                 cls._etdah_rows(cls._find_test(context, "etdah_ad")),
-                "etdah",
-                section_or_test_interpretation(
-                    "etdah_ad", None, cls._find_test(context, "etdah_ad")
+                "etdah_ad",
+                None,
+                "ETDAH-AD RESULTADO",
+            )
+            cls._append_etdah_ad_interpretation_block(
+                document,
+                cls._normalize_interpretation_text(
+                    section_or_test_interpretation("etdah_ad", None, cls._find_test(context, "etdah_ad"))
                 ),
-                "Resultados do E-TDAH-AD",
             )
             append_chart(
-                "E-TDAH-AD - Percentis",
+                "E-TDAH-AD RESULTADO",
                 cls._etdah_chart(cls._find_test(context, "etdah_ad")),
                 template_key="etdah_ad",
             )
 
         scared_tests = cls._find_tests(context, "scared")
         if scared_tests:
-            cls._append_heading(
-                document,
-                "11. SCARED",
-            )
+            append_section_heading("SCARED")
             cls._append_paragraph(
                 document,
                 "O Screen for Child Anxiety Related Emotional Disorders – SCARED é um instrumento de rastreio destinado à identificação de sintomas ansiosos em crianças e adolescentes, avaliando manifestações relacionadas a pânico, ansiedade generalizada, ansiedade de separação, fobia social e evitação escolar (Birmaher et al., 1999).",
@@ -1565,10 +1575,7 @@ class ReportExportService:
                     inserted_scared_pair = True
 
         if cls._find_test(context, "epq_j"):
-            cls._append_heading(
-                document,
-                "12. EPQ-J",
-            )
+            append_section_heading("EPQ-J")
             append_table_with_interpretation(
                 cls._epq_rows(cls._find_test(context, "epq_j")),
                 "epq",
@@ -1584,10 +1591,7 @@ class ReportExportService:
 
         if cls._find_test(context, "srs2"):
             srs2_test = cls._find_test(context, "srs2")
-            cls._append_heading(
-                document,
-                "13. SRS-2 – ESCALA DE RESPONSIVIDADE SOCIAL",
-            )
+            append_section_heading("SRS-2 – ESCALA DE RESPONSIVIDADE SOCIAL")
             cls._append_paragraph(
                 document,
                 "A SRS-2 avalia aspectos da interação social e comportamentos associados ao espectro autista, exigindo sempre integração clínica cuidadosa.",
@@ -1605,39 +1609,18 @@ class ReportExportService:
                 cls._srs2_chart(srs2_test),
                 template_key="srs2",
             )
-        cls._append_heading(document, "14. CONCLUSÃO")
+        cls._append_heading(document, f"{next_section_number}. CONCLUSÃO")
         cls._append_paragraph(
             document,
             sections.get("conclusao") or "Sem conteúdo disponível para esta seção.",
         )
-        cls._append_heading(document, "15. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS)")
+        next_section_number += 1
+        cls._append_heading(document, f"{next_section_number}. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS)")
         for bullet in cls._split_bullets(sections.get("sugestoes_conduta") or ""):
             cls._append_bullet(document, bullet)
 
-        cls._append_heading(document, "16. A EQUIPE MULTIDISCIPLINAR")
-        for paragraph in cls._team_paragraphs(report):
-            cls._append_paragraph(document, paragraph)
-        for line in cls._signature_lines(report):
-            cls._append_paragraph(
-                document,
-                line,
-                center=line.startswith(
-                    (
-                        author_name.split(" ")[0],
-                        getattr(getattr(report, "author", None), "display_name", "")[
-                            :1
-                        ],
-                    )
-                )
-                if line
-                else False,
-            )
-
-        cls._append_heading(document, "17. IMPORTANTE RESSALTAR QUE ESTE DOCUMENTO:")
-        for item in cls._important_document_items():
-            cls._append_numbered_item(document, item)
-
-        cls._append_heading(document, "18. REFERÊNCIA BIBLIOGRÁFICA")
+        next_section_number += 1
+        cls._append_heading(document, f"{next_section_number}. REFERÊNCIA BIBLIOGRÁFICA")
         for ref in cls._references_list(context):
             cls._append_paragraph(document, ref)
         return document
@@ -1702,6 +1685,7 @@ class ReportExportService:
             relationship_ns = "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship"
             word_ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
             office_rel_ns = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+            office_doc_rel_attr = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
             header_footer_types = {
                 f"{office_rel_ns}header",
                 f"{office_rel_ns}footer",
@@ -1710,9 +1694,26 @@ class ReportExportService:
             for rel in list(output_rels_root.findall(relationship_ns)):
                 if rel.get("Type") in header_footer_types:
                     output_rels_root.remove(rel)
+            existing_rel_ids = {
+                rel.get("Id")
+                for rel in output_rels_root.findall(relationship_ns)
+                if rel.get("Id")
+            }
+            rel_id_map: dict[str, str] = {}
             for rel in template_rels_root.findall(relationship_ns):
                 if rel.get("Type") in header_footer_types:
-                    output_rels_root.append(deepcopy(rel))
+                    cloned_rel = deepcopy(rel)
+                    rel_id = cloned_rel.get("Id")
+                    if rel_id in existing_rel_ids:
+                        next_id = 1
+                        while f"rId{next_id}" in existing_rel_ids:
+                            next_id += 1
+                        new_rel_id = f"rId{next_id}"
+                        rel_id_map[rel_id] = new_rel_id
+                        cloned_rel.set("Id", new_rel_id)
+                        rel_id = new_rel_id
+                    existing_rel_ids.add(rel_id)
+                    output_rels_root.append(cloned_rel)
 
             output_body = output_document_root.find(f".//{word_ns}body")
             template_body = template_document_root.find(f".//{word_ns}body")
@@ -1721,7 +1722,14 @@ class ReportExportService:
             if output_body is not None and template_sect_pr is not None:
                 if output_sect_pr is not None:
                     output_body.remove(output_sect_pr)
-                output_body.append(deepcopy(template_sect_pr))
+                cloned_sect_pr = deepcopy(template_sect_pr)
+                for child in cloned_sect_pr:
+                    if child.tag not in {f"{word_ns}headerReference", f"{word_ns}footerReference"}:
+                        continue
+                    rel_id = child.get(office_doc_rel_attr)
+                    if rel_id in rel_id_map:
+                        child.set(office_doc_rel_attr, rel_id_map[rel_id])
+                output_body.append(cloned_sect_pr)
 
             parts_to_copy: set[str] = {
                 "word/document.xml",
@@ -1820,9 +1828,6 @@ class ReportExportService:
     @classmethod
     def _replace_simple_sections(cls, document: Document, report, sections: dict[str, str], context: dict):
         replacements = {
-            "IDENTIFICAÇÃO": sections.get(
-                "identificacao", "Sem conteúdo disponível para esta seção."
-            ),
             "ANÁLISE": sections.get(
                 "historia_pessoal", "Sem conteúdo disponível para esta seção."
             ),
@@ -1857,8 +1862,67 @@ class ReportExportService:
                 document, heading, boundaries.get(heading), text
             )
 
+        cls._replace_identification_block(document, report, context)
         cls._replace_wais3_demand_block(document, sections, context)
         cls._replace_wais3_procedures_block(document, report, sections, context)
+
+    @classmethod
+    def _replace_identification_block(cls, document: Document, report, context: dict):
+        start = cls._find_paragraph(document, "IDENTIFICAÇÃO")
+        if start is None:
+            return
+        end = cls._find_paragraph(document, "DESCRIÇÃO DA DEMANDA")
+        cls._remove_nodes_between(start, end)
+
+        patient = (context or {}).get("patient") or {}
+        author_name = getattr(getattr(report, "author", None), "display_name", None) or cls.FIXED_AUTHOR
+        interested_party = getattr(report, "interested_party", "") or patient.get("full_name") or "Não informado"
+        purpose = getattr(report, "purpose", "") or cls.FIXED_PURPOSE
+
+        anchor = cls._insert_paragraph_after(start, "1.1. Identificação do laudo:")
+        cls._format_subtitle_paragraph(anchor)
+        anchor = cls._insert_identification_label_value_after(anchor, "Autora", author_name)
+        anchor = cls._insert_identification_label_value_after(anchor, "Interessado", interested_party)
+        anchor = cls._insert_identification_label_value_after(anchor, "Finalidade", purpose)
+
+        anchor = cls._insert_paragraph_after(anchor, "1.2. Identificação do paciente:")
+        cls._format_subtitle_paragraph(anchor)
+        anchor = cls._insert_identification_label_value_after(
+            anchor, "Nome", patient.get("full_name") or "Não informado"
+        )
+        anchor = cls._insert_identification_label_value_after(
+            anchor, "Sexo", cls._format_sex_display(patient.get("sex"))
+        )
+        anchor = cls._insert_identification_label_value_after(
+            anchor, "Data de nascimento", cls._format_date_display(patient.get("birth_date"))
+        )
+        anchor = cls._insert_identification_label_value_after(anchor, "Idade", cls._age_text(context))
+        anchor = cls._insert_identification_label_value_after(anchor, "Filiação", cls._filiation_text(patient))
+        cls._insert_identification_label_value_after(anchor, "Escolaridade", cls._schooling_text(patient))
+
+    @classmethod
+    def _insert_identification_label_value_after(cls, anchor, label: str, value: str):
+        paragraph = cls._insert_paragraph_after(anchor, "")
+        cls._append_identification_label_value(paragraph, label, value)
+        return paragraph
+
+    @classmethod
+    def _append_identification_label_value(cls, paragraph, label: str, value: str):
+        label = PtBrTextService.normalize(label)
+        value = PtBrTextService.normalize(str(value or "Não informado"))
+        label_run = paragraph.add_run(f"{label}: ")
+        label_run.font.name = cls.FONT_NAME
+        label_run.font.size = cls.BODY_SIZE
+        label_run.bold = True
+        value_run = paragraph.add_run(value)
+        value_run.font.name = cls.FONT_NAME
+        value_run.font.size = cls.BODY_SIZE
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = Pt(0)
+        paragraph.paragraph_format.line_spacing = cls.IDENTIFICATION_LINE_SPACING
+        paragraph.paragraph_format.first_line_indent = Pt(0)
+        paragraph.paragraph_format.left_indent = Pt(0)
 
     @classmethod
     def _replace_block_between_headings(
@@ -1890,31 +1954,16 @@ class ReportExportService:
 
     @classmethod
     def _replace_wais3_procedures_block(cls, document: Document, report, sections: dict[str, str], context: dict):
-        start = cls._find_paragraph(document, "PROCEDIMENTOS")
-        if start is None:
-            return
-        end = cls._find_paragraph(document, "ANÁLISE")
-        cls._remove_nodes_between(start, end)
-        anchor = cls._insert_paragraph_after(start, "")
-        cls._append_body_text_with_bold_label(anchor, cls._wais3_procedures_intro_text(report, sections))
-        cls._format_body_paragraph(anchor)
-        for item in cls._procedure_items(context):
-            anchor = cls._insert_paragraph_after(anchor, "")
-            cls._append_procedure_bullet_runs(anchor, item["name"], item["description"])
+        # O modelo já contém a lista de instrumentos utilizados em PROCEDIMENTOS
+        pass
 
     @classmethod
     def _wais3_demand_text(cls, sections: dict[str, str], context: dict) -> str:
         section_text = PtBrTextService.normalize(sections.get("descricao_demanda") or "")
         if section_text and section_text != "Sem conteúdo disponível para esta seção.":
             return section_text
-        patient_name = cls._patient_reference_name(context)
-        evaluation = (context or {}).get("evaluation") or {}
-        complaint = evaluation.get("referral_reason") or "queixas cognitivas e comportamentais"
-        purpose = (evaluation.get("purpose") or cls.FIXED_PURPOSE).lower()
         return (
-            f"O paciente {patient_name} foi encaminhado para avaliação neuropsicológica por apresentar queixas relacionadas a {complaint}. "
-            "Foram relatadas dificuldades em domínios cognitivos e comportamentais, com repercussões no funcionamento cotidiano. "
-            f"Levando em consideração a demanda apresentada, objetivou-se avaliar as funções cognitivas, aspectos comportamentais, emocionais e sociais, a fim de compreender seu funcionamento global e subsidiar {purpose}."
+            "Levando em consideração a demanda apresentada, objetivou-se avaliar as funções cognitivas, aspectos comportamentais, emocionais e sociais do paciente, a fim de compreender seu funcionamento global e subsidiar orientações para o manejo adequado em contextos familiar e escolar."
         )
 
     @classmethod
@@ -2050,6 +2099,10 @@ class ReportExportService:
             nonlocal anchor, chart_index
             if template_key and template_chart_map.get(template_key) is not None:
                 anchor = cls._insert_paragraph_after(anchor, "")
+                anchor.paragraph_format.first_line_indent = Pt(0)
+                anchor.paragraph_format.left_indent = Pt(0)
+                anchor.paragraph_format.right_indent = Pt(0)
+                anchor.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 anchor._p.addnext(deepcopy(template_chart_map[template_key]))
                 anchor = Paragraph(anchor._p.getnext(), anchor._parent)
                 if show_caption:
@@ -2090,21 +2143,19 @@ class ReportExportService:
 
         patient_title = "da paciente" if (context.get("patient") or {}).get("sex") == "F" else "do paciente"
         if tests.get("wisc4"):
-            add_title(f"5.1. Desempenho {patient_title} no WISC-IV")
+            add_title("5.1. WISC-IV – Capacidade Cognitiva Global")
+            add_text(cls._wisc_global_intro_text(tests.get("wisc4"), context))
+            add_title("5.2. Desempenho nos Índices Fatoriais")
             add_chart(
-                "WISC-IV - INDICES DE QIS",
+                "WISC-IV - INDICES DE QI",
                 cls._wisc_chart(tests.get("wisc4")),
                 cls._wisc_chart_legend(chart_index),
                 show_caption=False,
                 template_key="wisc4",
             )
-            add_text(cls._wisc_global_intro_text(tests.get("wisc4"), context))
             for lead, tail in cls._wisc_global_bullet_parts(tests.get("wisc4")):
                 add_text(f"- {lead} {tail}")
         elif tests.get("wais3"):
-            add_text(
-                "A Escala de Inteligência Wechsler para Adultos – Terceira Edição (WAIS-III) é um instrumento destinado à avaliação da capacidade intelectual global em adultos, permitindo analisar habilidades verbais, não verbais, memória operacional e velocidade de processamento."
-            )
             add_text(cls._wais3_intro_text(tests.get("wais3"), context))
             for lead, tail in cls._wais3_global_bullet_parts(tests.get("wais3")):
                 add_text(f"- {lead} {tail}")
@@ -2125,8 +2176,15 @@ class ReportExportService:
             )
 
         if is_adolescent and tests.get("wisc4"):
-            add_title("5.2. Subescalas WISC-IV")
-            add_title("5.2.1. Função Executiva")
+            add_title("5.3. Subescalas WISC-IV")
+            next_section_number = 6
+
+            def add_numbered_section(title: str):
+                nonlocal next_section_number
+                add_title(f"{next_section_number}. {title}")
+                next_section_number += 1
+
+            add_title("5.3.1. Funções Executivas")
             add_text(cls._wisc_section_text(sections, "funcoes_executivas", context))
             add_table(
                 "Resultado da Função executiva",
@@ -2134,7 +2192,7 @@ class ReportExportService:
                 "wisc",
             )
 
-            add_title("5.2.2. Linguagem")
+            add_title("5.3.2. Linguagem")
             add_text(cls._wisc_section_text(sections, "linguagem", context))
             add_table(
                 "Resultados da Linguagem",
@@ -2142,7 +2200,7 @@ class ReportExportService:
                 "wisc",
             )
 
-            add_title("5.2.3. Gnosias e Praxias")
+            add_title("5.3.3. Gnosias e Praxias")
             add_text(cls._wisc_section_text(sections, "gnosias_praxias", context))
             add_table(
                 "Resultados da Gnosias e praxias",
@@ -2150,7 +2208,7 @@ class ReportExportService:
                 "wisc",
             )
 
-            add_title("5.2.4. Memória e Aprendizagem")
+            add_title("5.3.4. Memória e Aprendizagem")
             add_text(cls._wisc_section_text(sections, "memoria_aprendizagem", context))
             add_table(
                 "Resultados de Memória e Aprendizagem",
@@ -2158,67 +2216,70 @@ class ReportExportService:
                 "wisc",
             )
 
-            add_title("6. BPA-2 Bateria Psicológica para Avaliação da Atenção")
-            add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
-            add_chart(
-                "BPA-2 Resultados da Avaliação da Atenção",
-                cls._bpa_chart_bytes(tests.get("bpa2")),
-                template_key="bpa2",
-            )
-            anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
-
-            add_title("7. RAVLT – REY AUDITORY VERBAL LEARNING TEST")
-            ravlt_interpretation = sections.get("ravlt", sections.get("memoria_aprendizagem", ""))
-            anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
-            add_chart(
-                "RAVLT Resultados",
-                cls._ravlt_chart(tests.get("ravlt")),
-                template_key="ravlt",
-            )
-            add_table(
-                cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
-            )
-            if ravlt_interpretation:
-                anchor = cls._insert_interpretation_block_after(
-                    anchor, cls._normalize_interpretation_text(ravlt_interpretation)
+            if tests.get("bpa2"):
+                add_numbered_section("BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO")
+                add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
+                add_chart(
+                    "BPA-2 Resultados da Avaliação da Atenção",
+                    cls._bpa_chart_bytes(tests.get("bpa2")),
+                    template_key="bpa2",
                 )
+                anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
 
-            add_title("8. FDT – TESTE DOS CINCO DÍGITOS")
-            add_text(cls._fdt_description_text())
-            add_table(
-                "FDT Processos Automáticos e Controlados",
-                cls._fdt_rows(tests.get("fdt")),
-                "fdt",
-            )
-            fdt_interpretation = sections.get("fdt", sections.get("funcoes_executivas", ""))
-            if fdt_interpretation:
-                anchor = cls._insert_interpretation_block_after(
-                    anchor, cls._normalize_interpretation_text(fdt_interpretation)
+            if tests.get("ravlt"):
+                add_numbered_section("RAVLT – REY AUDITORY VERBAL LEARNING TEST")
+                ravlt_interpretation = sections.get("ravlt", sections.get("memoria_aprendizagem", ""))
+                anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
+                add_chart(
+                    "RAVLT Resultados",
+                    cls._ravlt_chart(tests.get("ravlt")),
+                    template_key="ravlt",
                 )
-            add_chart(
-                "FDT Processos Automáticos",
-                cls._fdt_chart(tests.get("fdt"), automatic=True),
-                width=Cm(14),
-                height=Cm(10),
-                template_key="fdt_auto",
-            )
-            add_chart(
-                "FDT Processos Controlados",
-                cls._fdt_chart(tests.get("fdt"), automatic=False),
-                width=Cm(14),
-                height=Cm(10),
-                template_key="fdt_control",
-            )
+                add_table(
+                    cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
+                )
+                if ravlt_interpretation:
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor, cls._normalize_interpretation_text(ravlt_interpretation)
+                    )
+
+            if tests.get("fdt"):
+                add_numbered_section("FDT – TESTE DOS CINCO DÍGITOS")
+                add_text(cls._fdt_description_text())
+                add_table(
+                    "FDT Processos Automáticos e Controlados",
+                    cls._fdt_rows(tests.get("fdt")),
+                    "fdt",
+                )
+                fdt_interpretation = sections.get("fdt", sections.get("funcoes_executivas", ""))
+                if fdt_interpretation:
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor, cls._normalize_interpretation_text(fdt_interpretation)
+                    )
+                add_chart(
+                    "FDT Processos Automáticos",
+                    cls._fdt_chart(tests.get("fdt"), automatic=True),
+                    width=Cm(14),
+                    height=Cm(10),
+                    template_key="fdt_auto",
+                )
+                add_chart(
+                    "FDT Processos Controlados",
+                    cls._fdt_chart(tests.get("fdt"), automatic=False),
+                    width=Cm(14),
+                    height=Cm(10),
+                    template_key="fdt_control",
+                )
 
             if tests.get("etdah_pais"):
-                add_title("9. E-TDAH-PAIS")
+                add_numbered_section("E-TDAH-PAIS")
                 add_text(
                     "A Escala E-TDAH-PAIS tem como objetivo identificar manifestações comportamentais e emocionais associadas ao Transtorno do Déficit de Atenção e Hiperatividade (TDAH) a partir da percepção dos pais ou responsáveis, avaliando domínios relacionados à regulação emocional, impulsividade, comportamento adaptativo e atenção. O instrumento fornece indicadores quantitativos e qualitativos do funcionamento atencional e comportamental, permitindo compreender o impacto desses aspectos no cotidiano da criança (Benczik, 2005)."
                 )
                 add_table(
                     "Resultados do E-TDAH-PAIS",
                     cls._etdah_rows(tests.get("etdah_pais")),
-                    "etdah",
+                    "etdah_pais",
                 )
                 anchor = cls._insert_etdah_pais_interpretation_block_after(anchor, tests.get("etdah_pais"), context)
                 add_chart(
@@ -2228,26 +2289,27 @@ class ReportExportService:
                 )
 
             if tests.get("etdah_ad"):
-                add_title("10. E-TDAH-AD")
-                add_text(
-                    section_or_test_interpretation(
-                        "etdah_ad", None, tests.get("etdah_ad")
-                    )
-                )
+                add_numbered_section("E-TDAH-AD")
                 add_table(
-                    "Resultados do E-TDAH-AD",
+                    "ETDAH-AD RESULTADO",
                     cls._etdah_rows(tests.get("etdah_ad")),
-                    "etdah",
+                    "etdah_ad",
+                )
+                anchor = cls._insert_etdah_ad_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        section_or_test_interpretation("etdah_ad", None, tests.get("etdah_ad"))
+                    ),
                 )
                 add_chart(
-                    "E-TDAH-AD Percentis",
+                    "E-TDAH-AD RESULTADO",
                     cls._etdah_chart(tests.get("etdah_ad")),
                     template_key="etdah_ad",
                 )
 
             scared_tests = cls._find_tests(context, "scared")
             if scared_tests:
-                add_title("11. SCARED")
+                add_numbered_section("SCARED")
                 inserted_scared_pair = False
                 for scared_test in scared_tests:
                     form_label = cls._scared_form_label(scared_test)
@@ -2271,7 +2333,7 @@ class ReportExportService:
                         inserted_scared_pair = True
 
             if tests.get("epq_j"):
-                add_title("12. EPQ-J")
+                add_numbered_section("EPQ-J")
                 add_text(
                     section_or_test_interpretation(
                         "epq_j", None, tests.get("epq_j")
@@ -2289,7 +2351,7 @@ class ReportExportService:
 
             if tests.get("srs2"):
                 srs2_test = tests.get("srs2")
-                add_title("13. SRS-2 Escala de Responsividade Social")
+                add_numbered_section("SRS-2 – ESCALA DE RESPONSIVIDADE SOCIAL")
                 add_text(
                     section_or_test_interpretation(
                         "srs2", None, srs2_test
@@ -2320,9 +2382,9 @@ class ReportExportService:
             )
             add_text(cls._wisc_section_text(sections, "gnosias_praxias", context))
 
-            add_title("Funções Executivas")
+            add_title("Função Executiva")
             add_table(
-                "Resultados da escala Funções Executivas",
+                "Resultados da escala Função Executiva",
                 cls._wais3_domain_rows(tests.get("wais3"), "funcoes_executivas"),
                 "wisc",
             )
@@ -2398,19 +2460,20 @@ class ReportExportService:
 
             if tests.get("etdah_ad"):
                 add_title("ETDAH-AD")
+                add_text(cls._etdah_ad_description_text())
                 add_table(
-                    "Resultados do E-TDAH-AD",
+                    "ETDAH-AD RESULTADO",
                     cls._etdah_rows(tests.get("etdah_ad")),
-                    "etdah",
+                    "etdah_ad",
                 )
-                anchor = cls._insert_interpretation_block_after(
+                anchor = cls._insert_etdah_ad_interpretation_block_after(
                     anchor,
                     cls._normalize_interpretation_text(
                         section_or_test_interpretation("etdah_ad", None, tests.get("etdah_ad"))
                     ),
                 )
                 add_chart(
-                    "E-TDAH-AD Percentis",
+                    "E-TDAH-AD RESULTADO",
                     cls._etdah_chart(tests.get("etdah_ad")),
                     template_key="etdah_ad",
                 )
@@ -2431,7 +2494,8 @@ class ReportExportService:
             if tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij"):
                 ebadep_test = tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij")
                 add_title("EBADEP-A")
-                add_table("Resultados da EBADEP", cls._ebadep_rows(ebadep_test), "scale_summary")
+                add_text(cls._ebadep_description_text())
+                add_table("EBADEP-A - Resultado da sintomatologia", cls._ebadep_rows(ebadep_test), "scale_summary")
                 anchor = cls._insert_interpretation_block_after(
                     anchor,
                     cls._normalize_interpretation_text(
@@ -2446,7 +2510,8 @@ class ReportExportService:
             if tests.get("srs2"):
                 srs2_test = tests.get("srs2")
                 add_title("SRS-2 Escala de Responsividade Social")
-                add_table("SRS-2 Resultados", cls._srs2_rows(srs2_test), "srs2")
+                add_text(cls._srs2_description_text())
+                add_table("SRS-2 Resultados dos fatores", cls._srs2_rows(srs2_test), "srs2")
                 anchor = cls._insert_interpretation_block_after(
                     anchor,
                     cls._normalize_interpretation_text(
@@ -2454,7 +2519,7 @@ class ReportExportService:
                     ),
                 )
                 add_chart(
-                    "SRS-2 Resultados",
+                    "SRS-2 Resultados da discrepância entre respondentes",
                     cls._srs2_chart(srs2_test),
                     template_key="srs2",
                 )
@@ -2504,7 +2569,7 @@ class ReportExportService:
             add_table(
                 "E-TDAH Resultados",
                 cls._etdah_rows(tests.get("etdah_ad") or tests.get("etdah_pais")),
-                "etdah",
+                "etdah_ad" if tests.get("etdah_ad") else "etdah_pais",
             )
             add_chart(
                 "E-TDAH Resultados",
@@ -2621,6 +2686,8 @@ class ReportExportService:
             "bpa": "BPA-2",
             "fdt": "FDT - TESTE DOS CINCO DÍGITOS",
             "etdah": "E-TDAH-PAIS",
+            "etdah_pais": "E-TDAH-PAIS",
+            "etdah_ad": "E-TDAH-AD",
             "scared": "SCARED",
             "scared_parent": "SCARED",
             "scared_self": "SCARED - AUTORRELATO",
@@ -2766,18 +2833,16 @@ class ReportExportService:
     def _wisc_global_intro_text(cls, test: dict | None, context: dict) -> str:
         payload = cls._wisc_payload(test)
         qit = payload.get("qit_data") or {}
-        patient_label = "A paciente" if (context.get("patient") or {}).get("sex") == "F" else "O paciente"
+        patient_name = cls._patient_reference_name(context or {})
         intro = (
-            f"Capacidade Cognitiva Global: {patient_label} obteve, a partir da escala WISC IV, "
-            f"QI Total (QIT {qit.get('escore_composto', 'não informado')}), ficando na classificação "
-            f"{qit.get('classificacao', 'não informada')}"
+            f"Capacidade Cognitiva Global: a avaliação neuropsicológica de {patient_name}, por meio da Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV), possibilitou a análise do funcionamento intelectual global e dos principais domínios cognitivos. {patient_name} apresentou Quociente de Inteligência Total (QIT = {qit.get('escore_composto', 'não informado')}), classificado como {qit.get('classificacao', 'não informada')}"
         )
         idade_cognitiva = payload.get("idade_cognitiva")
         if idade_cognitiva:
             intro += (
-                f", quando comparado à média geral e com idade cognitiva estimada de {idade_cognitiva}"
+                f", com idade cognitiva estimada de {idade_cognitiva}"
             )
-        intro += ". Em relação aos índices fatoriais (medidas mais apuradas da inteligência), apresentou os seguintes resultados:"
+        intro += "."
         return intro
 
     @classmethod
@@ -2817,12 +2882,13 @@ class ReportExportService:
         payload = cls._wais3_payload(test)
         indices = payload.get("indices") or {}
         qit = indices.get("qi_total") or {}
+        patient_name = cls._patient_reference_name(context or {})
         if qit.get("pontuacao_composta") is None:
             return (
-                "Capacidade Cognitiva Global: O paciente realizou a Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III), instrumento destinado à avaliação do funcionamento intelectual global em adultos. No momento, as tabelas normativas de conversão de pontos brutos em escores ponderados ainda não estão preenchidas de forma suficiente para cálculo automatizado dos índices compostos, percentis e intervalos de confiança."
+                f"Capacidade Cognitiva Global: {patient_name} realizou a Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III), instrumento destinado à avaliação do funcionamento intelectual global em adultos. No momento, as tabelas normativas de conversão de pontos brutos em escores ponderados ainda não estão preenchidas de forma suficiente para cálculo automatizado dos índices compostos, percentis e intervalos de confiança."
             )
         return (
-            "Capacidade Cognitiva Global: O paciente obteve, a partir da Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III), "
+            f"Capacidade Cognitiva Global: {patient_name} obteve, a partir da Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III), "
             f"Quociente de Inteligência Total (QIT = {qit.get('pontuacao_composta', 'não informado')}), permanecendo na classificação {qit.get('classificacao', 'não informada')} quando comparado à média geral da população normativa. "
             "Em relação aos índices fatoriais, apresentou os seguintes resultados:"
         )
@@ -2984,6 +3050,9 @@ class ReportExportService:
         intro = cls._wisc_global_intro_text(test, context)
         p = document.add_paragraph()
         cls._append_wisc_intro_paragraph(p, intro)
+
+    @classmethod
+    def _append_wisc_indices_block(cls, document, test: dict | None):
         for lead, tail in cls._wisc_global_bullet_parts(test):
             p = document.add_paragraph()
             cls._append_wisc_global_bullet(p, lead, tail)
@@ -3184,11 +3253,12 @@ class ReportExportService:
         value_run = paragraph.add_run(description)
         value_run.font.name = cls.FONT_NAME
         value_run.font.size = cls.BODY_SIZE
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         paragraph.paragraph_format.space_before = Pt(0)
         paragraph.paragraph_format.space_after = Pt(0)
-        paragraph.paragraph_format.line_spacing = 1.0
-        paragraph.paragraph_format.left_indent = Cm(0.75)
-        paragraph.paragraph_format.first_line_indent = Cm(-0.25)
+        paragraph.paragraph_format.line_spacing = cls.IDENTIFICATION_LINE_SPACING
+        paragraph.paragraph_format.left_indent = Pt(0)
+        paragraph.paragraph_format.first_line_indent = Pt(0)
 
     @classmethod
     def _append_numbered_item(cls, document, text: str):
@@ -3483,12 +3553,67 @@ class ReportExportService:
     @classmethod
     def _normalize_interpretation_text(cls, interpretation: str) -> str:
         label = "Interpretação e Observações Clínicas:"
-        text = PtBrTextService.normalize(cls._strip_legacy_srs2_table(interpretation))
+        text = PtBrTextService.normalize(cls._strip_markdown_emphasis(cls._strip_legacy_srs2_table(interpretation)))
         if not text:
             return label
         if text.casefold().startswith(label.casefold()):
             return text
         return f"{label} {text}"
+
+    @staticmethod
+    def _strip_markdown_emphasis(text: str | None) -> str:
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return ""
+        cleaned = re.sub(r"\*\*(.*?)\*\*", r"\1", cleaned, flags=re.DOTALL)
+        cleaned = re.sub(r"__(.*?)__", r"\1", cleaned, flags=re.DOTALL)
+        return cleaned
+
+    @staticmethod
+    def _parse_etdah_ad_factor_paragraph(text: str) -> tuple[str, str] | None:
+        match = re.match(r"^No\s+(Fator\s+\d+\s+[—-]\s+[^,]+),\s*(.+)$", text.strip(), flags=re.DOTALL)
+        if not match:
+            return None
+        heading = match.group(1).replace(" - ", " – ").replace(" — ", " – ").strip()
+        body = match.group(2).strip()
+        return heading, body
+
+    @classmethod
+    def _append_etdah_ad_interpretation_block(cls, document, interpretation: str):
+        cleaned = (interpretation or "").strip()
+        if not cleaned:
+            return
+        paragraphs = [item.strip() for item in re.split(r"\n\s*\n+", cleaned) if item.strip()]
+        for item in paragraphs:
+            factor_block = cls._parse_etdah_ad_factor_paragraph(item)
+            if factor_block:
+                heading, body = factor_block
+                cls._append_bpa_section_heading(document, heading)
+                cls._append_bpa_body_paragraph(document, body)
+                continue
+            if item.startswith("Interpretação e Observações Clínicas:"):
+                cls._append_interpretation_block(document, item)
+                continue
+            cls._append_bpa_body_paragraph(document, item)
+
+    @classmethod
+    def _insert_etdah_ad_interpretation_block_after(cls, anchor, interpretation: str):
+        cleaned = (interpretation or "").strip()
+        if not cleaned:
+            return anchor
+        paragraphs = [item.strip() for item in re.split(r"\n\s*\n+", cleaned) if item.strip()]
+        for item in paragraphs:
+            factor_block = cls._parse_etdah_ad_factor_paragraph(item)
+            if factor_block:
+                heading, body = factor_block
+                anchor = cls._insert_bpa_section_heading_after(anchor, heading)
+                anchor = cls._insert_bpa_body_paragraph_after(anchor, body)
+                continue
+            if item.startswith("Interpretação e Observações Clínicas:"):
+                anchor = cls._insert_interpretation_block_after(anchor, item)
+                continue
+            anchor = cls._insert_bpa_body_paragraph_after(anchor, item)
+        return anchor
 
     @classmethod
     def _strip_legacy_srs2_table(cls, text: str | None) -> str:
@@ -3576,6 +3701,24 @@ class ReportExportService:
         )
 
     @classmethod
+    def _etdah_ad_description_text(cls) -> str:
+        return (
+            "A E-TDAH-AD e um instrumento de autorrelato destinado a adolescentes e adultos, voltado a investigacao de indicadores de desatencao, impulsividade, hiperatividade, regulacao emocional, motivacao e autorregulacao no cotidiano. Seus resultados devem ser integrados aos achados cognitivos e comportamentais da avaliacao neuropsicologica."
+        )
+
+    @classmethod
+    def _ebadep_description_text(cls) -> str:
+        return (
+            "A EBADEP-A avalia a presenca e a intensidade de sintomas depressivos em adultos, contemplando dimensoes cognitivas, afetivas, somaticas e motivacionais. Seu resultado contribui para o rastreio de indicadores clinicos, devendo ser interpretado em conjunto com a anamnese e a observacao clinica."
+        )
+
+    @classmethod
+    def _srs2_description_text(cls) -> str:
+        return (
+            "A SRS-2 e uma escala destinada a investigacao de dificuldades em comunicacao social, cognicao social, motivacao social, percepcao social e padroes restritos e repetitivos, contribuindo para o rastreio de tracos associados ao Transtorno do Espectro Autista. Seus resultados devem ser compreendidos em articulacao com a observacao clinica e a historia do desenvolvimento."
+        )
+
+    @classmethod
     def _append_chart(
         cls,
         document,
@@ -3623,7 +3766,7 @@ class ReportExportService:
     @classmethod
     def _wisc_chart_legend(cls, chart_index: int) -> str:
         return (
-            f"Gráfico {chart_index} WISC-IV - INDICES DE QIS :"
+            f"Gráfico {chart_index} WISC-IV - INDICES DE QI :"
             "Índice de Compreensão Verbal (ICV): composto por provas que avaliam as habilidades verbais por meio do raciocínio, compreensão e conceituação. "
             "Índice de Organização Perceptual (IOP): constituído por atividades que examinam o grau e a qualidade do contato não verbal do indivíduo com o ambiente, assim como a capacidade de integrar estímulos perceptuais e respostas motoras pertinentes, o nível de rapidez com o qual executa uma atividade e o modo como avalia informações visuoespaciais. "
             "Índice de Memória Operacional (IMO): formado por provas que analisam atenção, concentração e memória de trabalho. "
@@ -4751,7 +4894,23 @@ class ReportExportService:
         payload = (test or {}).get("classified_payload") or {}
         results = payload.get("results") or {}
         rows = [["Escala", "Pontos Brutos", "Média", "Percentil", "Classificação"]]
-        for item in results.values():
+
+        if any(key in results for key in ("D", "I", "AE", "AAMA", "H")):
+            ordered_items = [results.get(key) for key in ("D", "I", "AE", "AAMA", "H")]
+        elif any(
+            key in results
+            for key in ("fator_1", "fator_2", "fator_3", "fator_4", "escore_geral")
+        ):
+            ordered_items = [
+                results.get(key)
+                for key in ("fator_1", "fator_2", "fator_3", "fator_4", "escore_geral")
+            ]
+        else:
+            ordered_items = list(results.values())
+
+        for item in ordered_items:
+            if not item:
+                continue
             rows.append(
                 [
                     item.get("name") or "-",

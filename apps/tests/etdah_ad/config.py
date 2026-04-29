@@ -436,3 +436,44 @@ MEANS = {
 }
 
 FACTOR_ORDER = ["D", "I", "AE", "AAMA", "H"]
+
+# O cadastro original entrou com os blocos 2-5 deslocados. Mantemos a ordem
+# oficial dos fatores remapeando itens, normas e médias para as chaves corretas.
+LEGACY_FACTOR_REMAP = {
+    "D": "D",
+    "I": "H",
+    "AE": "I",
+    "AAMA": "AE",
+    "H": "AAMA",
+}
+
+_LEGACY_FACTOR_ITEMS = FACTOR_ITEMS
+_LEGACY_NORMS = NORMS
+_LEGACY_MEANS = MEANS
+
+FACTOR_ITEMS = {
+    factor: _LEGACY_FACTOR_ITEMS[legacy_factor]
+    for factor, legacy_factor in LEGACY_FACTOR_REMAP.items()
+}
+
+REVERSE_FACTORS = {
+    factor
+    for factor, legacy_factor in LEGACY_FACTOR_REMAP.items()
+    if legacy_factor in REVERSE_FACTORS
+}
+
+NORMS = {
+    schooling: {
+        factor: norms_by_factor[legacy_factor]
+        for factor, legacy_factor in LEGACY_FACTOR_REMAP.items()
+    }
+    for schooling, norms_by_factor in _LEGACY_NORMS.items()
+}
+
+MEANS = {
+    schooling: {
+        factor: means_by_factor[legacy_factor]
+        for factor, legacy_factor in LEGACY_FACTOR_REMAP.items()
+    }
+    for schooling, means_by_factor in _LEGACY_MEANS.items()
+}

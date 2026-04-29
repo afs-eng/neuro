@@ -6,8 +6,11 @@ from apps.tests.cars2_hf import CARS2HFModule
 from apps.tests.cars2_hf.classifiers import classify_cars2_hf
 from apps.tests.cars2_hf.loaders import load_cars2_hf_norms
 from apps.tests.etdah_ad import ETDAHADModule
+from apps.tests.etdah_ad.calculators import calculate_raw_scores
+from apps.tests.etdah_ad.interpreters import interpret_results as interpret_etdah_ad_results
 from apps.tests.etdah_pais import ETDAHPAISModule
 from apps.tests.epq_j import EPQJModule
+from apps.tests.epq_j.calculators import calcular_escore
 from apps.tests.fdt import FDTModule
 from apps.tests.mchat import MCHATModule
 from apps.tests.mchat.constants import FAILURE_RULES, ITEMS
@@ -384,6 +387,43 @@ class ETDAHPAISModuleTests(SimpleTestCase):
 
 
 class ETDAHADModuleTests(SimpleTestCase):
+    def test_factor_mapping_matches_official_order(self):
+        raw_scores = calculate_raw_scores(
+            {
+                1: 4,
+                2: 1,
+                4: 1,
+                5: 5,
+                8: 5,
+                9: 1,
+                10: 5,
+                14: 5,
+                16: 5,
+                27: 5,
+                29: 5,
+                42: 5,
+                58: 5,
+                59: 5,
+                65: 5,
+            }
+        )
+
+        self.assertEqual(raw_scores["I"], 1)
+        self.assertEqual(raw_scores["AE"], 1)
+        self.assertEqual(raw_scores["AAMA"], 1)
+        self.assertEqual(raw_scores["H"], 1)
+
+    def test_interpret_results_uses_remapped_means(self):
+        results = interpret_etdah_ad_results(
+            {"D": 64, "I": 20, "AE": 57, "AAMA": 6, "H": 25},
+            "fundamental",
+        )
+
+        self.assertEqual(results["I"]["mean"], 14.35)
+        self.assertEqual(results["AE"]["mean"], 44.3)
+        self.assertEqual(results["AAMA"]["mean"], 5.77)
+        self.assertEqual(results["H"]["mean"], 21.1)
+
     def test_non_clinical_classifications_are_not_treated_as_deficit(self):
         module = ETDAHADModule()
         context = TestContext(
@@ -428,8 +468,8 @@ class ETDAHADModuleTests(SimpleTestCase):
                 "D": 60,
                 "I": 55,
                 "AE": 10,
-                "AAMA": 25,
-                "H": 18,
+                "AAMA": 6,
+                "H": 25,
             },
             "schooling": "higher",
         }
@@ -540,6 +580,21 @@ class SCAREDModuleTests(SimpleTestCase):
 
 
 class EPQJModuleTests(SimpleTestCase):
+    def test_calculate_scores_accepts_saved_payload_keys(self):
+        scores = calcular_escore(
+            {
+                "item_03": 1,
+                "item_08": 1,
+                "item_02": 1,
+                "item_01": 1,
+            }
+        )
+
+        self.assertEqual(scores["P"], 1)
+        self.assertEqual(scores["E"], 1)
+        self.assertEqual(scores["N"], 1)
+        self.assertEqual(scores["S"], 1)
+
     def test_interpretation_mentions_desirability_when_sincerity_is_high(self):
         module = EPQJModule()
         context = TestContext(

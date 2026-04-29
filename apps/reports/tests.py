@@ -5,12 +5,14 @@ from io import BytesIO
 from zipfile import ZipFile
 from datetime import date
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
 from lxml import etree as LET
 
 from apps.reports.builders.tests_builder import _build_wais3_tables
 from apps.reports.builders.references_builder import build_references
 from apps.reports.services.report_export_service import ReportExportService
+from apps.reports.services.report_generation_service import ReportGenerationService
 from apps.reports.services.wisc4_standardization import WISC4StandardizationService
 
 
@@ -101,8 +103,8 @@ class WISC4StandardizationTests(SimpleTestCase):
             "capacidade_cognitiva_global", self.context
         )
 
-        self.assertIn("Capacidade Cognitiva Global: A paciente obteve", text)
-        self.assertIn("QI Total (QIT 61)", text)
+        self.assertIn("Capacidade Cognitiva Global: a avaliação neuropsicológica de Maria", text)
+        self.assertIn("Quociente de Inteligência Total (QIT = 61)", text)
         self.assertIn("Compreensão Verbal (ICV) — 84 — Média Inferior", text)
         self.assertNotIn("Índice de Habilidade Geral (GAI = 70)", text)
         self.assertNotIn("O Índice de Compreensão Verbal", text)
@@ -115,7 +117,7 @@ class WISC4StandardizationTests(SimpleTestCase):
         )
 
         self.assertIn(
-            "quando comparado à média geral e com idade cognitiva estimada de 12 anos e 6 meses",
+            "com idade cognitiva estimada de 12 anos e 6 meses",
             text,
         )
 
@@ -126,6 +128,77 @@ class WISC4StandardizationTests(SimpleTestCase):
         self.assertIn("No subteste Semelhanças", text)
         self.assertIn("No subteste Raciocínio Matricial", text)
         self.assertIn("perfil executivo heterogêneo", text)
+
+
+class ReportGenerationServiceConclusionTests(SimpleTestCase):
+    def test_wisc4_adolescent_conclusion_follows_fixed_model_order(self):
+        class Section:
+            def __init__(self, key, generated):
+                self.key = key
+                self.content_edited = ""
+                self.content_generated = generated
+
+        class Sections(list):
+            def all(self):
+                return self
+
+            def order_by(self, _field):
+                return self
+
+            def filter(self, **kwargs):
+                key = kwargs.get("key")
+                return Sections([item for item in self if item.key == key])
+
+            def first(self):
+                return self[0] if self else None
+
+        class Report:
+            sections = Sections(
+                [
+                    Section("capacidade_cognitiva_global", "Perfil heterogêneo com fragilidades cognitivas."),
+                    Section("funcoes_executivas", "Fragilidades executivas e atencionais com oscilação clínica."),
+                    Section("memoria_aprendizagem", "Perfil heterogêneo na memória e aprendizagem."),
+                    Section("linguagem", "Recursos de linguagem relativamente preservados."),
+                    Section("gnosias_praxias", "Fragilidades visuoconstrutivas pontuais."),
+                    Section("aspectos_emocionais_comportamentais", "Indicadores emocionais e comportamentais relevantes."),
+                    Section("srs2", "Indicadores sociais que exigem correlação clínica."),
+                ]
+            )
+
+        context = {
+            "patient": {"full_name": "Maria Clara", "sex": "F", "schooling": "fundamental", "birth_date": "2010-01-10"},
+            "evaluation": {"clinical_hypothesis": "Transtorno do Déficit de Atenção e Hiperatividade (TDAH), apresentação combinada"},
+            "validated_tests": [
+                {
+                    "instrument_code": "wisc4",
+                    "structured_results": {
+                        "qit_data": {"escore_composto": 61, "classificacao": "Extremamente Baixo"},
+                        "indices": [
+                            {"indice": "icv", "escore_composto": 84, "classificacao": "Média Inferior"},
+                            {"indice": "iop", "escore_composto": 61, "classificacao": "Extremamente Baixo"},
+                            {"indice": "imt", "escore_composto": 52, "classificacao": "Extremamente Baixo"},
+                            {"indice": "ivp", "escore_composto": 68, "classificacao": "Extremamente Baixo"},
+                        ],
+                    },
+                },
+                {"instrument_code": "srs2"},
+            ],
+        }
+        context["evaluation"]["start_date"] = "2024-04-20"
+
+        text = ReportGenerationService._build_conclusion_text(Report(), context)
+
+        self.assertIn("Maria Clara apresenta funcionamento neuropsicológico", text)
+        self.assertIn("Na Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV)", text)
+        self.assertIn("No domínio atencional e executivo", text)
+        self.assertIn("A avaliação da memória e aprendizagem", text)
+        self.assertIn("Nos domínios de linguagem, gnosias e praxias", text)
+        self.assertIn("Nos aspectos emocionais e comportamentais", text)
+        self.assertIn("Na avaliação do funcionamento social", text)
+        self.assertIn("Diante da integração dos resultados das testagens", text)
+        self.assertIn("Hipótese Diagnóstica:", text)
+        self.assertIn("Ressalta-se que o ser humano possui natureza dinâmica", text)
+        self.assertNotIn("verifica-se", text.casefold())
 
 
 class WISC4ExportTableTests(SimpleTestCase):
@@ -279,8 +352,6 @@ class WAIS3ExportTableTests(SimpleTestCase):
                 "compreensao": {"nome": "Compreensão", "pontos_brutos": 26, "classificacao": "Média Superior"},
                 "raciocinio_matricial": {"nome": "Raciocínio Matricial", "pontos_brutos": 21, "classificacao": "Média Superior"},
                 "cubos": {"nome": "Cubos", "pontos_brutos": 44, "classificacao": "Média Superior"},
-                "completar_figuras": {"nome": "Completar Figuras", "pontos_brutos": 21, "classificacao": "Média Superior"},
-                "aritmetica": {"nome": "Aritmética", "pontos_brutos": 14, "classificacao": "Média Superior"},
                 "sequencia_numeros_letras": {"nome": "Sequência de Números e Letras", "pontos_brutos": 11, "classificacao": "Média Superior"},
                 "digitos": {"nome": "Dígitos", "pontos_brutos": 17, "classificacao": "Média Superior"},
             }
@@ -297,18 +368,16 @@ class WAIS3ExportTableTests(SimpleTestCase):
             "gnosias_praxias": {
                 "Raciocínio Matricial": "Média",
                 "Cubos": "Média",
-                "Completar Figuras": "Média",
             },
             "funcoes_executivas": {
                 "Semelhanças": "Média",
                 "Compreensão": "Média",
                 "Raciocínio Matricial": "Média",
-                "Aritmética": "Média",
             },
             "memoria_aprendizagem": {
                 "Sequência de Números e Letras": "Média",
                 "Dígitos": "Média",
-                "Aritmética": "Média",
+                "RAVLT": "Leitura do Gráfico",
             },
         }
 
@@ -357,8 +426,81 @@ class WAIS3ExportTableTests(SimpleTestCase):
         self.assertEqual(rows[1], ["Semelhanças", "38", "17-28", "9-10", "18", "Média"])
         self.assertEqual(rows[2], ["Fala Espontânea", "Fala espontânea dentro do esperado para a sua idade", "", "", "", ""])
 
+    def test_build_wais3_tables_adds_ravlt_placeholder_to_memory_domain(self):
+        payload = {
+            "subtestes": {
+                "sequencia_numeros_letras": {"nome": "Sequência de Números e Letras", "pontos_brutos": 11, "classificacao": "Média"},
+                "digitos": {"nome": "Dígitos", "pontos_brutos": 17, "classificacao": "Média"},
+            }
+        }
+
+        tables = _build_wais3_tables(payload, self._evaluation(), date(2020, 6, 1))
+
+        self.assertEqual(tables["memoria_aprendizagem"][-1], {
+            "label": "RAVLT",
+            "maxScore": "-",
+            "avgScore": "-",
+            "minScore": "-",
+            "obtainedScore": "-",
+            "classification": "Leitura do Gráfico",
+        })
+
 
 class ReportExportChartSanitizationTests(SimpleTestCase):
+    def test_etdah_table_title_distinguishes_ad_from_pais(self):
+        self.assertEqual(ReportExportService._table_title_text("etdah_ad"), "E-TDAH-AD")
+        self.assertEqual(ReportExportService._table_title_text("etdah_pais"), "E-TDAH-PAIS")
+
+    def test_etdah_ad_rows_follow_official_factor_order(self):
+        rows = ReportExportService._etdah_rows(
+            {
+                "classified_payload": {
+                    "results": {
+                        "D": {"name": "Fator 1 - Desatenção (D)", "raw_score": 64, "mean": 42.3, "percentile_text": "86", "classification": "Superior"},
+                        "H": {"name": "Fator 5 - Hiperatividade (H)", "raw_score": 20, "mean": 14.35, "percentile_text": "85", "classification": "Superior"},
+                        "I": {"name": "Fator 2 - Impulsividade (I)", "raw_score": 57, "mean": 44.3, "percentile_text": "78,8", "classification": "Média Superior"},
+                        "AE": {"name": "Fator 3 - Aspectos Emocionais (AE)", "raw_score": 6, "mean": 5.77, "percentile_text": "60", "classification": "Média"},
+                        "AAMA": {"name": "Fator 4 - Autorregulação da Atenção, Motivação e Ação (AAMA)", "raw_score": 25, "mean": 21.1, "percentile_text": "75", "classification": "Média Superior"},
+                    }
+                }
+            }
+        )
+
+        self.assertEqual(
+            [row[0] for row in rows[1:]],
+            [
+                "Fator 1 - Desatenção (D)",
+                "Fator 2 - Impulsividade (I)",
+                "Fator 3 - Aspectos Emocionais (AE)",
+                "Fator 4 - Autorregulação da Atenção, Motivação e Ação (AAMA)",
+                "Fator 5 - Hiperatividade (H)",
+            ],
+        )
+
+    def test_insert_etdah_ad_interpretation_formats_factor_heading_and_body(self):
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        interpretation = (
+            "Interpretação e Observações Clínicas: **Texto introdutório.**\n\n"
+            "No Fator 1 — Desatenção, o resultado classificado como **Média Inferior** indica funcionamento dentro dos limites esperados.\n\n"
+            "Dessa forma, **não** há hipótese diagnóstica isolada."
+        )
+
+        ReportExportService._insert_etdah_ad_interpretation_block_after(
+            start,
+            ReportExportService._normalize_interpretation_text(interpretation),
+        )
+
+        paragraphs = [p for p in document.paragraphs if p.text.strip()]
+
+        self.assertEqual(paragraphs[1].text.strip(), "Interpretação e Observações Clínicas: Texto introdutório.")
+        self.assertEqual(paragraphs[2].text.strip(), "Fator 1 – Desatenção")
+        self.assertTrue(any(run.bold for run in paragraphs[2].runs if run.text.strip()))
+        self.assertEqual(paragraphs[3].text.strip(), "o resultado classificado como Média Inferior indica funcionamento dentro dos limites esperados.")
+        self.assertEqual(paragraphs[3].alignment, WD_ALIGN_PARAGRAPH.JUSTIFY)
+        self.assertAlmostEqual(paragraphs[3].paragraph_format.first_line_indent.cm, 1.5, places=2)
+        self.assertEqual(paragraphs[4].text.strip(), "Dessa forma, não há hipótese diagnóstica isolada.")
+
     def test_wais3_template_is_organized_under_templates_assets(self):
         self.assertEqual(
             ReportExportService.WAIS3_TEMPLATE_PATH,
@@ -373,9 +515,47 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         )
         self.assertTrue(ReportExportService.WISC4_TEMPLATE_PATH.exists())
 
+    def test_adult_reports_restore_header_footer_from_papel_timbrado(self):
+        class Patient:
+            age = 23
+
+        class Report:
+            patient = Patient()
+
+        template_path = ReportExportService.WAIS3_TEMPLATE_PATH
+
+        self.assertEqual(
+            ReportExportService._header_footer_template_path(
+                template_path,
+                Report(),
+                {"patient": {"birth_date": "2002-09-12"}},
+            ),
+            ReportExportService.DEFAULT_TEMPLATE_PATH,
+        )
+
+    def test_wais3_reports_restore_header_footer_from_own_template(self):
+        class Patient:
+            age = 23
+
+        class Report:
+            patient = Patient()
+
+        template_path = ReportExportService.WAIS3_TEMPLATE_PATH
+
+        self.assertEqual(
+            ReportExportService._header_footer_template_path(
+                template_path,
+                Report(),
+                {"patient": {"birth_date": "2002-09-12"}, "validated_tests": [{"instrument_code": "wais3"}]},
+            ),
+            template_path,
+        )
+
     def _report_stub(self):
         class Report:
             evaluation = None
+            interested_party = ""
+            purpose = ""
 
         return Report()
 
@@ -571,6 +751,41 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         self.assertLess(desempenho_index, interpretacao_index)
         self.assertLess(interpretacao_index, subescalas_index)
 
+    def test_rebuild_qualitative_section_uses_wais3_skill_labels_for_late_chapters(self):
+        template = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
+        template_chart_blocks = ReportExportService._extract_template_chart_blocks(template)
+
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        start._p.addnext(deepcopy(template_chart_blocks[0]))
+        end = document.add_paragraph("Conclusão")
+        start._p.getnext().addnext(end._p)
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={
+                "etdah_ad": "Interpretacao do ETDAH-AD.",
+                "srs2": "Interpretacao do SRS-2.",
+                "aspectos_emocionais_comportamentais": "Interpretacao da EBADEP-A.",
+            },
+            context={
+                "patient": {"sex": "F"},
+                "validated_tests": [
+                    {"instrument_code": "wais3", "structured_results": {"indices": {"qi_total": {"pontuacao_composta": 95, "classificacao": "Média"}}}},
+                    {"instrument_code": "etdah_ad"},
+                    {"instrument_code": "ebadep_a"},
+                    {"instrument_code": "srs2"},
+                ],
+            },
+        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+
+        self.assertIn("Função Executiva", texts)
+        self.assertTrue(any(text.startswith("A E-TDAH-AD e um instrumento de autorrelato destinado a adolescentes e adultos") for text in texts))
+        self.assertTrue(any(text.startswith("A EBADEP-A avalia a presenca e a intensidade de sintomas depressivos em adultos") for text in texts))
+        self.assertTrue(any(text.startswith("A SRS-2 e uma escala destinada a investigacao de dificuldades") for text in texts))
+
     def test_rebuild_qualitative_section_does_not_duplicate_wais3_global_intro(self):
         document = Document()
         start = document.add_paragraph("ANÁLISE QUALITATIVA")
@@ -631,6 +846,117 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         self.assertEqual(len(global_lines), 1)
         self.assertEqual(global_lines[0].count("Capacidade Cognitiva Global:"), 1)
 
+    def test_rebuild_qualitative_section_uses_wisc4_skill_headings(self):
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        end = document.add_paragraph("Conclusão")
+        start._p.addnext(end._p)
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={},
+            context={
+                "patient": {"full_name": "Maria Clara", "sex": "F", "birth_date": "2016-01-10"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wisc4",
+                        "structured_results": {
+                            "qit_data": {"escore_composto": 61, "classificacao": "Extremamente Baixo"},
+                            "indices": [
+                                {"indice": "icv", "escore_composto": 84, "classificacao": "Média Inferior"},
+                                {"indice": "iop", "escore_composto": 61, "classificacao": "Extremamente Baixo"},
+                                {"indice": "imt", "escore_composto": 52, "classificacao": "Extremamente Baixo"},
+                                {"indice": "ivp", "escore_composto": 68, "classificacao": "Extremamente Baixo"},
+                            ],
+                            "subtestes": [
+                                {"codigo": "SM", "subteste": "Semelhanças", "escore_bruto": 23, "classificacao": "Média"},
+                                {"codigo": "CN", "subteste": "Conceitos Figurativos", "escore_bruto": 11, "classificacao": "Média Inferior"},
+                                {"codigo": "CO", "subteste": "Compreensão", "escore_bruto": 24, "classificacao": "Média"},
+                                {"codigo": "RM", "subteste": "Raciocínio Matricial", "escore_bruto": 12, "classificacao": "Limítrofe"},
+                                {"codigo": "VC", "subteste": "Vocabulário", "escore_bruto": 10, "classificacao": "Limítrofe"},
+                                {"codigo": "CB", "subteste": "Cubos", "escore_bruto": 8, "classificacao": "Extremamente Baixo"},
+                                {"codigo": "SNL", "subteste": "Sequência de Números e Letras", "escore_bruto": 5, "classificacao": "Extremamente Baixo"},
+                                {"codigo": "DG", "subteste": "Dígitos", "escore_bruto": 7, "classificacao": "Limítrofe"},
+                            ],
+                        },
+                        "classified_payload": {
+                            "subtestes": [
+                                {"codigo": "SM", "subteste": "Semelhanças", "escore_bruto": 23, "classificacao": "Média"},
+                                {"codigo": "CN", "subteste": "Conceitos Figurativos", "escore_bruto": 11, "classificacao": "Média Inferior"},
+                                {"codigo": "CO", "subteste": "Compreensão", "escore_bruto": 24, "classificacao": "Média"},
+                                {"codigo": "RM", "subteste": "Raciocínio Matricial", "escore_bruto": 12, "classificacao": "Limítrofe"},
+                                {"codigo": "VC", "subteste": "Vocabulário", "escore_bruto": 10, "classificacao": "Limítrofe"},
+                                {"codigo": "CB", "subteste": "Cubos", "escore_bruto": 8, "classificacao": "Extremamente Baixo"},
+                                {"codigo": "SNL", "subteste": "Sequência de Números e Letras", "escore_bruto": 5, "classificacao": "Extremamente Baixo"},
+                                {"codigo": "DG", "subteste": "Dígitos", "escore_bruto": 7, "classificacao": "Limítrofe"},
+                            ]
+                        },
+                        "applied_on": "2024-04-20",
+                    }
+                ],
+                "evaluation": {"start_date": "2024-04-20"},
+            },
+        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+
+        self.assertIn("5.1. WISC-IV – Capacidade Cognitiva Global", texts)
+        self.assertIn("5.2. Desempenho nos Índices Fatoriais", texts)
+        self.assertIn("5.3. Subescalas WISC-IV", texts)
+        self.assertIn("5.3.1. Funções Executivas", texts)
+
+    def test_build_adolescent_document_renumbers_wisc4_sections_when_optional_tests_are_missing(self):
+        document = ReportExportService._build_adolescent_document(
+            self._report_stub(),
+            sections={"conclusao": "Conclusão clínica.", "sugestoes_conduta": "- Sugestão 1"},
+            context={
+                "patient": {"full_name": "Maria Clara", "sex": "F", "birth_date": "2016-01-10"},
+                "evaluation": {"start_date": "2024-04-20"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wisc4",
+                        "structured_results": {
+                            "qit_data": {"escore_composto": 61, "classificacao": "Extremamente Baixo"},
+                            "indices": [
+                                {"indice": "icv", "escore_composto": 84, "classificacao": "Média Inferior"},
+                                {"indice": "iop", "escore_composto": 61, "classificacao": "Extremamente Baixo"},
+                                {"indice": "imt", "escore_composto": 52, "classificacao": "Extremamente Baixo"},
+                                {"indice": "ivp", "escore_composto": 68, "classificacao": "Extremamente Baixo"},
+                            ],
+                            "subtestes": [
+                                {"codigo": "SM", "subteste": "Semelhanças", "escore_bruto": 23, "classificacao": "Média"},
+                                {"codigo": "CN", "subteste": "Conceitos Figurativos", "escore_bruto": 11, "classificacao": "Média Inferior"},
+                                {"codigo": "CO", "subteste": "Compreensão", "escore_bruto": 24, "classificacao": "Média"},
+                                {"codigo": "RM", "subteste": "Raciocínio Matricial", "escore_bruto": 12, "classificacao": "Limítrofe"},
+                                {"codigo": "VC", "subteste": "Vocabulário", "escore_bruto": 10, "classificacao": "Limítrofe"},
+                                {"codigo": "CB", "subteste": "Cubos", "escore_bruto": 8, "classificacao": "Extremamente Baixo"},
+                                {"codigo": "SNL", "subteste": "Sequência de Números e Letras", "escore_bruto": 5, "classificacao": "Extremamente Baixo"},
+                                {"codigo": "DG", "subteste": "Dígitos", "escore_bruto": 7, "classificacao": "Limítrofe"},
+                            ],
+                        },
+                        "classified_payload": {
+                            "subtestes": [
+                                {"codigo": "SM", "subteste": "Semelhanças", "escore_bruto": 23, "classificacao": "Média"}
+                            ]
+                        },
+                        "applied_on": "2024-04-20",
+                    }
+                ],
+            },
+        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+
+        self.assertIn("5.1. WISC-IV – Capacidade Cognitiva Global", texts)
+        self.assertIn("5.2. Desempenho nos Índices Fatoriais", texts)
+        self.assertIn("5.3. Subescalas WISC-IV", texts)
+        self.assertIn("6. CONCLUSÃO", texts)
+        self.assertIn("7. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS)", texts)
+        self.assertIn("8. REFERÊNCIA BIBLIOGRÁFICA", texts)
+        self.assertNotIn("6. BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO", texts)
+        self.assertNotIn("16. A EQUIPE MULTIDISCIPLINAR", texts)
+        self.assertNotIn("17. IMPORTANTE RESSALTAR QUE ESTE DOCUMENTO:", texts)
+
     def test_replace_simple_sections_uses_wais3_skill_structure_for_demand_and_procedures(self):
         document = Document()
         document.add_paragraph("IDENTIFICAÇÃO")
@@ -658,17 +984,66 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
 
         texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
 
+        self.assertIn("PROCEDIMENTOS", texts)
+
+    def test_replace_simple_sections_uses_default_wais3_demand_text_when_empty(self):
+        document = Document()
+        document.add_paragraph("IDENTIFICAÇÃO")
+        document.add_paragraph("DESCRIÇÃO DA DEMANDA")
+        document.add_paragraph("PROCEDIMENTOS")
+        document.add_paragraph("ANÁLISE")
+
+        ReportExportService._replace_simple_sections(
+            document,
+            self._report_stub(),
+            sections={},
+            context={"patient": {"full_name": "Marcos Henrique Carvalho Santos"}, "validated_tests": []},
+        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+
         self.assertIn("Motivo do Encaminhamento", texts)
         self.assertIn(
-            "Para esta avaliação foram realizadas: uma sessão de anamnese, 05 sessões de testagem com o paciente e uma sessão de devolutiva.",
+            "Levando em consideração a demanda apresentada, objetivou-se avaliar as funções cognitivas, aspectos comportamentais, emocionais e sociais do paciente, a fim de compreender seu funcionamento global e subsidiar orientações para o manejo adequado em contextos familiar e escolar.",
             texts,
         )
-        self.assertTrue(
-            any("Escala Wechsler de Inteligência para Adultos – Terceira Edição (WAIS-III)" in text for text in texts)
+
+    def test_replace_simple_sections_rebuilds_identification_chapter_with_fixed_labels(self):
+        document = Document()
+        document.add_paragraph("IDENTIFICAÇÃO")
+        document.add_paragraph("DESCRIÇÃO DA DEMANDA")
+
+        report = self._report_stub()
+        report.interested_party = "Dra. Exemplo"
+        report.purpose = "Auxílio diagnóstico"
+
+        ReportExportService._replace_simple_sections(
+            document,
+            report,
+            sections={},
+            context={
+                "patient": {
+                    "full_name": "Marcos Henrique Carvalho Santos",
+                    "sex": "M",
+                    "birth_date": "2002-09-12",
+                    "schooling": "superior incompleto",
+                }
+            },
         )
-        self.assertTrue(
-            any("Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2)" in text for text in texts)
-        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+
+        self.assertEqual(texts[1], "1.1. Identificação do laudo:")
+        self.assertEqual(texts[2], "Autora: Jacqueline Oliveira Caires (CRP 09/6017)")
+        self.assertEqual(texts[3], "Interessado: Dra. Exemplo")
+        self.assertEqual(texts[4], "Finalidade: Auxílio diagnóstico")
+        self.assertEqual(texts[5], "1.2. Identificação do paciente:")
+        self.assertEqual(texts[6], "Nome: Marcos Henrique Carvalho Santos")
+        self.assertEqual(texts[7], "Sexo: Masculino")
+        self.assertEqual(texts[8], "Data de nascimento: 12/09/2002")
+        self.assertTrue(texts[9].startswith("Idade: "))
+        self.assertIn("Filiação: Não informada", texts)
+        self.assertIn("Escolaridade: superior incompleto", texts)
 
     def test_sanitize_chart_xml_inlines_cached_refs_and_removes_external_data(self):
         chart_xml = b'''<?xml version="1.0" encoding="UTF-8"?>

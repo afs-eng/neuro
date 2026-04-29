@@ -112,9 +112,18 @@ FEMININO = {
 }
 
 
+def _response_value(respostas: dict, item: int) -> int:
+    for key in (item, str(item), f"item_{item}", f"item_{item:02d}"):
+        value = respostas.get(key)
+        if value is not None:
+            return int(value)
+    return 0
+
+
 def calcular_escore(respostas: dict) -> dict:
     return {
-        f: sum(respostas.get(i, 0) for i in itens) for f, itens in ITENS_EPQJ.items()
+        fator: sum(_response_value(respostas, item) for item in itens)
+        for fator, itens in ITENS_EPQJ.items()
     }
 
 

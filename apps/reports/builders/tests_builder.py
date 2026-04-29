@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 from datetime import date
 
 from apps.tests.bpa2.calculators import get_age_group as _get_bpa2_age_group
@@ -503,9 +502,9 @@ def _build_wais3_tables(payload: dict, evaluation, applied_on) -> dict:
     subtests = payload.get("subtestes") or {}
     domains = {
         "linguagem": ["semelhancas", "vocabulario", "compreensao"],
-        "gnosias_praxias": ["raciocinio_matricial", "cubos", "completar_figuras"],
-        "funcoes_executivas": ["semelhancas", "compreensao", "raciocinio_matricial", "aritmetica"],
-        "memoria_aprendizagem": ["sequencia_numeros_letras", "digitos", "aritmetica"],
+        "gnosias_praxias": ["raciocinio_matricial", "cubos"],
+        "funcoes_executivas": ["semelhancas", "compreensao", "raciocinio_matricial"],
+        "memoria_aprendizagem": ["sequencia_numeros_letras", "digitos"],
     }
     tables = {}
     for domain, codes in domains.items():
@@ -545,6 +544,17 @@ def _build_wais3_tables(payload: dict, evaluation, applied_on) -> dict:
                 {
                     "label": "Fala Espontânea",
                     "note": "Fala espontânea dentro do esperado para a sua idade",
+                }
+            )
+        elif domain == "memoria_aprendizagem":
+            rows.append(
+                {
+                    "label": "RAVLT",
+                    "maxScore": "-",
+                    "avgScore": "-",
+                    "minScore": "-",
+                    "obtainedScore": "-",
+                    "classification": "Leitura do Gráfico",
                 }
             )
         tables[domain] = rows

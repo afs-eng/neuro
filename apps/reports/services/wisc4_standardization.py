@@ -166,17 +166,18 @@ class WISC4StandardizationService:
         qit = payload.get("qit_data") or {}
         indices = {item.get("indice"): item for item in payload.get("indices") or []}
         intro = (
-            f"Capacidade Cognitiva Global: {cls._patient_label(context)} obteve, a partir da escala WISC IV, "
-            f"QI Total (QIT {qit.get('escore_composto', 'não informado')}), ficando na classificação "
-            f"{qit.get('classificacao', 'não informada')}"
+            f"Capacidade Cognitiva Global: a avaliação neuropsicológica de {cls._first_name(context)}, por meio da "
+            "Escala Wechsler de Inteligência para Crianças – Quarta Edição (WISC-IV), possibilitou a análise do "
+            "funcionamento intelectual global e dos principais domínios cognitivos. "
+            f"{cls._first_name(context)} apresentou Quociente de Inteligência Total (QIT = {qit.get('escore_composto', 'não informado')}), "
+            f"classificado como {qit.get('classificacao', 'não informada')}"
         )
         idade_cognitiva = payload.get("idade_cognitiva")
         if idade_cognitiva:
             intro += (
-                f", quando comparado à média geral e com idade cognitiva estimada de "
-                f"{idade_cognitiva}"
+                f", com idade cognitiva estimada de {idade_cognitiva}"
             )
-        intro += ". Em relação aos índices fatoriais (medidas mais apuradas da inteligência), apresentou os seguintes resultados:"
+        intro += "."
         return "\n".join(
             [
                 intro,
