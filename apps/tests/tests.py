@@ -1,6 +1,7 @@
 from django.test import SimpleTestCase
 
 from apps.tests.bai import BAIModule
+from apps.tests.bfp import BFPModule
 from apps.tests.base.types import TestContext
 from apps.tests.cars2_hf import CARS2HFModule
 from apps.tests.cars2_hf.classifiers import classify_cars2_hf
@@ -19,6 +20,7 @@ from apps.tests.norms.bai import get_norms_metadata, lookup_t_score
 from apps.tests.scared import SCAREDModule
 from apps.tests.srs2 import SRS2Module
 from apps.tests.srs2.norms import get_norm_data
+from apps.tests.wasi import WASIModule
 
 
 class BAINormsTests(SimpleTestCase):
@@ -669,3 +671,168 @@ class EPQJModuleTests(SimpleTestCase):
         self.assertIn("O fator Sinceridade apresentou classificação médio (percentil 30)", interpretation)
         self.assertIn("Em análise clínica", interpretation)
         self.assertIn("Análise Clínica:", interpretation)
+
+
+class BFPModuleTests(SimpleTestCase):
+    @staticmethod
+    def _responses(default: int = 4) -> dict[str, int]:
+        return {str(item): default for item in range(1, 127)}
+
+    def test_compute_scores_with_general_sample(self):
+        module = BFPModule()
+        context = TestContext(
+            patient_name="Paciente BFP",
+            evaluation_id=1,
+            instrument_code="bfp",
+            raw_scores={
+                "sample": "geral",
+                "responses": self._responses(4),
+            },
+        )
+
+        computed = module.compute(context)
+
+        self.assertEqual(computed["sample"], "geral")
+        self.assertEqual(computed["factors"]["NN"]["name"], "Neuroticismo")
+        self.assertEqual(computed["facets"]["A2"]["raw_score"], 4.0)
+        self.assertEqual(computed["facets"]["N4"]["raw_score"], 4.0)
+
+    def test_reversed_items_change_facet_average(self):
+        module = BFPModule()
+        responses = self._responses(4)
+        responses["1"] = 1
+        context = TestContext(
+            patient_name="Paciente BFP",
+            evaluation_id=1,
+            instrument_code="bfp",
+            raw_scores={
+                "sample": "geral",
+                "responses": responses,
+            },
+        )
+
+        computed = module.compute(context)
+
+        self.assertAlmostEqual(computed["facets"]["A2"]["raw_score"], 31 / 7, places=4)
+
+    def test_normative_sample_changes_percentile(self):
+        module = BFPModule()
+        responses = self._responses(4)
+
+        male = module.compute(
+            TestContext(
+                patient_name="Paciente BFP",
+                evaluation_id=1,
+                instrument_code="bfp",
+                raw_scores={"sample": "masculino", "responses": responses},
+            )
+        )
+        female = module.compute(
+            TestContext(
+                patient_name="Paciente BFP",
+                evaluation_id=1,
+                instrument_code="bfp",
+                raw_scores={"sample": "feminino", "responses": responses},
+            )
+        )
+
+        self.assertNotEqual(male["factors"]["SS"]["percentile"], female["factors"]["SS"]["percentile"])
+
+    def test_interpretation_mentions_factor_and_facet(self):
+        module = BFPModule()
+        responses = self._responses(4)
+        for item in [55, 60, 73, 75, 79, 82, 89, 110, 118]:
+            responses[str(item)] = 7
+
+        context = TestContext(
+            patient_name="Marina Costa",
+            evaluation_id=1,
+            instrument_code="bfp",
+            raw_scores={"sample": "geral", "responses": responses},
+        )
+
+        computed = module.compute(context)
+        interpretation = module.interpret(context, {**computed, **module.classify(computed)})
+
+        self.assertIn("Bateria Fatorial de Personalidade (BFP)", interpretation)
+        self.assertIn("No fator Neuroticismo", interpretation)
+        self.assertIn("Na faceta Vulnerabilidade", interpretation)
+
+
+class WASIModuleTests(SimpleTestCase):
+    def test_compute_matches_excel_sample_for_adult_band(self):
+        module = WASIModule()
+        context = TestContext(
+            patient_name="Paciente WASI",
+            evaluation_id=1,
+            instrument_code="wasi",
+            raw_scores={
+                "vc": 50,
+                "cb": 50,
+                "sm": 22,
+                "rm": 36,
+                "birth_date": "1940-01-01",
+                "applied_on": "2026-04-30",
+                "confidence_level": "95",
+            },
+        )
+
+        computed = module.compute(context)
+
+        self.assertEqual(computed["subtests"]["vc"]["t_score"], 54)
+        self.assertEqual(computed["subtests"]["vc"]["weighted_score"], 11)
+        self.assertEqual(computed["subtests"]["cb"]["t_score"], 79)
+        self.assertEqual(computed["subtests"]["cb"]["weighted_score"], 19)
+        self.assertEqual(computed["subtests"]["sm"]["t_score"], 44)
+        self.assertEqual(computed["subtests"]["rm"]["t_score"], 70)
+        self.assertEqual(computed["composites"]["qi_verbal"]["qi"], 98)
+        self.assertEqual(computed["composites"]["qi_execucao"]["qi"], 144)
+        self.assertEqual(computed["composites"]["qit_4"]["qi"], 122)
+        self.assertEqual(computed["composites"]["qit_2"]["qi"], 122)
+
+    def test_interpretability_flags_follow_excel_rules(self):
+        module = WASIModule()
+        computed = module.compute(
+            TestContext(
+                patient_name="Paciente WASI",
+                evaluation_id=1,
+                instrument_code="wasi",
+                raw_scores={
+                    "vc": 50,
+                    "cb": 50,
+                    "sm": 22,
+                    "rm": 36,
+                    "birth_date": "1940-01-01",
+                    "applied_on": "2026-04-30",
+                    "confidence_level": "95",
+                },
+            )
+        )
+
+        self.assertTrue(computed["composites"]["qi_verbal"]["interpretability"]["ok"])
+        self.assertTrue(computed["composites"]["qi_execucao"]["interpretability"]["ok"])
+        self.assertFalse(computed["composites"]["qit_4"]["interpretability"]["ok"])
+        self.assertFalse(computed["composites"]["qit_2"]["interpretability"]["ok"])
+
+    def test_interpretation_mentions_core_indices(self):
+        module = WASIModule()
+        context = TestContext(
+            patient_name="Marina Souza",
+            evaluation_id=1,
+            instrument_code="wasi",
+            raw_scores={
+                "vc": 50,
+                "cb": 50,
+                "sm": 22,
+                "rm": 36,
+                "birth_date": "1940-01-01",
+                "applied_on": "2026-04-30",
+                "confidence_level": "95",
+            },
+        )
+        computed = module.compute(context)
+        interpretation = module.interpret(context, {**computed, **module.classify(computed)})
+
+        self.assertIn("WASI", interpretation)
+        self.assertIn("QI Verbal", interpretation)
+        self.assertIn("QI Execucao", interpretation)

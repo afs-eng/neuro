@@ -290,10 +290,12 @@ export default function PatientDetailPage() {
         subtitle={`ID #${String(patient.id).padStart(4, '0')} • ${age} • Prontuário Ativo`}
         actions={
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2 border-slate-100 font-bold hover:bg-slate-50 transition-all">
-              <Edit className="h-4 w-4 text-slate-400" />
-              Editar Prontuário
-            </Button>
+            <Link href={`/dashboard/patients/${patient.id}/edit`}>
+              <Button variant="outline" className="gap-2 border-slate-100 font-bold hover:bg-slate-50 transition-all">
+                <Edit className="h-4 w-4 text-slate-400" />
+                Editar Prontuário
+              </Button>
+            </Link>
             <Link href={`/dashboard/evaluations/new?patient_id=${patient.id}`}>
               <Button className="gap-2 shadow-spike font-bold">
                 <Plus className="h-4 w-4" />

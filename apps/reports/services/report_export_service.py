@@ -47,6 +47,7 @@ from apps.tests.srs2.interpreters import interpret_srs2_results
 from apps.tests.ravlt.norms import NORMS as RAVLT_NORMS
 from apps.tests.ravlt.norms import get_age_band as get_ravlt_age_band
 from apps.tests.wisc4.calculators import _calcular_idade, _carregar_tabela_ncp
+from apps.tests.wisc4.interpreters import interpret_wisc4_profile
 
 
 ET.register_namespace("a", "http://schemas.openxmlformats.org/drawingml/2006/main")
@@ -1377,12 +1378,13 @@ class ReportExportService:
         )
 
         patient_title = "da paciente" if (context.get("patient") or {}).get("sex") == "F" else "do paciente"
-        cls._append_heading(document, "5. ANÁLISE QUANTITATIVA")
+        cls._append_heading(document, "5. ANÁLISE QUALITATIVA")
         wais3_test = cls._find_test(context, "wais3")
         if wisc_test:
-            cls._append_subheading(document, "5.1. WISC-IV – Capacidade Cognitiva Global")
+            cls._append_subheading(document, "Capacidade Cognitiva Global")
             cls._append_wisc_global_block(document, wisc_test, context)
-            cls._append_subheading(document, "5.2. Desempenho nos Índices Fatoriais")
+            cls._append_wisc_indices_block(document, wisc_test)
+            cls._append_subheading(document, f"Desempenho {patient_title} no WISC-IV")
             wisc_chart = cls._wisc_chart(wisc_test)
             append_chart(
                 "WISC-IV - INDICES DE QI",
@@ -1391,9 +1393,12 @@ class ReportExportService:
                 show_caption=False,
                 template_key="wisc4",
             )
-            cls._append_wisc_indices_block(document, wisc_test)
-            cls._append_subheading(document, "5.3. Subescalas WISC-IV")
-            cls._append_subheading(document, "5.3.1. Funções Executivas")
+            cls._append_interpretation_block(
+                document,
+                cls._wisc_model_interpretation_text(wisc_test, context),
+            )
+            cls._append_subheading(document, "Subescalas WISC-IV")
+            cls._append_subheading(document, "Função Executiva")
             append_table_with_interpretation(
                 cls._wisc_rows(
                     cls._find_test(context, "wisc4"), context, "funcoes_executivas"
@@ -1402,14 +1407,14 @@ class ReportExportService:
                 cls._wisc_section_text(sections, "funcoes_executivas", context),
                 "Resultados da Função Executiva",
             )
-            cls._append_subheading(document, "5.3.2. Linguagem")
+            cls._append_subheading(document, "Linguagem")
             append_table_with_interpretation(
                 cls._wisc_rows(cls._find_test(context, "wisc4"), context, "linguagem"),
                 "wisc",
                 cls._wisc_section_text(sections, "linguagem", context),
                 "Resultados da Linguagem",
             )
-            cls._append_subheading(document, "5.3.3. Gnosias e Praxias")
+            cls._append_subheading(document, "Gnosias e Praxias")
             append_table_with_interpretation(
                 cls._wisc_rows(
                     cls._find_test(context, "wisc4"), context, "gnosias_praxias"
@@ -1418,7 +1423,7 @@ class ReportExportService:
                 cls._wisc_section_text(sections, "gnosias_praxias", context),
                 "Resultados de Gnosias e Praxias",
             )
-            cls._append_subheading(document, "5.3.4. Memória e Aprendizagem")
+            cls._append_subheading(document, "Memória e Aprendizagem")
             append_table_with_interpretation(
                 cls._wisc_memory_rows(cls._find_test(context, "wisc4"), context),
                 "wisc",
@@ -1442,8 +1447,11 @@ class ReportExportService:
 
         def append_section_heading(title: str):
             nonlocal next_section_number
-            cls._append_heading(document, f"{next_section_number}. {title}")
-            next_section_number += 1
+            if wisc_test:
+                cls._append_subheading(document, title)
+            else:
+                cls._append_heading(document, f"{next_section_number}. {title}")
+                next_section_number += 1
 
         bpa2_test = cls._find_test(context, "bpa2")
         if bpa2_test:
@@ -1609,18 +1617,29 @@ class ReportExportService:
                 cls._srs2_chart(srs2_test),
                 template_key="srs2",
             )
-        cls._append_heading(document, f"{next_section_number}. CONCLUSÃO")
+        if wisc_test:
+            cls._append_subheading(document, "Conclusão")
+        else:
+            cls._append_heading(document, f"{next_section_number}. CONCLUSÃO")
         cls._append_paragraph(
             document,
             sections.get("conclusao") or "Sem conteúdo disponível para esta seção.",
         )
-        next_section_number += 1
-        cls._append_heading(document, f"{next_section_number}. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS)")
+        if not wisc_test:
+            next_section_number += 1
+        if wisc_test:
+            cls._append_subheading(document, "Sugestões de Conduta (Encaminhamentos)")
+        else:
+            cls._append_heading(document, f"{next_section_number}. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS)")
         for bullet in cls._split_bullets(sections.get("sugestoes_conduta") or ""):
             cls._append_bullet(document, bullet)
 
-        next_section_number += 1
-        cls._append_heading(document, f"{next_section_number}. REFERÊNCIA BIBLIOGRÁFICA")
+        if not wisc_test:
+            next_section_number += 1
+        if wisc_test:
+            cls._append_subheading(document, "Referencia Bibliográfica")
+        else:
+            cls._append_heading(document, f"{next_section_number}. REFERÊNCIA BIBLIOGRÁFICA")
         for ref in cls._references_list(context):
             cls._append_paragraph(document, ref)
         return document
@@ -2143,9 +2162,11 @@ class ReportExportService:
 
         patient_title = "da paciente" if (context.get("patient") or {}).get("sex") == "F" else "do paciente"
         if tests.get("wisc4"):
-            add_title("5.1. WISC-IV – Capacidade Cognitiva Global")
+            add_title("Capacidade Cognitiva Global")
             add_text(cls._wisc_global_intro_text(tests.get("wisc4"), context))
-            add_title("5.2. Desempenho nos Índices Fatoriais")
+            for lead, tail in cls._wisc_global_bullet_parts(tests.get("wisc4")):
+                add_text(f"- {lead} {tail}")
+            add_title(f"Desempenho {patient_title} no WISC-IV")
             add_chart(
                 "WISC-IV - INDICES DE QI",
                 cls._wisc_chart(tests.get("wisc4")),
@@ -2153,8 +2174,10 @@ class ReportExportService:
                 show_caption=False,
                 template_key="wisc4",
             )
-            for lead, tail in cls._wisc_global_bullet_parts(tests.get("wisc4")):
-                add_text(f"- {lead} {tail}")
+            anchor = cls._insert_interpretation_block_after(
+                anchor,
+                cls._wisc_model_interpretation_text(tests.get("wisc4"), context),
+            )
         elif tests.get("wais3"):
             add_text(cls._wais3_intro_text(tests.get("wais3"), context))
             for lead, tail in cls._wais3_global_bullet_parts(tests.get("wais3")):
@@ -2176,45 +2199,42 @@ class ReportExportService:
             )
 
         if is_adolescent and tests.get("wisc4"):
-            add_title("5.3. Subescalas WISC-IV")
-            next_section_number = 6
+            add_title("Subescalas WISC-IV")
 
             def add_numbered_section(title: str):
-                nonlocal next_section_number
-                add_title(f"{next_section_number}. {title}")
-                next_section_number += 1
+                add_title(title)
 
-            add_title("5.3.1. Funções Executivas")
-            add_text(cls._wisc_section_text(sections, "funcoes_executivas", context))
+            add_title("Função Executiva")
             add_table(
                 "Resultado da Função executiva",
                 cls._wisc_rows(tests.get("wisc4"), context, "funcoes_executivas"),
                 "wisc",
             )
+            add_text(cls._wisc_section_text(sections, "funcoes_executivas", context))
 
-            add_title("5.3.2. Linguagem")
-            add_text(cls._wisc_section_text(sections, "linguagem", context))
+            add_title("Linguagem")
             add_table(
                 "Resultados da Linguagem",
                 cls._wisc_rows(tests.get("wisc4"), context, "linguagem"),
                 "wisc",
             )
+            add_text(cls._wisc_section_text(sections, "linguagem", context))
 
-            add_title("5.3.3. Gnosias e Praxias")
-            add_text(cls._wisc_section_text(sections, "gnosias_praxias", context))
+            add_title("Gnosias e Praxias")
             add_table(
                 "Resultados da Gnosias e praxias",
                 cls._wisc_rows(tests.get("wisc4"), context, "gnosias_praxias"),
                 "wisc",
             )
+            add_text(cls._wisc_section_text(sections, "gnosias_praxias", context))
 
-            add_title("5.3.4. Memória e Aprendizagem")
-            add_text(cls._wisc_section_text(sections, "memoria_aprendizagem", context))
+            add_title("Memória e Aprendizagem")
             add_table(
                 "Resultados de Memória e Aprendizagem",
                 cls._wisc_memory_rows(tests.get("wisc4"), context),
                 "wisc",
             )
+            add_text(cls._wisc_section_text(sections, "memoria_aprendizagem", context))
 
             if tests.get("bpa2"):
                 add_numbered_section("BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO")
@@ -2844,6 +2864,24 @@ class ReportExportService:
             )
         intro += "."
         return intro
+
+    @classmethod
+    def _wisc_model_interpretation_text(cls, test: dict | None, context: dict) -> str:
+        interpretation = cls._resolve_interpretation_text(
+            None,
+            None,
+            test,
+        )
+        normalized = cls._normalize_interpretation_text(interpretation)
+        if normalized != "Interpretação e Observações Clínicas:":
+            return normalized
+
+        payload = cls._wisc_payload(test)
+        patient_name = cls._patient_reference_name(context or {})
+        generated = interpret_wisc4_profile(payload, patient_name)
+        body = re.sub(r"^Interpretação e Observações Clínicas\s*", "", generated).strip()
+        body = re.sub(r"\n\s*\n+", " ", body)
+        return cls._normalize_interpretation_text(body)
 
     @classmethod
     def _wisc_global_bullet_parts(cls, test: dict | None) -> list[tuple[str, str]]:

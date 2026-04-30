@@ -18,6 +18,11 @@ import {
   FileQuestion,
   Stethoscope,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  EyeOff,
+  X,
+  Menu,
 } from "lucide-react";
 
 interface NavItem {
@@ -44,11 +49,19 @@ const NAV_ITEMS: NavItem[] = [
 export function AppSidebar({ 
   collapsed, 
   onToggle,
-  onNewEvaluation 
+  onNewEvaluation,
+  hidden,
+  onHide,
+  isMobile,
+  onNavClick,
 }: { 
   collapsed: boolean; 
   onToggle: () => void;
   onNewEvaluation?: () => void;
+  hidden?: boolean;
+  onHide?: () => void;
+  isMobile?: boolean;
+  onNavClick?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -95,14 +108,40 @@ export function AppSidebar({
   };
 
   return (
-    <aside className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-200 bg-white sidebar-transition ${collapsed ? "w-[72px]" : "w-[260px]"}`}>
+    <aside className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-200 bg-white transition-all duration-300 ${
+        isMobile
+          ? hidden
+            ? "-translate-x-full w-[260px] shadow-xl"
+            : "translate-x-0 w-[260px] shadow-2xl"
+          : hidden
+            ? "-translate-x-full w-0 overflow-hidden"
+            : collapsed
+              ? "w-[72px]"
+              : "w-[260px]"
+      }`}>
       <div className="flex h-16 items-center justify-between px-4">
-        <Link href="/dashboard" className="flex items-center gap-3">
+        <Link href="/dashboard" className="flex items-center gap-3" onClick={onNavClick}>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <Brain className="h-6 w-6" />
           </div>
           {!collapsed && <span className="text-xl font-bold tracking-tight text-slate-900">Neuro<span className="text-primary font-extrabold">Avalia</span></span>}
         </Link>
+        {isMobile ? (
+          <button onClick={onHide} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Fechar menu">
+            <X className="h-5 w-5" />
+          </button>
+        ) : (
+          <div className="flex items-center gap-0.5 rounded-lg border border-slate-100 bg-slate-50/80 p-0.5 shadow-inner shadow-slate-50">
+            <button onClick={onToggle} className="rounded-md p-1.5 text-slate-400 hover:bg-white hover:text-slate-700 hover:shadow-sm transition-all duration-200 ease-out active:scale-95" title={collapsed ? "Expandir menu" : "Recolher menu"}>
+              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+            {!collapsed && (
+              <button onClick={onHide} className="rounded-md p-1.5 text-slate-400 hover:bg-white hover:text-slate-700 hover:shadow-sm transition-all duration-200 ease-out active:scale-95" title="Esconder menu">
+                <EyeOff className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="p-4">
@@ -119,7 +158,7 @@ export function AppSidebar({
             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href || ""));
             return (
               <li key={item.key}>
-                <Link href={item.href} className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${isActive ? "bg-primary/5 text-primary" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"} ${collapsed ? "justify-center px-0 h-11 w-11 mx-auto" : ""}`}>
+                <Link href={item.href} onClick={onNavClick} className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${isActive ? "bg-primary/5 text-primary" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"} ${collapsed ? "justify-center px-0 h-11 w-11 mx-auto" : ""}`}>
                   <div className={`flex shrink-0 items-center justify-center rounded-lg transition-colors ${isActive ? "h-8 w-8 bg-primary text-primary-foreground shadow-sm" : "h-8 w-8 text-slate-400 group-hover:text-slate-600"}`}>
                     <Icon className="h-5 w-5" />
                   </div>

@@ -75,6 +75,23 @@ class MessageOut(Schema):
     message: str
 
 
+class BFPSubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    sample: Optional[str] = "geral"
+    responses: dict[str, int]
+
+
+class WASISubmitIn(Schema):
+    evaluation_id: int
+    applied_on: Optional[date] = None
+    confidence_level: Optional[str] = "95"
+    vc: int
+    sm: int
+    cb: int
+    rm: int
+
+
 # --- EBADEP-A ---
 
 
@@ -276,6 +293,10 @@ class WAIS3SubmitIn(Schema):
     arranjo_figuras: Optional[str] = ""
     procurar_simbolos: Optional[str] = ""
     armar_objetos: Optional[str] = ""
+    digitos_ordem_direta: Optional[str] = ""
+    digitos_ordem_inversa: Optional[str] = ""
+    maior_sequencia_digitos_direta: Optional[str] = ""
+    maior_sequencia_digitos_inversa: Optional[str] = ""
 
 
 # --- EPQ-J ---

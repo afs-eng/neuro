@@ -10,6 +10,7 @@ import {
   LogOut,
   User,
   HelpCircle,
+  PanelLeftOpen,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function AppHeader({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
+export function AppHeader({ sidebarCollapsed, sidebarHidden, onToggleSidebar, isMobile }: { sidebarCollapsed: boolean; sidebarHidden?: boolean; onToggleSidebar?: () => void; isMobile?: boolean }) {
   const router = useRouter();
   const [user, setUser] = React.useState<any>(null);
 
@@ -68,13 +69,27 @@ export function AppHeader({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
   return (
     <header
       className={`fixed top-0 right-0 z-40 h-16 border-b border-slate-100 bg-white/80 backdrop-blur-md transition-all duration-300 ${
-        sidebarCollapsed ? "left-[72px]" : "left-[260px]"
+        isMobile
+          ? "left-0"
+          : sidebarHidden
+            ? "left-0"
+            : sidebarCollapsed
+              ? "left-[72px]"
+              : "left-[260px]"
       }`}
     >
-      <div className="flex h-full items-center justify-between px-8">
-        {/* Search */}
-        <div className="flex-1 max-w-xl pr-8">
-          <div className="group relative">
+      <div className="flex h-full items-center justify-between px-4 md:px-8">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 md:max-w-xl md:pr-8">
+          {(isMobile || sidebarHidden) && (
+            <button onClick={onToggleSidebar} className="group flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50/80 h-10 w-10 text-slate-400 shadow-inner shadow-slate-50 hover:bg-white hover:text-slate-700 hover:border-slate-200 hover:shadow-sm transition-all duration-200 ease-out active:scale-95" title="Mostrar menu">
+              <PanelLeftOpen className="h-4 w-4 group-hover:text-primary transition-colors duration-200" />
+            </button>
+          )}
+          {isMobile && (
+            <span className="text-base font-bold tracking-tight text-slate-900 whitespace-nowrap">Neuro<span className="text-primary font-extrabold">Avalia</span></span>
+          )}
+          {/* Search */}
+          <div className="group relative flex-1 md:block hidden">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" />
             <Input
               placeholder="Pesquisar..."
@@ -89,14 +104,14 @@ export function AppHeader({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0 md:gap-1">
           {/* Support */}
-          <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-primary hover:bg-primary/5">
+          <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-10 w-10 text-slate-400 hover:text-primary hover:bg-primary/5">
             <HelpCircle className="h-5 w-5" />
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative h-10 w-10 text-slate-400 hover:text-primary hover:bg-primary/5">
+          <Button variant="ghost" size="icon" className="relative hidden sm:inline-flex h-10 w-10 text-slate-400 hover:text-primary hover:bg-primary/5">
             <Bell className="h-5 w-5" />
             <span className="absolute right-2.5 top-2.5 flex h-2 w-2">
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
@@ -104,7 +119,7 @@ export function AppHeader({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
           </Button>
 
           {/* Divider */}
-          <div className="mx-3 h-6 w-px bg-slate-100"></div>
+          <div className="mx-1 md:mx-3 h-6 w-px bg-slate-100 hidden sm:block"></div>
 
           {/* User Menu */}
           <DropdownMenu>

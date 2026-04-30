@@ -33,6 +33,7 @@ interface ResultData {
     subtestes?: Record<string, SubtestData>
     gai_data?: any
     cpi_data?: any
+    clusters?: Record<string, any>
   }
   computed_payload?: {
     idade?: { anos: number; meses: number }
@@ -65,6 +66,14 @@ const SUBTEST_ORDER = [
   "Procurar Símbolos",
   "Sequência de Números e Letras",
   "Armar Objetos",
+]
+
+const DIGIT_PROCESS_ROWS = [
+  { key: 'ordem_direta', label: 'Dígitos - Ordem Direta' },
+  { key: 'ordem_inversa', label: 'Dígitos - Ordem Inversa' },
+  { key: 'maior_sequencia_direta', label: 'Maior Sequência de Dígitos OD' },
+  { key: 'maior_sequencia_inversa', label: 'Maior Sequência de Dígitos OI' },
+  { key: 'diferenca_maior_sequencia', label: 'Diferença OD - OI' },
 ]
 
 export default function WAIS3ResultPage() {
@@ -175,21 +184,13 @@ export default function WAIS3ResultPage() {
             </div>
           )}
 
-          {/* Interpretação */}
-          {result.interpretation_text && (
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h3 className="font-semibold text-slate-900 mb-3">Interpretação</h3>
-              <p className="text-sm leading-7 text-slate-700 whitespace-pre-wrap">{result.interpretation_text}</p>
-            </div>
-          )}
-
           {/* GAI e CPI */}
           {(classified.gai_data || classified.cpi_data) && (
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
               <div className="px-5 py-4 border-b border-slate-200"><h3 className="font-semibold text-slate-900">Índices Gerais (GAI / CPI)</h3></div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead><tr className="bg-slate-50"><th className="text-left px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Índice</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Soma Ponderada</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Escore Composto</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Percentil</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Classificação</th></tr></thead>
+                  <thead><tr className="bg-slate-50"><th className="text-left px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Índice</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Soma Ponderada</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Escore Composto</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Percentil</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">IC 95%</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th></tr></thead>
                   <tbody className="divide-y divide-slate-200">
                     {classified.gai_data && (
                       <tr className="hover:bg-slate-50">
@@ -197,7 +198,8 @@ export default function WAIS3ResultPage() {
                         <td className="px-5 py-3 text-sm text-center text-slate-700 font-semibold">{classified.gai_data.soma_ponderados ?? '—'}</td>
                         <td className="px-5 py-3 text-sm text-center text-slate-700 font-semibold">{classified.gai_data.escore_composto ?? '—'}</td>
                         <td className="px-5 py-3 text-sm text-center text-slate-700">{classified.gai_data.percentil ?? '—'}</td>
-                        <td className="px-5 py-3 text-sm text-center text-slate-700">{classified.gai_data.classificacao ?? '—'}</td>
+                        <td className="px-5 py-3 text-sm text-center text-slate-700">{classified.gai_data.intervalo_confianca?.join?.(' - ') ?? '—'}</td>
+                        <td className="px-5 py-3 text-sm text-center text-slate-700">{classified.gai_data.interpretavel ? classified.gai_data.classificacao : classified.gai_data.alerta || 'Atenção'}</td>
                       </tr>
                     )}
                     {classified.cpi_data && (
@@ -206,6 +208,7 @@ export default function WAIS3ResultPage() {
                         <td className="px-5 py-3 text-sm text-center text-slate-700 font-semibold">{classified.cpi_data.soma_ponderados ?? '—'}</td>
                         <td className="px-5 py-3 text-sm text-center text-slate-700 font-semibold">{classified.cpi_data.escore_composto ?? '—'}</td>
                         <td className="px-5 py-3 text-sm text-center text-slate-700">{classified.cpi_data.percentil ?? '—'}</td>
+                        <td className="px-5 py-3 text-sm text-center text-slate-700">{classified.cpi_data.intervalo_confianca?.join?.(' - ') ?? '—'}</td>
                         <td className="px-5 py-3 text-sm text-center text-slate-700">{classified.cpi_data.classificacao ?? '—'}</td>
                       </tr>
                     )}
@@ -291,24 +294,38 @@ export default function WAIS3ResultPage() {
           {computed.digitos && Object.keys(computed.digitos).length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
               <div className="px-5 py-4 border-b border-slate-200"><h3 className="font-semibold text-slate-900">Análise de Dígitos</h3></div>
-              <div className="p-5 grid grid-cols-2 gap-4 md:grid-cols-4">
-                <div className="bg-slate-50 rounded-lg p-3 text-center">
-                  <div className="text-xs text-slate-500 uppercase tracking-wide">Máx. Direta</div>
-                  <div className="text-lg font-semibold text-slate-900">{computed.digitos.maximo_ordem_direta ?? '—'}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-3 text-center">
-                  <div className="text-xs text-slate-500 uppercase tracking-wide">Máx. Inversa</div>
-                  <div className="text-lg font-semibold text-slate-900">{computed.digitos.maximo_ordem_inversa ?? '—'}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-3 text-center">
-                  <div className="text-xs text-slate-500 uppercase tracking-wide">Freq. Direta</div>
-                  <div className="text-lg font-semibold text-slate-900">{computed.digitos.frequencia_b6_direta ?? '—'}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-3 text-center">
-                  <div className="text-xs text-slate-500 uppercase tracking-wide">Freq. Inversa</div>
-                  <div className="text-lg font-semibold text-slate-900">{computed.digitos.frequencia_b6_inversa ?? '—'}</div>
-                </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="bg-slate-50"><th className="text-left px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Medida</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Bruto</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Freq. Acumulada</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Média</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">DP</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Z</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Ponder</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Percentil</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Classificação</th></tr></thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {DIGIT_PROCESS_ROWS.map(({ key, label }) => {
+                      const item = computed.digitos[key]
+                      if (!item) return null
+                      return (
+                        <tr key={key} className="hover:bg-slate-50">
+                          <td className="px-5 py-3 text-sm font-medium text-slate-900">{label}</td>
+                          <td className="px-5 py-3 text-sm text-center text-slate-700">{item.difference ?? item.raw_score ?? '—'}</td>
+                          <td className="px-5 py-3 text-sm text-center text-slate-700">{item.cumulative_frequency ?? '—'}</td>
+                          <td className="px-5 py-3 text-sm text-center text-slate-700">{item.mean ?? '—'}</td>
+                          <td className="px-5 py-3 text-sm text-center text-slate-700">{item.sd ?? '—'}</td>
+                          <td className="px-5 py-3 text-sm text-center text-slate-700">{item.z_score ?? '—'}</td>
+                          <td className="px-5 py-3 text-sm text-center text-slate-700">{item.scaled_score ?? '—'}</td>
+                          <td className="px-5 py-3 text-sm text-center text-slate-700">{item.percentile ?? '—'}</td>
+                          <td className="px-5 py-3 text-sm text-center text-slate-700">{item.classification ?? '—'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
+            </div>
+          )}
+
+          {/* Interpretação */}
+          {result.interpretation_text && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="font-semibold text-slate-900 mb-3">Interpretação</h3>
+              <p className="text-sm leading-7 text-slate-700 whitespace-pre-wrap">{result.interpretation_text}</p>
             </div>
           )}
 

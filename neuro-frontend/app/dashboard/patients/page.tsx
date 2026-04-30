@@ -26,6 +26,7 @@ import {
   Sparkles,
   ClipboardList,
   FileText,
+  Edit,
   Trash2,
   AlertTriangle
 } from "lucide-react";
@@ -240,6 +241,11 @@ export default function PatientsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 justify-end">
+                          <Link href={`/dashboard/patients/${patient.id}/edit`}>
+                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
                           <Link href={`/dashboard/patients/${patient.id}`}>
                             <Button variant="ghost" size="sm" className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/5">
                               <ChevronRight className="h-5 w-5" />

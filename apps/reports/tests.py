@@ -846,7 +846,7 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         self.assertEqual(len(global_lines), 1)
         self.assertEqual(global_lines[0].count("Capacidade Cognitiva Global:"), 1)
 
-    def test_rebuild_qualitative_section_uses_wisc4_skill_headings(self):
+    def test_rebuild_qualitative_section_uses_wisc4_model_headings(self):
         document = Document()
         start = document.add_paragraph("ANÁLISE QUALITATIVA")
         end = document.add_paragraph("Conclusão")
@@ -900,12 +900,13 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
 
         texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
 
-        self.assertIn("5.1. WISC-IV – Capacidade Cognitiva Global", texts)
-        self.assertIn("5.2. Desempenho nos Índices Fatoriais", texts)
-        self.assertIn("5.3. Subescalas WISC-IV", texts)
-        self.assertIn("5.3.1. Funções Executivas", texts)
+        self.assertIn("Capacidade Cognitiva Global", texts)
+        self.assertIn("Desempenho da paciente no WISC-IV", texts)
+        self.assertIn("Subescalas WISC-IV", texts)
+        self.assertIn("Função Executiva", texts)
+        self.assertTrue(any(text.startswith("Interpretação e Observações Clínicas:") for text in texts))
 
-    def test_build_adolescent_document_renumbers_wisc4_sections_when_optional_tests_are_missing(self):
+    def test_build_adolescent_document_uses_model_wisc4_titles_when_optional_tests_are_missing(self):
         document = ReportExportService._build_adolescent_document(
             self._report_stub(),
             sections={"conclusao": "Conclusão clínica.", "sugestoes_conduta": "- Sugestão 1"},
@@ -947,15 +948,17 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
 
         texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
 
-        self.assertIn("5.1. WISC-IV – Capacidade Cognitiva Global", texts)
-        self.assertIn("5.2. Desempenho nos Índices Fatoriais", texts)
-        self.assertIn("5.3. Subescalas WISC-IV", texts)
-        self.assertIn("6. CONCLUSÃO", texts)
-        self.assertIn("7. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS)", texts)
-        self.assertIn("8. REFERÊNCIA BIBLIOGRÁFICA", texts)
+        self.assertIn("5. ANÁLISE QUALITATIVA", texts)
+        self.assertIn("Capacidade Cognitiva Global", texts)
+        self.assertIn("Desempenho da paciente no WISC-IV", texts)
+        self.assertIn("Subescalas WISC-IV", texts)
+        self.assertIn("Conclusão", texts)
+        self.assertIn("Sugestões de Conduta (Encaminhamentos)", texts)
+        self.assertIn("Referencia Bibliográfica", texts)
         self.assertNotIn("6. BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO", texts)
-        self.assertNotIn("16. A EQUIPE MULTIDISCIPLINAR", texts)
-        self.assertNotIn("17. IMPORTANTE RESSALTAR QUE ESTE DOCUMENTO:", texts)
+        self.assertNotIn("6. CONCLUSÃO", texts)
+        self.assertNotIn("7. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS)", texts)
+        self.assertNotIn("8. REFERÊNCIA BIBLIOGRÁFICA", texts)
 
     def test_replace_simple_sections_uses_wais3_skill_structure_for_demand_and_procedures(self):
         document = Document()

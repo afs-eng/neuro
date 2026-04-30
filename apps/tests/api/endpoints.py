@@ -7,12 +7,14 @@ from apps.evaluations.models import Evaluation
 from apps.tests.models import Instrument
 from apps.tests.age_rules import get_instrument_age_rule
 from apps.tests.api.schemas import (
+    BFPSubmitIn,
     EPQJSubmitIn,
     RAVLTSubmitIn,
     SRS2SubmitIn,
     SCAREDSubmitIn,
     BAISubmitIn,
     MCHATSubmitIn,
+    WASISubmitIn,
 )
 from apps.tests.selectors import (
     get_instrument_by_id,
@@ -123,6 +125,8 @@ def can_edit_tests(user) -> bool:
 def serialize_instrument(instrument):
     age_rule = get_instrument_age_rule(instrument.code) or {}
     descriptions = {
+        "bfp": "Avalia traços de personalidade nos cinco grandes fatores e suas facetas.",
+        "wasi": "Estimativa abreviada de inteligencia verbal, de execucao e global por quatro subtestes.",
         "scared": "Triagem de sintomas de ansiedade em crianças e adolescentes.",
         "ravlt": "Avalia aprendizagem verbal, evocação e memória episódica.",
         "srs2": "Mensura responsividade social e traços associados ao espectro autista.",
@@ -167,6 +171,16 @@ def serialize_test_application(application):
 def list_instruments(request) -> list[dict]:
     # Auto-seed essencial após reset de banco
     required = [
+        {
+            "code": "bfp",
+            "name": "BFP - Bateria Fatorial de Personalidade",
+            "category": "Personalidade",
+        },
+        {
+            "code": "wasi",
+            "name": "WASI - Escala Wechsler Abreviada de Inteligência",
+            "category": "Inteligência",
+        },
         {
             "code": "scared",
             "name": "SCARED - Screen for Child Anxiety",
@@ -1050,8 +1064,15 @@ def wais3_preview(request, payload: WAIS3SubmitIn) -> tuple[int, dict]:
             "procurar_simbolos": {"pontos_brutos": int(payload.procurar_simbolos)} if payload.procurar_simbolos else None,
             "armar_objetos": {"pontos_brutos": int(payload.armar_objetos)} if payload.armar_objetos else None,
         },
+        "process_scores": {
+            "digitos_ordem_direta": int(payload.digitos_ordem_direta) if payload.digitos_ordem_direta else None,
+            "digitos_ordem_inversa": int(payload.digitos_ordem_inversa) if payload.digitos_ordem_inversa else None,
+            "maior_sequencia_digitos_direta": int(payload.maior_sequencia_digitos_direta) if payload.maior_sequencia_digitos_direta else None,
+            "maior_sequencia_digitos_inversa": int(payload.maior_sequencia_digitos_inversa) if payload.maior_sequencia_digitos_inversa else None,
+        },
     }
     raw_scores["subtestes"] = {k: v for k, v in raw_scores["subtestes"].items() if v is not None}
+    raw_scores["process_scores"] = {k: v for k, v in raw_scores["process_scores"].items() if v is not None}
     
     # Compute directly without saving
     from apps.tests.wais3.calculators import compute_wais3_payload
@@ -1065,6 +1086,7 @@ def wais3_preview(request, payload: WAIS3SubmitIn) -> tuple[int, dict]:
         "age_range": computed.get("idade_normativa"),
         "indices": computed.get("indices", {}),
         "subtestes": computed.get("subtestes", {}),
+        "digitos": computed.get("digitos", {}),
         "warnings": computed.get("warnings", []),
     }
 
@@ -1114,8 +1136,15 @@ def wais3_submit(request, payload: WAIS3SubmitIn) -> tuple[int, dict]:
             "procurar_simbolos": {"pontos_brutos": int(payload.procurar_simbolos)} if payload.procurar_simbolos else None,
             "armar_objetos": {"pontos_brutos": int(payload.armar_objetos)} if payload.armar_objetos else None,
         },
+        "process_scores": {
+            "digitos_ordem_direta": int(payload.digitos_ordem_direta) if payload.digitos_ordem_direta else None,
+            "digitos_ordem_inversa": int(payload.digitos_ordem_inversa) if payload.digitos_ordem_inversa else None,
+            "maior_sequencia_digitos_direta": int(payload.maior_sequencia_digitos_direta) if payload.maior_sequencia_digitos_direta else None,
+            "maior_sequencia_digitos_inversa": int(payload.maior_sequencia_digitos_inversa) if payload.maior_sequencia_digitos_inversa else None,
+        },
     }
     raw_scores["subtestes"] = {k: v for k, v in raw_scores["subtestes"].items() if v is not None}
+    raw_scores["process_scores"] = {k: v for k, v in raw_scores["process_scores"].items() if v is not None}
 
     ctx = TestContext(
         patient_name=patient.full_name,
@@ -1193,6 +1222,143 @@ def get_application_result(request, application_id: int) -> tuple[int, dict]:
 
 
 # --- EPQ-J ---
+
+
+@router.post(
+    "/bfp/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def bfp_submit(request, payload: BFPSubmitIn) -> tuple[int, dict]:
+    from apps.tests.bfp import BFPModule
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+
+    instrument = Instrument.objects.filter(code="bfp", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento BFP não encontrado."}
+
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+    raw_scores = {
+        "sample": payload.sample or "geral",
+        "responses": payload.responses,
+    }
+
+    module = BFPModule()
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="bfp",
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    return 200, {
+        "application_id": application.pk,
+        "computed_payload": computed,
+        "classified_payload": classified,
+        "interpretation_text": interpretation,
+    }
+
+
+@router.post(
+    "/wasi/submit",
+    response={200: dict, 400: MessageOut, 403: MessageOut, 404: MessageOut},
+    auth=bearer_auth,
+)
+def wasi_submit(request, payload: WASISubmitIn) -> tuple[int, dict]:
+    from apps.tests.wasi import WASIModule
+    from apps.tests.base.types import TestContext
+    from apps.tests.models.instruments import Instrument
+    from apps.tests.models.applications import TestApplication
+
+    if not can_edit_tests(request.auth):
+        return 403, {"message": "Você não tem permissão para submeter testes."}
+
+    evaluation = Evaluation.objects.filter(id=payload.evaluation_id).first()
+    if not evaluation:
+        return 404, {"message": "Avaliação não encontrada."}
+    if not evaluation.patient or not evaluation.patient.birth_date:
+        return 400, {"message": "A avaliação precisa ter data de nascimento do paciente para corrigir o WASI."}
+
+    instrument = Instrument.objects.filter(code="wasi", is_active=True).first()
+    if not instrument:
+        return 404, {"message": "Instrumento WASI não encontrado."}
+
+    reference_date = get_reference_date(evaluation, payload.applied_on)
+    raw_scores = {
+        "vc": payload.vc,
+        "sm": payload.sm,
+        "cb": payload.cb,
+        "rm": payload.rm,
+        "birth_date": evaluation.patient.birth_date.isoformat(),
+        "applied_on": reference_date.isoformat(),
+        "confidence_level": payload.confidence_level or "95",
+    }
+
+    module = WASIModule()
+    ctx = TestContext(
+        patient_name=evaluation.patient.full_name,
+        evaluation_id=evaluation.pk,
+        instrument_code="wasi",
+        raw_scores=raw_scores,
+    )
+
+    errors = module.validate(ctx)
+    if errors:
+        return 400, {"message": "; ".join(errors)}
+
+    computed = module.compute(ctx)
+    classified = module.classify(computed)
+    interpretation = module.interpret(ctx, {**computed, **classified})
+
+    application, _ = TestApplication.objects.get_or_create(
+        evaluation=evaluation,
+        instrument=instrument,
+        defaults={"applied_on": reference_date},
+    )
+    application.raw_payload = raw_scores
+    application.computed_payload = computed
+    application.classified_payload = classified
+    application.interpretation_text = interpretation
+    application.is_validated = True
+    application.applied_on = reference_date
+    application.save()
+
+    return 200, {
+        "application_id": application.pk,
+        "computed_payload": computed,
+        "classified_payload": classified,
+        "interpretation_text": interpretation,
+    }
 
 
 @router.post(

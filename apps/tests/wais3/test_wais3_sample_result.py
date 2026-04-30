@@ -108,3 +108,32 @@ def test_wais3_sample_result_case():
     assert payload["has_scaled_score_data"] is True
     assert payload["has_composite_data"] is True
     assert payload["norm_tables_ready"] is True
+
+
+def test_wais3_digit_process_scores_are_computed_when_provided():
+    raw_scores = {
+        "idade": {"anos": 30, "meses": 0},
+        "subtestes": {
+            "digitos": {"pontos_brutos": 13},
+        },
+        "process_scores": {
+            "digitos_ordem_direta": 6,
+            "digitos_ordem_inversa": 4,
+            "maior_sequencia_digitos_direta": 6,
+            "maior_sequencia_digitos_inversa": 4,
+        },
+    }
+
+    payload = compute_wais3_payload(raw_scores)
+    digitos = payload["digitos"]
+
+    assert digitos["ordem_direta"]["cumulative_frequency"] == 61.8
+    assert digitos["ordem_direta"]["scaled_score"] == 10.0
+    assert digitos["ordem_direta"]["classification"] == "Média"
+
+    assert digitos["ordem_inversa"]["cumulative_frequency"] == 70.7
+    assert digitos["ordem_inversa"]["classification"] == "Média"
+
+    assert digitos["diferenca_maior_sequencia"]["difference"] == 2
+    assert digitos["diferenca_maior_sequencia"]["cumulative_frequency"] == 58.7
+    assert digitos["diferenca_maior_sequencia"]["classification"] == "Média"

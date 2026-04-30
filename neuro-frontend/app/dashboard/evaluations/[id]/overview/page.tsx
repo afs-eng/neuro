@@ -757,7 +757,9 @@ export default function EvaluationDetailPage() {
     const normalizedCode = instrumentCode.replace(/-/g, '_');
     
     const baseUrls: Record<string, string> = {
+      "bfp": "/dashboard/tests/bfp",
       "fdt": "/dashboard/tests/fdt",
+      "wasi": "/dashboard/tests/wasi",
       "wisc4": "/dashboard/tests/wisc4",
       "wais3": "/dashboard/tests/wais3",
       "bpa2": "/dashboard/tests/bpa2",

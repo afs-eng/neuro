@@ -12,6 +12,12 @@ type Subtest = {
   domain?: 'verbal' | 'execucao' | 'suplementar'
 }
 
+type ProcessScore = {
+  key: string
+  name: string
+  group: 'digitos' | 'sequencia'
+}
+
 const subtests: Subtest[] = [
   // Escala de Execução
   { code: 'completar_figuras', name: 'Completar Figuras', maxScore: 25, domain: 'execucao' },
@@ -30,6 +36,13 @@ const subtests: Subtest[] = [
   { code: 'armar_objetos', name: 'Armar Objetos', maxScore: 52, domain: 'suplementar' },
 ]
 
+const processScores: ProcessScore[] = [
+  { key: 'digitos_ordem_direta', name: 'Dígitos - Ordem Direta', group: 'digitos' },
+  { key: 'digitos_ordem_inversa', name: 'Dígitos - Ordem Inversa', group: 'digitos' },
+  { key: 'maior_sequencia_digitos_direta', name: 'Maior Sequência de Dígitos OD', group: 'sequencia' },
+  { key: 'maior_sequencia_digitos_inversa', name: 'Maior Sequência de Dígitos OI', group: 'sequencia' },
+]
+
 function WAIS3PageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -39,6 +52,7 @@ function WAIS3PageContent() {
 
   const [evaluation, setEvaluation] = useState<any>(null)
   const [scores, setScores] = useState<Record<string, number | null>>({})
+  const [digitProcessScores, setDigitProcessScores] = useState<Record<string, number | null>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [preview, setPreview] = useState<any>(null)
@@ -64,6 +78,12 @@ function WAIS3PageContent() {
             nextScores[subtest.code] = existing[subtest.code]?.pontos_brutos ?? null
           }
           setScores(nextScores)
+          const nextProcessScores: Record<string, number | null> = {}
+          const existingProcess = raw.process_scores || {}
+          for (const field of processScores) {
+            nextProcessScores[field.key] = existingProcess[field.key] ?? null
+          }
+          setDigitProcessScores(nextProcessScores)
         } catch (error) {
           console.log('WAIS-III ainda sem aplicação existente')
         }
@@ -101,6 +121,11 @@ function WAIS3PageContent() {
     setScores((prev) => ({ ...prev, [code]: numVal }))
   }
 
+  const handleProcessChange = (key: string, value: string) => {
+    const numVal = value === '' ? null : parseInt(value, 10)
+    setDigitProcessScores((prev) => ({ ...prev, [key]: numVal }))
+  }
+
   // Fetch preview whenever scores change
   useEffect(() => {
     if (!evaluationId) return
@@ -120,6 +145,9 @@ function WAIS3PageContent() {
         for (const subtest of subtests) {
           payload[subtest.code] = scores[subtest.code] == null ? '' : String(scores[subtest.code])
         }
+        for (const field of processScores) {
+          payload[field.key] = digitProcessScores[field.key] == null ? '' : String(digitProcessScores[field.key])
+        }
         
         const result = await api.post<any>('/api/tests/wais3/preview', payload)
         setPreview(result)
@@ -133,7 +161,7 @@ function WAIS3PageContent() {
 
     const timer = setTimeout(fetchPreview, 500)
     return () => clearTimeout(timer)
-  }, [scores, evaluationId])
+  }, [scores, digitProcessScores, evaluationId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -162,6 +190,9 @@ function WAIS3PageContent() {
     }
     for (const subtest of subtests) {
       payload[subtest.code] = scores[subtest.code] == null ? '' : String(scores[subtest.code])
+    }
+    for (const field of processScores) {
+      payload[field.key] = digitProcessScores[field.key] == null ? '' : String(digitProcessScores[field.key])
     }
 
     try {
@@ -263,6 +294,29 @@ function WAIS3PageContent() {
               </div>
             </div>
 
+            <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+              <h3 className="mb-4 text-lg font-semibold text-zinc-900">Escores de Processo - Dígitos</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {processScores.map((field) => (
+                  <div key={field.key} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-medium text-zinc-900">{field.name}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${field.group === 'digitos' ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'}`}>
+                        {field.group === 'digitos' ? 'B.6' : 'B.7'}
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={digitProcessScores[field.key] ?? ''}
+                      onChange={(e) => handleProcessChange(field.key, e.target.value)}
+                      className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/20"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Preview Section */}
             {preview && (
               <div className="space-y-4">
@@ -335,6 +389,46 @@ function WAIS3PageContent() {
                         <li key={i} className="text-xs text-yellow-800">• {w}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {preview.digitos && Object.keys(preview.digitos).length > 0 && (
+                  <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+                    <h3 className="mb-4 text-lg font-semibold text-zinc-900">Dígitos - Processo (Preview)</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-black/10">
+                            <th className="px-3 py-2 text-left font-semibold text-zinc-700">Medida</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Bruto</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Freq. Acum.</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Percentil</th>
+                            <th className="px-3 py-2 text-center font-semibold text-zinc-700">Classificação</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/5">
+                          {[
+                            ['ordem_direta', 'Dígitos - Ordem Direta'],
+                            ['ordem_inversa', 'Dígitos - Ordem Inversa'],
+                            ['maior_sequencia_direta', 'Maior Sequência OD'],
+                            ['maior_sequencia_inversa', 'Maior Sequência OI'],
+                            ['diferenca_maior_sequencia', 'Diferença OD - OI'],
+                          ].map(([key, label]) => {
+                            const item = preview.digitos?.[key]
+                            if (!item) return null
+                            return (
+                              <tr key={key} className="hover:bg-black/2">
+                                <td className="px-3 py-2 text-zinc-900">{label}</td>
+                                <td className="px-3 py-2 text-center text-zinc-700">{item.difference ?? item.raw_score ?? '—'}</td>
+                                <td className="px-3 py-2 text-center text-zinc-700">{item.cumulative_frequency ?? '—'}</td>
+                                <td className="px-3 py-2 text-center text-zinc-700">{item.percentile ?? '—'}</td>
+                                <td className="px-3 py-2 text-center text-zinc-700">{item.classification ?? '—'}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>

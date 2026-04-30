@@ -115,7 +115,98 @@ def _map_faixa_b6(faixa: str) -> int:
     return mapping.get(faixa, 7)  # default 30-39
 
 
-def analyze_supplementary(loader: WAIS3NormLoader, age_range_key: str, computed_subtests: dict, indices: dict) -> dict:
+def _b6_columns_for_age(age_range_key: str) -> tuple[str, str]:
+    mapping = {
+        "idade_16-17": ("col_1", "col_2"),
+        "idade_18-19": ("col_3", "col_4"),
+        "idade_20-29": ("col_5", "col_6"),
+        "idade_30-39": ("col_7", "col_8"),
+        "idade_40-49": ("col_9", "col_10"),
+        "idade_50-59": ("col_11", "col_12"),
+        "idade_60-64": ("col_13", "col_14"),
+        "idade_65-89": ("col_15", "col_16"),
+    }
+    return mapping.get(age_range_key, ("col_7", "col_8"))
+
+
+def _b7_column_for_age(age_range_key: str) -> str:
+    mapping = {
+        "idade_16-17": "col_1",
+        "idade_18-19": "col_2",
+        "idade_20-29": "col_3",
+        "idade_30-39": "col_4",
+        "idade_40-49": "col_5",
+        "idade_50-59": "col_6",
+        "idade_60-64": "col_7",
+        "idade_65-89": "col_8",
+    }
+    return mapping.get(age_range_key, "col_4")
+
+
+def _lookup_percentile_from_csv_rows(rows: list[dict[str, str]], raw_value: int, value_column: str) -> float | None:
+    for row in rows:
+        key = str(row.get("col_0") or "").strip()
+        if not key or key in {"Média", "DP", "Mediana"}:
+            continue
+        try:
+            row_value = int(float(key))
+        except ValueError:
+            continue
+        if row_value == raw_value:
+            return _norm_float(row.get(value_column))
+    return None
+
+
+def _row_value(rows: list[dict[str, str]], row_key: str, value_column: str) -> float | None:
+    for row in rows:
+        key = str(row.get("col_0") or "").strip()
+        if key == row_key:
+            return _norm_float(row.get(value_column))
+    return None
+
+
+def _build_process_result(raw_value: int, mean: float | None, sd: float | None, percentile: float | None, *, reverse_z: bool = False) -> dict:
+    z_score = None
+    if mean is not None and sd not in (None, 0):
+        z_score = ((mean - raw_value) / sd) if reverse_z else ((raw_value - mean) / sd)
+
+    return {
+        "raw_score": raw_value,
+        "cumulative_frequency": percentile,
+        "mean": mean,
+        "sd": sd,
+        "z_score": round(z_score, 3) if z_score is not None else None,
+        "scaled_score": round((z_score * 3) + 10, 1) if z_score is not None else None,
+        "percentile": round(_xlfn_norm_s_dist(z_score) * 100, 1) if z_score is not None else None,
+        "classification": _classify_z_score(z_score),
+    }
+
+
+def _xlfn_norm_s_dist(z_score: float | None) -> float:
+    if z_score is None:
+        return float("nan")
+    return 0.5 * (1 + math.erf(z_score / math.sqrt(2)))
+
+
+def _classify_z_score(z_score: float | None) -> str | None:
+    if z_score is None:
+        return None
+    if z_score >= 2:
+        return "Muito Superior"
+    if z_score >= 1.333:
+        return "Superior"
+    if z_score >= 0.666:
+        return "Média Superior"
+    if z_score >= -0.667:
+        return "Média"
+    if z_score >= -1.333:
+        return "Média Inferior"
+    if z_score >= -2:
+        return "Limítrofe"
+    return "Deficitário"
+
+
+def analyze_supplementary(loader: WAIS3NormLoader, age_range_key: str, computed_subtests: dict, indices: dict, raw_scores: dict | None = None) -> dict:
     """Executa análises complementares B.1, B.3, B.6, B.7."""
     result = {
         "facilidades_dificuldades": [],
@@ -252,6 +343,60 @@ def analyze_supplementary(loader: WAIS3NormLoader, age_range_key: str, computed_
             "frequencia_b6_inversa": freq_inversa,
         }
 
+    process_scores = (raw_scores or {}).get("process_scores") or {}
+    b6_rows = loader.get_supplementary_tables().get("b6") or []
+    b7_rows = loader.get_supplementary_tables().get("b7") or []
+    direct_col, inverse_col = _b6_columns_for_age(age_range_key)
+    b7_col = _b7_column_for_age(age_range_key)
+
+    digits_forward = process_scores.get("digitos_ordem_direta")
+    digits_backward = process_scores.get("digitos_ordem_inversa")
+    forward_span = process_scores.get("maior_sequencia_digitos_direta")
+    backward_span = process_scores.get("maior_sequencia_digitos_inversa")
+
+    if digits_forward is not None:
+        result["digitos"]["ordem_direta"] = _build_process_result(
+            raw_value=int(digits_forward),
+            mean=_row_value(b6_rows, "Média", direct_col),
+            sd=_row_value(b6_rows, "DP", direct_col),
+            percentile=_lookup_percentile_from_csv_rows(b6_rows, int(digits_forward), direct_col),
+        )
+
+    if digits_backward is not None:
+        result["digitos"]["ordem_inversa"] = _build_process_result(
+            raw_value=int(digits_backward),
+            mean=_row_value(b6_rows, "Média", inverse_col),
+            sd=_row_value(b6_rows, "DP", inverse_col),
+            percentile=_lookup_percentile_from_csv_rows(b6_rows, int(digits_backward), inverse_col),
+        )
+
+    if forward_span is not None:
+        result["digitos"]["maior_sequencia_direta"] = _build_process_result(
+            raw_value=int(forward_span),
+            mean=_row_value(b6_rows, "Média", direct_col),
+            sd=_row_value(b6_rows, "DP", direct_col),
+            percentile=_lookup_percentile_from_csv_rows(b6_rows, int(forward_span), direct_col),
+        )
+
+    if backward_span is not None:
+        result["digitos"]["maior_sequencia_inversa"] = _build_process_result(
+            raw_value=int(backward_span),
+            mean=_row_value(b6_rows, "Média", inverse_col),
+            sd=_row_value(b6_rows, "DP", inverse_col),
+            percentile=_lookup_percentile_from_csv_rows(b6_rows, int(backward_span), inverse_col),
+        )
+
+    if forward_span is not None and backward_span is not None:
+        difference = int(forward_span) - int(backward_span)
+        result["digitos"]["diferenca_maior_sequencia"] = _build_process_result(
+            raw_value=difference,
+            mean=_row_value(b7_rows, "Média", b7_col),
+            sd=_row_value(b7_rows, "DP", b7_col),
+            percentile=_lookup_percentile_from_csv_rows(b7_rows, difference, b7_col),
+            reverse_z=True,
+        )
+        result["digitos"]["diferenca_maior_sequencia"]["difference"] = difference
+
     return result
 
 
@@ -336,7 +481,7 @@ def compute_wais3_payload(raw_scores: dict, loader: WAIS3NormLoader | None = Non
         }
 
     # Análises complementares
-    supplementary = analyze_supplementary(loader, age_range_key, computed_subtests, computed_indexes)
+    supplementary = analyze_supplementary(loader, age_range_key, computed_subtests, computed_indexes, raw_scores=raw_scores)
 
     return {
         "instrument_code": "wais3",
