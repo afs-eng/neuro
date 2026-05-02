@@ -46,7 +46,7 @@ interface Patient {
 
 function calculateAge(birthDate: string | null): string {
   if (!birthDate) return "—";
-  const birth = new Date(birthDate);
+  const birth = new Date(birthDate + "T00:00:00");
   const today = new Date();
   if (isNaN(birth.getTime())) return "—";
 

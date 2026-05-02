@@ -4,6 +4,7 @@ from copy import deepcopy
 from io import BytesIO
 from zipfile import ZipFile
 from datetime import date
+from types import SimpleNamespace
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
@@ -447,6 +448,36 @@ class WAIS3ExportTableTests(SimpleTestCase):
 
 
 class ReportExportChartSanitizationTests(SimpleTestCase):
+    def test_primary_report_test_code_prefers_wisc4_then_wais3_then_wasi(self):
+        self.assertEqual(
+            ReportExportService._primary_report_test_code(
+                {"validated_tests": [{"instrument_code": "wais3"}, {"instrument_code": "bfp"}]}
+            ),
+            "wais3",
+        )
+        self.assertEqual(
+            ReportExportService._primary_report_test_code(
+                {"validated_tests": [{"instrument_code": "wasi"}, {"instrument_code": "wais3"}]}
+            ),
+            "wais3",
+        )
+        self.assertEqual(
+            ReportExportService._primary_report_test_code(
+                {"validated_tests": [{"instrument_code": "wisc4"}, {"instrument_code": "wais3"}]}
+            ),
+            "wisc4",
+        )
+
+    def test_select_template_path_uses_primary_report_test(self):
+        report = SimpleNamespace(patient=SimpleNamespace(age=18))
+        self.assertEqual(
+            ReportExportService._select_template_path(
+                report,
+                {"validated_tests": [{"instrument_code": "wais3"}, {"instrument_code": "bfp"}]},
+            ),
+            ReportExportService.WAIS3_TEMPLATE_PATH,
+        )
+
     def test_etdah_table_title_distinguishes_ad_from_pais(self):
         self.assertEqual(ReportExportService._table_title_text("etdah_ad"), "E-TDAH-AD")
         self.assertEqual(ReportExportService._table_title_text("etdah_pais"), "E-TDAH-PAIS")
@@ -665,6 +696,75 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
 
         self.assertTrue(ReportExportService._extract_template_chart_blocks(document))
 
+    def test_rebuild_qualitative_section_uses_wais3_template_chart_when_document_has_no_chart_block(self):
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        end = document.add_paragraph("Conclusão")
+        start._p.addnext(end._p)
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={},
+            context={
+                "patient": {"sex": "F"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wais3",
+                        "structured_results": {
+                            "indices": {
+                                "qi_total": {
+                                    "pontuacao_composta": 95,
+                                    "classificacao": "Média",
+                                }
+                            }
+                        },
+                    }
+                ],
+            },
+        )
+
+        self.assertTrue(ReportExportService._extract_template_chart_blocks(document))
+
+    def test_rebuild_qualitative_section_uses_wisc_template_chart_for_scared_in_wais3_report(self):
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        end = document.add_paragraph("Conclusão")
+        start._p.addnext(end._p)
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={},
+            context={
+                "patient": {"sex": "F"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wais3",
+                        "structured_results": {
+                            "indices": {
+                                "qi_total": {"pontuacao_composta": 95, "classificacao": "Média"}
+                            }
+                        },
+                    },
+                    {
+                        "instrument_code": "scared",
+                        "respondent": "self",
+                        "structured_results": {
+                            "results": {
+                                "panic_somatic": {"raw_score": 1, "classification": "Sem indicativo"},
+                                "generalized_anxiety": {"raw_score": 2, "classification": "Sem indicativo"},
+                                "separation_anxiety": {"raw_score": 3, "classification": "Sem indicativo"},
+                                "social_phobia": {"raw_score": 4, "classification": "Sem indicativo"},
+                                "school_avoidance": {"raw_score": 5, "classification": "Sem indicativo"},
+                                "total": {"raw_score": 15, "classification": "Sem indicativo"},
+                            }
+                        },
+                    },
+                ],
+            },
+        )
+
+        self.assertGreaterEqual(len(ReportExportService._extract_template_chart_blocks(document)), 2)
+
     def test_rebuild_qualitative_section_uses_wais3_model_titles_and_order(self):
         template = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
         template_chart_blocks = ReportExportService._extract_template_chart_blocks(template)
@@ -750,6 +850,121 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
 
         self.assertLess(desempenho_index, interpretacao_index)
         self.assertLess(interpretacao_index, subescalas_index)
+
+    def test_rebuild_qualitative_section_includes_bfp_only_when_applied(self):
+        document = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={},
+            context={
+                "patient": {"sex": "M"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wais3",
+                        "structured_results": {
+                            "indices": {
+                                "qi_total": {"pontuacao_composta": 95, "classificacao": "Média"},
+                            }
+                        },
+                    },
+                    {
+                        "instrument_code": "bfp",
+                        "computed_payload": {
+                            "factor_order": ["NN", "EE", "SS", "RR", "AA"],
+                            "factors": {
+                                "NN": {"name": "Neuroticismo", "raw_score": 4.2, "percentile": 88, "classification": "Superior"},
+                                "EE": {"name": "Extroversão", "raw_score": 3.3, "percentile": 22, "classification": "Média Inferior"},
+                                "SS": {"name": "Socialização", "raw_score": 4.8, "percentile": 50, "classification": "Média"},
+                                "RR": {"name": "Realização", "raw_score": 3.0, "percentile": 18, "classification": "Média Inferior"},
+                                "AA": {"name": "Abertura", "raw_score": 4.1, "percentile": 60, "classification": "Média"},
+                            },
+                        },
+                        "clinical_interpretation": "Texto interpretativo do BFP.",
+                    },
+                ],
+            },
+        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+        self.assertIn("BFP – Bateria Fatorial de Personalidade", texts)
+        self.assertTrue(any(text.endswith("BFP Resultados dos fatores") for text in texts))
+        self.assertTrue(any("Texto interpretativo do BFP." in text for text in texts))
+
+        document_without_bfp = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
+        ReportExportService._rebuild_qualitative_section(
+            document_without_bfp,
+            sections={},
+            context={
+                "patient": {"sex": "M"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wais3",
+                        "structured_results": {
+                            "indices": {
+                                "qi_total": {"pontuacao_composta": 95, "classificacao": "Média"},
+                            }
+                        },
+                    }
+                ],
+            },
+        )
+
+        texts_without_bfp = [p.text.strip() for p in document_without_bfp.paragraphs if p.text.strip()]
+        self.assertNotIn("BFP – Bateria Fatorial de Personalidade", texts_without_bfp)
+
+    def test_rebuild_qualitative_section_places_bfp_between_ebadep_and_srs2_in_wais3_model(self):
+        document = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={
+                "aspectos_emocionais_comportamentais": "Interpretacao integrada."
+            },
+            context={
+                "patient": {"sex": "M"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wais3",
+                        "structured_results": {
+                            "indices": {
+                                "qi_total": {"pontuacao_composta": 95, "classificacao": "Média"},
+                            }
+                        },
+                    },
+                    {
+                        "instrument_code": "ebadep_a",
+                        "classified_payload": {"resultado": {"percentil": 43, "classificacao": "Mínimo"}},
+                    },
+                    {
+                        "instrument_code": "bfp",
+                        "computed_payload": {
+                            "factor_order": ["NN", "EE", "SS", "RR", "AA"],
+                            "factors": {
+                                "NN": {"name": "Neuroticismo", "raw_score": 4.2, "percentile": 88, "classification": "Superior"},
+                                "EE": {"name": "Extroversão", "raw_score": 3.3, "percentile": 22, "classification": "Média Inferior"},
+                                "SS": {"name": "Socialização", "raw_score": 4.8, "percentile": 50, "classification": "Média"},
+                                "RR": {"name": "Realização", "raw_score": 3.0, "percentile": 18, "classification": "Média Inferior"},
+                                "AA": {"name": "Abertura", "raw_score": 4.1, "percentile": 60, "classification": "Média"},
+                            },
+                        },
+                        "clinical_interpretation": "Texto interpretativo do BFP.",
+                    },
+                    {
+                        "instrument_code": "srs2",
+                        "classified_payload": {"resultados": []},
+                    },
+                ],
+            },
+        )
+
+        texts = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+        ebadep_index = texts.index("EBADEP-A")
+        bfp_index = texts.index("BFP – Bateria Fatorial de Personalidade")
+        srs2_index = texts.index("SRS-2 Escala de Responsividade Social")
+
+        self.assertLess(ebadep_index, bfp_index)
+        self.assertLess(bfp_index, srs2_index)
 
     def test_rebuild_qualitative_section_uses_wais3_skill_labels_for_late_chapters(self):
         template = Document(str(ReportExportService.WAIS3_TEMPLATE_PATH))
@@ -1226,6 +1441,133 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         self.assertEqual(
             [node.text for node in chart_xml.findall('.//c:val//c:pt/c:v', ns)],
             ['113', '90'],
+        )
+
+    def test_wais3_chart_payload_matches_model_labels(self):
+        categories, values = ReportExportService._wais3_chart_payload(
+            {
+                "structured_results": {
+                    "indices": {
+                        "compreensao_verbal": {"pontuacao_composta": 104},
+                        "organizacao_perceptual": {"pontuacao_composta": 96},
+                        "memoria_operacional": {"pontuacao_composta": 100},
+                        "velocidade_processamento": {"pontuacao_composta": 98},
+                        "qi_verbal": {"pontuacao_composta": 104},
+                        "qi_execucao": {"pontuacao_composta": 100},
+                        "qi_total": {"pontuacao_composta": 102},
+                        "gai": {"pontuacao_composta": 101},
+                    }
+                }
+            }
+        )
+
+        self.assertEqual(categories, ["ICV", "IOP", "IMO", "IVP", "QIV", "QIE", "QIT"])
+        self.assertEqual(values, [104.0, 96.0, 100.0, 98.0, 104.0, 100.0, 102.0])
+
+    def test_populate_wais3_excel_charts_keeps_scared_and_srs2_in_separate_slots(self):
+        def chart_xml():
+            return b'''<?xml version="1.0" encoding="UTF-8"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+  <c:chart>
+    <c:plotArea>
+      <c:barChart>
+        <c:ser>
+          <c:idx val="0"/>
+          <c:order val="0"/>
+          <c:cat><c:strRef><c:f>Plan1!$A$1:$A$2</c:f><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>Old A</c:v></c:pt><c:pt idx="1"><c:v>Old B</c:v></c:pt></c:strCache></c:strRef></c:cat>
+          <c:val><c:numRef><c:f>Plan1!$B$1:$B$2</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>1</c:v></c:pt><c:pt idx="1"><c:v>2</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser>
+      </c:barChart>
+    </c:plotArea>
+  </c:chart>
+</c:chartSpace>'''
+
+        buffer = BytesIO()
+        with ZipFile(buffer, 'w') as docx:
+            docx.writestr(
+                '[Content_Types].xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart3.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart4.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart5.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart6.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart7.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart8.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+</Types>''',
+            )
+            docx.writestr(
+                'word/document.xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>
+<w:p><w:r><w:drawing><c:chart r:id="rId1"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId2"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId3"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId4"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId5"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId6"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId7"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId8"/></w:drawing></w:r></w:p>
+</w:body></w:document>''',
+            )
+            docx.writestr(
+                'word/_rels/document.xml.rels',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart2.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart3.xml"/>
+  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart4.xml"/>
+  <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart5.xml"/>
+  <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart6.xml"/>
+  <Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart7.xml"/>
+  <Relationship Id="rId8" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart8.xml"/>
+</Relationships>''',
+            )
+            for idx in range(1, 9):
+                docx.writestr(f'word/charts/chart{idx}.xml', chart_xml())
+                docx.writestr(f'word/charts/_rels/chart{idx}.xml.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>')
+
+        docx_bytes = ReportExportService._populate_wais3_excel_charts(
+            buffer.getvalue(),
+            {
+                'validated_tests': [
+                    {'instrument_code': 'wais3', 'structured_results': {'indices': {'compreensao_verbal': {'pontuacao_composta': 104}, 'organizacao_perceptual': {'pontuacao_composta': 96}, 'memoria_operacional': {'pontuacao_composta': 100}, 'velocidade_processamento': {'pontuacao_composta': 98}, 'qi_verbal': {'pontuacao_composta': 104}, 'qi_execucao': {'pontuacao_composta': 100}, 'qi_total': {'pontuacao_composta': 102}}}},
+                    {'instrument_code': 'bpa2', 'classified_payload': {'resultados': [{'codigo': 'ac', 'pontuacao': 64, 'media': 91, 'minimo': 63, 'maximo': 120, 'percentil': 20}, {'codigo': 'ad', 'pontuacao': 80, 'media': 83, 'minimo': 49, 'maximo': 119, 'percentil': 40}, {'codigo': 'aa', 'pontuacao': 86, 'media': 95, 'minimo': 61, 'maximo': 120, 'percentil': 30}, {'codigo': 'ag', 'pontuacao': 230, 'media': 267, 'minimo': 217, 'maximo': 352, 'percentil': 25}]}} ,
+                    {'instrument_code': 'ravlt', 'structured_results': {'ravlt_esperado': {'a1': 7, 'a2': 9, 'a3': 11, 'a4': 12, 'a5': 12, 'b1': 6, 'a6': 12, 'a7': 11, 'r': 13, 'alt': 18, 'ret': 1, 'ip': 0.89, 'ir': 0.92}, 'ravlt_minimo': {'a1': 6, 'a2': 8, 'a3': 10, 'a4': 10, 'a5': 11, 'b1': 5, 'a6': 9, 'a7': 9, 'r': 5, 'alt': 12, 'ret': 0.91, 'ip': 0.73, 'ir': 0.82}, 'ravlt_obtido': {'a1': 4, 'a2': 5, 'a3': 7, 'a4': 7, 'a5': 7, 'b1': 4, 'a6': 5, 'a7': 5, 'r': 11, 'alt': 10, 'ret': 1, 'ip': 1, 'ir': 0.71}}},
+                    {'instrument_code': 'fdt', 'classified_payload': {'metric_results': [{'codigo': 'leitura', 'media': 20.4, 'valor': 31.91, 'percentil_num': 5}, {'codigo': 'contagem', 'media': 23.8, 'valor': 32.46, 'percentil_num': 5}, {'codigo': 'escolha', 'media': 34, 'valor': 62.98, 'percentil_num': 5}, {'codigo': 'alternancia', 'media': 44.8, 'valor': 71.85, 'percentil_num': 5}, {'codigo': 'inibicao', 'media': 13.6, 'valor': 31.07, 'percentil_num': 5}, {'codigo': 'flexibilidade', 'media': 24.4, 'valor': 39.94, 'percentil_num': 5}], 'erros': {'leitura': {'qtde_erros': 0}, 'contagem': {'qtde_erros': 0}, 'escolha': {'qtde_erros': 1}, 'alternancia': {'qtde_erros': 4}, 'inibicao': {'qtde_erros': 0}, 'flexibilidade': {'qtde_erros': 0}}}},
+                    {'instrument_code': 'etdah_ad', 'classified_payload': {'results': {'D': {'percentil': '30,48'}, 'I': {'percentil': '40,14'}, 'AE': {'percentil': '78,25'}, 'AAMA': {'percentil': '1,99'}, 'H': {'percentil': '27,21'}}}},
+                    {'instrument_code': 'scared', 'classified_payload': {'analise_geral': [{'percentil': 10}, {'percentil': 20}, {'percentil': 30}, {'percentil': 40}, {'percentil': 50}, {'percentil': 60}]}},
+                    {'instrument_code': 'srs2', 'classified_payload': {'resultados': [{'tscore': 66}, {'tscore': 61}, {'tscore': 59}, {'tscore': 68}, {'tscore': 66}, {'tscore': 65}, {'tscore': 65}] }},
+                ]
+            },
+        )
+
+        with ZipFile(BytesIO(docx_bytes), 'r') as docx:
+            ns = ReportExportService.CHART_NS
+            chart7 = LET.fromstring(docx.read('word/charts/chart7.xml'))
+            chart8 = LET.fromstring(docx.read('word/charts/chart8.xml'))
+
+        self.assertEqual(
+            [node.text for node in chart7.findall('.//c:cat//c:pt/c:v', ns)],
+            ['Panic / S.S.', 'AG', 'AS', 'FS', 'EE', 'TOTAL'],
+        )
+        self.assertEqual(
+            [node.text for node in chart8.findall('.//c:cat//c:pt/c:v', ns)],
+            ['Perc.S', 'Cog.S', 'Com.S', 'Mot.S', 'PRR', 'CIS', 'TOTAL'],
+        )
+
+    def test_etdah_ad_table_widths_follow_etdah_model(self):
+        self.assertEqual(
+            ReportExportService._table_widths("etdah_ad"),
+            ReportExportService._table_widths("etdah"),
+        )
+        self.assertEqual(
+            ReportExportService._table_widths("etdah_pais"),
+            ReportExportService._table_widths("etdah"),
         )
 
     def test_document_chart_targets_follow_document_order(self):

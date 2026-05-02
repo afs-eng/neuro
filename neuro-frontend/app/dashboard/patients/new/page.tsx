@@ -41,7 +41,10 @@ export default function NewPatientPage() {
     setError('');
 
     try {
-      await api.post('/api/patients/', formData);
+      await api.post('/api/patients/', {
+        ...formData,
+        email: formData.email.trim() || undefined,
+      });
       router.push('/dashboard/patients');
     } catch (err: any) {
       setError(err?.message || 'Erro ao salvar paciente');

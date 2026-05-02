@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 
 from .config import (
+    BFP_CLASSIFICATION_MEANING,
     FACTOR_DEFINITIONS,
     FACET_DEFINITIONS,
     NORMS,
@@ -14,9 +15,11 @@ from .config import (
 CLASSIFICATION_ORDER = [
     "Muito Baixo",
     "Baixo",
-    "Médio",
-    "Alto",
-    "Muito Alto",
+    "Média Inferior",
+    "Média",
+    "Média Superior",
+    "Superior",
+    "Muito Superior",
 ]
 
 
@@ -79,21 +82,34 @@ def weighted_score_from_z(z_score: float) -> float:
 
 
 def classify_percentile(percentile: float) -> str:
+    if percentile >= 97.5:
+        return "Muito Superior"
     if percentile >= 85:
-        return "Muito Alto"
-    if percentile >= 70.5:
-        return "Alto"
+        return "Superior"
+    if percentile >= 70:
+        return "Média Superior"
     if percentile >= 30:
-        return "Médio"
+        return "Média"
     if percentile >= 15:
+        return "Média Inferior"
+    if percentile >= 2.5:
         return "Baixo"
     return "Muito Baixo"
+
+
+def classify_bfp_domain(classification: str) -> str:
+    if classification in {"Média Superior", "Superior", "Muito Superior"}:
+        return "elevado"
+    if classification in {"Média Inferior", "Baixo", "Muito Baixo"}:
+        return "reduzido"
+    return "medio"
 
 
 def _build_scale_result(code: str, name: str, raw_score: float, sample: str) -> dict:
     norm = NORMS[sample][code]
     z_score = (raw_score - norm["mean"]) / norm["sd"]
     percentile = percentile_from_z(z_score)
+    classification = classify_percentile(percentile)
     return {
         "code": code,
         "name": name,
@@ -103,7 +119,9 @@ def _build_scale_result(code: str, name: str, raw_score: float, sample: str) -> 
         "z_score": round(z_score, 4),
         "weighted_score": round(weighted_score_from_z(z_score), 2),
         "percentile": round(percentile, 1),
-        "classification": classify_percentile(percentile),
+        "classification": classification,
+        "classification_meaning": BFP_CLASSIFICATION_MEANING[classification],
+        "domain_level": classify_bfp_domain(classification),
     }
 
 

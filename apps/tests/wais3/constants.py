@@ -45,6 +45,23 @@ WAIS3_ALL_SUBTESTS = {
     **WAIS3_EXECUTION_SUBTESTS,
 }
 
+WAIS3_SUBTEST_CODES = {
+    "vocabulario": "VC",
+    "semelhancas": "SM",
+    "aritmetica": "AR",
+    "digitos": "DG",
+    "informacao": "IN",
+    "compreensao": "CO",
+    "sequencia_numeros_letras": "SNL",
+    "completar_figuras": "CF",
+    "codigos": "CD",
+    "cubos": "CB",
+    "raciocinio_matricial": "RM",
+    "arranjo_figuras": "AF",
+    "procurar_simbolos": "PS",
+    "armar_objetos": "AO",
+}
+
 WAIS3_INDEXES = {
     "qi_verbal": {
         "label": "QI Verbal",
@@ -77,6 +94,16 @@ WAIS3_INDEXES = {
         "label": "Índice de Velocidade de Processamento",
         "subtests": ["codigos", "procurar_simbolos"],
     },
+}
+
+WAIS3_INDEX_CODES = {
+    "qi_verbal": "QIV",
+    "qi_execucao": "QIE",
+    "qi_total": "QIT",
+    "compreensao_verbal": "ICV",
+    "organizacao_perceptual": "IOP",
+    "memoria_operacional": "IMO",
+    "velocidade_processamento": "IVP",
 }
 
 WAIS3_COMPOSITE_TABLES = {
@@ -182,7 +209,7 @@ def classify_composite_score(score: int | None) -> str | None:
         return "Média Inferior"
     if score >= 70:
         return "Limítrofe"
-    return "Extremamente Baixo"
+    return "Deficitário"
 
 
 def classify_scaled_score(score: int | None) -> str | None:
@@ -196,8 +223,8 @@ def classify_scaled_score(score: int | None) -> str | None:
         return "Média Superior"
     if score >= 8:
         return "Média"
-    if score >= 6:
+    if score >= 7:
         return "Média Inferior"
-    if score >= 4:
+    if score >= 5:
         return "Limítrofe"
-    return "Extremamente Baixo"
+    return "Deficitário"

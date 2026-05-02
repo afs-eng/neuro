@@ -752,11 +752,37 @@ class BFPModuleTests(SimpleTestCase):
         )
 
         computed = module.compute(context)
-        interpretation = module.interpret(context, {**computed, **module.classify(computed)})
+        classified = module.classify(computed)
+        interpretation = module.interpret(context, {**computed, **classified})
 
         self.assertIn("Bateria Fatorial de Personalidade (BFP)", interpretation)
-        self.assertIn("No fator Neuroticismo", interpretation)
-        self.assertIn("Na faceta Vulnerabilidade", interpretation)
+        self.assertIn("O fator Neuroticismo", interpretation)
+        self.assertIn("A faceta Vulnerabilidade", interpretation)
+        self.assertIn("Em análise clínica", interpretation)
+        self.assertIn("indicadores de tendências de personalidade", interpretation)
+        self.assertIn("interpretation", classified)
+
+    def test_bfp_uses_seven_band_classification_model(self):
+        module = BFPModule()
+        computed = module.compute(
+            TestContext(
+                patient_name="Paciente BFP",
+                evaluation_id=1,
+                instrument_code="bfp",
+                raw_scores={"sample": "geral", "responses": self._responses(4)},
+            )
+        )
+
+        self.assertIn(computed["factors"]["NN"]["classification"], {
+            "Muito Baixo",
+            "Baixo",
+            "Média Inferior",
+            "Média",
+            "Média Superior",
+            "Superior",
+            "Muito Superior",
+        })
+        self.assertTrue(computed["factors"]["NN"]["classification_meaning"])
 
 
 class WASIModuleTests(SimpleTestCase):

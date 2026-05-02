@@ -76,9 +76,11 @@ export const BFP_FACET_NAMES: Record<string, string> = {
 
 export function getBfpClassificationColor(classification: string) {
   const key = classification.toLowerCase();
-  if (key.includes("muito alto")) return "bg-red-50 text-red-700 border-red-200";
-  if (key === "alto") return "bg-orange-50 text-orange-700 border-orange-200";
-  if (key.includes("médio") || key.includes("medio")) return "bg-amber-50 text-amber-700 border-amber-200";
+  if (key.includes("muito superior")) return "bg-red-50 text-red-700 border-red-200";
+  if (key === "superior") return "bg-orange-50 text-orange-700 border-orange-200";
+  if (key.includes("média superior") || key.includes("media superior")) return "bg-amber-50 text-amber-700 border-amber-200";
+  if (key === "média" || key === "media") return "bg-yellow-50 text-yellow-700 border-yellow-200";
+  if (key.includes("média inferior") || key.includes("media inferior")) return "bg-lime-50 text-lime-700 border-lime-200";
   if (key === "baixo") return "bg-blue-50 text-blue-700 border-blue-200";
   if (key.includes("muito baixo")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
   return "bg-slate-100 text-slate-700 border-slate-200";

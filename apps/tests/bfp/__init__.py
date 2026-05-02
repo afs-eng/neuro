@@ -1,9 +1,10 @@
 from apps.tests.base.types import BaseTestModule, TestContext
 from apps.tests.registry import register_test_module
 
+from .calculators import classify_bfp_domain
 from .calculators import compute_bfp_scores
 from .config import BFP_CODE, BFP_NAME
-from .interpreters import get_report_interpretation
+from .interpreters import build_bfp_interpretation_payload, get_report_interpretation
 from .schemas import BFPRawInput
 from .validators import validate_bfp_input
 
@@ -39,13 +40,14 @@ class BFPModule(BaseTestModule):
                 "percentile": result["percentile"],
             }
             for code, result in computed_data.get("facets", {}).items()
-            if result["classification"] != "Médio"
+            if classify_bfp_domain(result["classification"]) != "medio"
         ]
         return {
             "sample": computed_data.get("sample", "geral"),
             "factor_classifications": factor_classifications,
             "facet_classifications": facet_classifications,
             "highlights": highlights,
+            "interpretation": build_bfp_interpretation_payload(computed_data),
         }
 
     def interpret(self, context: TestContext, merged_data: dict) -> str:

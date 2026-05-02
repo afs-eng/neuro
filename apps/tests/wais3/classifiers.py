@@ -342,7 +342,7 @@ def _calculate_clusters(subtestes: dict) -> dict:
 def _classify_wechsler(valor: int | float) -> str:
     """Classify Wechsler scale score."""
     if valor <= 69:
-        return "Extremamente Baixo"
+        return "Deficitário"
     elif valor <= 79:
         return "Limítrofe"
     elif valor <= 89:

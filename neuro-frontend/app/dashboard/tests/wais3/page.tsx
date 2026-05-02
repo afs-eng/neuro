@@ -18,6 +18,97 @@ type ProcessScore = {
   group: 'digitos' | 'sequencia'
 }
 
+const STATUS_AFFECTED_COLUMNS = new Set([
+  'Significância Estatística - Nível',
+  'Significância Estatística - nível',
+  'Frequência da Diferença da Amostra de Padronização',
+  'Frequência da Diferença na Amostra de Padronização',
+  'Facilidade (+)',
+  'Dificuldade (-)',
+])
+
+function getStatusPlaceholder(status?: string) {
+  if (status === 'below_threshold') return 'NS'
+  if (status === 'missing_norm') return 'N/D'
+  if (status === 'missing_score') return 'Aus.'
+  return '—'
+}
+
+function buildStatusSummary(...groups: Record<string, any>[][]) {
+  const summary = {
+    significant: 0,
+    below_threshold: 0,
+    missing_norm: 0,
+    missing_score: 0,
+  }
+
+  for (const rows of groups) {
+    for (const row of rows || []) {
+      const status = row?.status
+      if (status && status in summary) {
+        summary[status as keyof typeof summary] += 1
+      }
+    }
+  }
+
+  return summary
+}
+
+function RenderReadyPreviewTable({
+  title,
+  columns,
+  rows,
+}: {
+  title: string
+  columns: string[]
+  rows: Record<string, any>[]
+}) {
+  if (!rows?.length) return null
+
+  return (
+    <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+      <h3 className="mb-1 text-lg font-semibold text-zinc-900">{title}</h3>
+      <p className="mb-4 text-xs text-zinc-500">NS = nao significativo. N/D = norma indisponivel. Aus. = escore ausente.</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-black/10">
+              {columns.map((column) => (
+                <th key={column} className="px-3 py-2 text-left font-semibold text-zinc-700 first:min-w-[240px]">
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5">
+            {rows.map((row, index) => (
+              <tr key={index} className="hover:bg-black/2">
+                {columns.map((column, columnIndex) => {
+                  const value = row[column]
+                  const status = row.status as string | undefined
+                  const reason = row.reason as string | undefined
+                  const shouldUseStatusPlaceholder = value == null && STATUS_AFFECTED_COLUMNS.has(column) && status
+                  const displayValue = shouldUseStatusPlaceholder ? getStatusPlaceholder(status) : (value ?? '—')
+
+                  return (
+                    <td
+                      key={column}
+                      title={reason || undefined}
+                      className={`px-3 py-2 ${columnIndex === 0 ? 'text-zinc-900' : 'text-center text-zinc-700'} ${shouldUseStatusPlaceholder ? 'text-zinc-500' : ''}`}
+                    >
+                      {displayValue}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 const subtests: Subtest[] = [
   // Escala de Execução
   { code: 'completar_figuras', name: 'Completar Figuras', maxScore: 25, domain: 'execucao' },
@@ -57,6 +148,10 @@ function WAIS3PageContent() {
   const [loading, setLoading] = useState(true)
   const [preview, setPreview] = useState<any>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const previewStatusSummary = buildStatusSummary(
+    preview?.render_ready_tables?.facilidades_dificuldades?.linhas || [],
+    preview?.render_ready_tables?.discrepancias?.linhas || [],
+  )
 
   useEffect(() => {
     async function fetchData() {
@@ -320,6 +415,25 @@ function WAIS3PageContent() {
             {/* Preview Section */}
             {preview && (
               <div className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Significativas</div>
+                    <div className="mt-1 text-2xl font-semibold text-emerald-900">{previewStatusSummary.significant}</div>
+                  </div>
+                  <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-600">Abaixo do Corte</div>
+                    <div className="mt-1 text-2xl font-semibold text-zinc-900">{previewStatusSummary.below_threshold}</div>
+                  </div>
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">Sem Norma</div>
+                    <div className="mt-1 text-2xl font-semibold text-amber-900">{previewStatusSummary.missing_norm}</div>
+                  </div>
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">Escore Ausente</div>
+                    <div className="mt-1 text-2xl font-semibold text-rose-900">{previewStatusSummary.missing_score}</div>
+                  </div>
+                </div>
+
                 {/* Índices */}
                 {Object.keys(preview.indices || {}).length > 0 && (
                   <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
@@ -430,6 +544,43 @@ function WAIS3PageContent() {
                       </table>
                     </div>
                   </div>
+                )}
+
+                {preview.render_ready_tables?.facilidades_dificuldades && (
+                  <>
+                    <RenderReadyPreviewTable
+                      title={preview.render_ready_tables.facilidades_dificuldades.titulo}
+                      columns={preview.render_ready_tables.facilidades_dificuldades.colunas || []}
+                      rows={preview.render_ready_tables.facilidades_dificuldades.linhas || []}
+                    />
+                    <div className="rounded-[28px] bg-white/70 p-5 shadow-lg ring-1 ring-black/5">
+                      <h3 className="mb-4 text-lg font-semibold text-zinc-900">Determinação das Facilidades e Dificuldades</h3>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 text-sm text-zinc-700">
+                        <div className={`rounded-2xl border px-4 py-3 ${preview.render_ready_tables.facilidades_dificuldades.determinacao?.diferenca_media_total?.checked ? 'border-sky-300 bg-sky-50' : 'border-black/10 bg-slate-50'}`}>
+                          <div className="font-medium text-zinc-900">{preview.render_ready_tables.facilidades_dificuldades.determinacao?.diferenca_media_total?.label || 'Diferença da Média Total'}</div>
+                        </div>
+                        <div className={`rounded-2xl border px-4 py-3 ${preview.render_ready_tables.facilidades_dificuldades.determinacao?.diferenca_media_verbal_execucao?.checked ? 'border-sky-300 bg-sky-50' : 'border-black/10 bg-slate-50'}`}>
+                          <div className="font-medium text-zinc-900">{preview.render_ready_tables.facilidades_dificuldades.determinacao?.diferenca_media_verbal_execucao?.label || 'Diferença da Média Verbal e da Média de Execução'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {preview.render_ready_tables?.discrepancias && (
+                  <RenderReadyPreviewTable
+                    title={preview.render_ready_tables.discrepancias.titulo}
+                    columns={preview.render_ready_tables.discrepancias.colunas || []}
+                    rows={preview.render_ready_tables.discrepancias.linhas || []}
+                  />
+                )}
+
+                {preview.render_ready_tables?.digitos && (
+                  <RenderReadyPreviewTable
+                    title={preview.render_ready_tables.digitos.titulo}
+                    columns={preview.render_ready_tables.digitos.colunas || []}
+                    rows={preview.render_ready_tables.digitos.linhas || []}
+                  />
                 )}
               </div>
             )}

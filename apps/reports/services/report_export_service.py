@@ -32,6 +32,7 @@ from docx.shared import Cm
 from apps.reports.charts import gerar_grafico_bpa_bytes
 from apps.reports.models import Report
 from apps.reports.builders.references_builder import build_references
+from apps.reports.builders.wais3_report_builder import WAIS3ReportBuilder
 from apps.reports.services.report_context_service import ReportContextService
 from apps.reports.services.ptbr_text_service import PtBrTextService
 from apps.reports.services.wisc4_standardization import WISC4StandardizationService
@@ -117,6 +118,7 @@ class ReportExportService:
     }
     FIXED_AUTHOR = "Jacqueline Oliveira Caires (CRP 09/6017)"
     FIXED_PURPOSE = "Averiguação das capacidades cognitivas para auxílio diagnóstico"
+    PRIMARY_REPORT_TEST_CODES = ("wisc4", "wais3", "wasi")
     logger = logging.getLogger(__name__)
 
     @classmethod
@@ -393,15 +395,16 @@ class ReportExportService:
     def _header_footer_template_path(cls, template_path: Path, report, context: dict) -> Path:
         if cls._is_adolescent_context(context, report):
             return cls.ADOLESCENT_TEMPLATE_PATH
-        if cls._find_test(context, "wais3") and template_path.exists():
+        if cls._primary_report_test_code(context) == "wais3" and template_path.exists():
             return template_path
         return cls.DEFAULT_TEMPLATE_PATH
 
     @classmethod
     def _select_template_path(cls, report: Report, context: dict | None = None):
-        if context and cls._find_test(context, "wisc4") and cls.WISC4_TEMPLATE_PATH.exists():
+        primary_test_code = cls._primary_report_test_code(context or {}) if context else None
+        if primary_test_code == "wisc4" and cls.WISC4_TEMPLATE_PATH.exists():
             return cls.WISC4_TEMPLATE_PATH
-        if context and cls._find_test(context, "wais3") and cls.WAIS3_TEMPLATE_PATH.exists():
+        if primary_test_code == "wais3" and cls.WAIS3_TEMPLATE_PATH.exists():
             return cls.WAIS3_TEMPLATE_PATH
         patient = getattr(report, "patient", None)
         age = getattr(patient, "age", None)
@@ -410,12 +413,46 @@ class ReportExportService:
         return cls.DEFAULT_TEMPLATE_PATH
 
     @classmethod
+    def _available_test_codes(cls, context: dict) -> list[str]:
+        return [
+            item.get("instrument_code")
+            for item in context.get("validated_tests") or []
+            if item.get("instrument_code")
+        ]
+
+    @classmethod
+    def _primary_report_test_code(cls, context: dict) -> str | None:
+        available_codes = set(cls._available_test_codes(context))
+        for code in cls.PRIMARY_REPORT_TEST_CODES:
+            if code in available_codes:
+                return code
+        return None
+
+    @classmethod
     def _extract_template_chart_blocks(cls, document: Document) -> list:
         blocks = []
         for child in document._body._element.iterchildren():
             if cls._element_contains_chart(child):
                 blocks.append(deepcopy(child))
         return blocks
+
+    @classmethod
+    def _extract_chart_blocks_from_template_path(cls, template_path: Path) -> list:
+        if not template_path.exists():
+            return []
+        return cls._extract_template_chart_blocks(Document(str(template_path)))
+
+    @classmethod
+    def _is_etdah_table_key(cls, table_key: str) -> bool:
+        return table_key in {"etdah", "etdah_ad", "etdah_pais"}
+
+    @classmethod
+    def _wais3_report_builder(cls, context: dict) -> WAIS3ReportBuilder:
+        available = set(cls._available_test_codes(context))
+        is_adolescent = cls._is_adolescent_context(context, None)
+        if is_adolescent:
+            return WAIS3ReportBuilder.for_adolescent(available)
+        return WAIS3ReportBuilder.for_adult(available)
 
     @classmethod
     def _element_contains_chart(cls, element) -> bool:
@@ -985,10 +1022,9 @@ class ReportExportService:
             ("IOP", indices.get("organizacao_perceptual")),
             ("IMO", indices.get("memoria_operacional")),
             ("IVP", indices.get("velocidade_processamento")),
-            ("QI Verbal", indices.get("qi_verbal")),
-            ("QI Execução", indices.get("qi_execucao")),
-            ("GAI", indices.get("gai")),
-            ("QI Total", indices.get("qi_total")),
+            ("QIV", indices.get("qi_verbal")),
+            ("QIE", indices.get("qi_execucao")),
+            ("QIT", indices.get("qi_total")),
         ]
         labels = []
         values = []
@@ -1074,6 +1110,23 @@ class ReportExportService:
                 return docx_bytes
             root = load_chart(chart_name)
             cls._update_chart_series(root, 0, ['F1 - D', 'F2 - I', 'F3 - AE', 'F4 - AMAA', 'F5 - H'], cls._etdah_ad_chart_values(etdah_ad_test))
+            dump_chart(chart_name, root)
+
+        scared_tests = cls._find_tests(context, 'scared')
+        scared_self = next((item for item in scared_tests if (((item.get('classified_payload') or {}).get('form_type') or (item.get('raw_payload') or {}).get('form')) != 'parent')), None)
+        if scared_self:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            cls._update_chart_series(root, 0, ['Panic / S.S.', 'AG', 'AS', 'FS', 'EE', 'TOTAL'], cls._scared_self_chart_values(scared_self))
+            dump_chart(chart_name, root)
+        elif scared_tests:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            cls._update_chart_series(root, 0, ['Panic / S.S.', 'AG', 'AS', 'FS', 'EE', 'TOTAL'], [0, 0, 0, 0, 0, 0])
             dump_chart(chart_name, root)
 
         srs2_test = cls._find_test(context, 'srs2')
@@ -1617,6 +1670,17 @@ class ReportExportService:
                 cls._srs2_chart(srs2_test),
                 template_key="srs2",
             )
+
+        if cls._find_test(context, "bfp"):
+            bfp_test = cls._find_test(context, "bfp")
+            append_section_heading("BFP – BATERIA FATORIAL DE PERSONALIDADE")
+            cls._append_paragraph(document, cls._bfp_description_text())
+            append_table_with_interpretation(
+                cls._bfp_rows(bfp_test),
+                "bfp",
+                section_or_test_interpretation("bfp", "aspectos_emocionais_comportamentais", bfp_test),
+                "BFP Resultados dos fatores",
+            )
         if wisc_test:
             cls._append_subheading(document, "Conclusão")
         else:
@@ -2028,13 +2092,30 @@ class ReportExportService:
                 "srs2": template_chart_blocks[9] if len(template_chart_blocks) > 9 else None,
             }
         elif tests.get("wais3"):
+            wais3_template_chart_blocks = cls._extract_chart_blocks_from_template_path(
+                cls.WAIS3_TEMPLATE_PATH
+            )
+            wisc4_template_chart_blocks = cls._extract_chart_blocks_from_template_path(
+                cls.WISC4_TEMPLATE_PATH
+            )
             template_chart_map = {
-                "wais3": template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
+                "wais3": (
+                    template_chart_blocks[0]
+                    if len(template_chart_blocks) > 0
+                    else wais3_template_chart_blocks[0]
+                    if len(wais3_template_chart_blocks) > 0
+                    else None
+                ),
                 "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
                 "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
                 "fdt_auto": template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
                 "fdt_control": template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
                 "etdah_ad": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
+                "scared_pair": (
+                    wisc4_template_chart_blocks[7]
+                    if len(wisc4_template_chart_blocks) > 7
+                    else None
+                ),
                 "srs2": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
             }
 
@@ -2369,6 +2450,19 @@ class ReportExportService:
                     cls._epq_chart(tests.get("epq_j")),
                 )
 
+            if tests.get("bfp"):
+                bfp_test = tests.get("bfp")
+                add_numbered_section("BFP – BATERIA FATORIAL DE PERSONALIDADE")
+                add_text(cls._bfp_description_text())
+                add_table("BFP Resultados dos fatores", cls._bfp_rows(bfp_test), "bfp")
+                add_chart("BFP – Bateria Fatorial de Personalidade", cls._bfp_chart(bfp_test))
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        section_or_test_interpretation("bfp", "aspectos_emocionais_comportamentais", bfp_test)
+                    ),
+                )
+
             if tests.get("srs2"):
                 srs2_test = tests.get("srs2")
                 add_numbered_section("SRS-2 – ESCALA DE RESPONSIVIDADE SOCIAL")
@@ -2385,38 +2479,15 @@ class ReportExportService:
                 )
         elif tests.get("wais3"):
             add_title("Subescalas WAIS III")
-
-            add_title("Linguagem")
-            add_table(
-                "Resultado da escala Linguagem",
-                cls._wais3_domain_rows(tests.get("wais3"), "linguagem"),
-                "wisc",
-            )
-            add_text(cls._wisc_section_text(sections, "linguagem", context))
-
-            add_title("Gnosias e Praxias")
-            add_table(
-                "Resultados da escala Gnosias e praxias",
-                cls._wais3_domain_rows(tests.get("wais3"), "gnosias_praxias"),
-                "wisc",
-            )
-            add_text(cls._wisc_section_text(sections, "gnosias_praxias", context))
-
-            add_title("Função Executiva")
-            add_table(
-                "Resultados da escala Função Executiva",
-                cls._wais3_domain_rows(tests.get("wais3"), "funcoes_executivas"),
-                "wisc",
-            )
-            add_text(cls._wisc_section_text(sections, "funcoes_executivas", context))
-
-            add_title("Memória e Aprendizagem")
-            add_table(
-                "Resultados da escala Memória e Aprendizagem",
-                cls._wais3_domain_rows(tests.get("wais3"), "memoria_aprendizagem"),
-                "wisc",
-            )
-            add_text(cls._wisc_section_text(sections, "memoria_aprendizagem", context))
+            builder = cls._wais3_report_builder(context)
+            for block in builder.subtest_blocks:
+                add_title(block.title)
+                add_table(
+                    block.table_caption,
+                    cls._wais3_domain_rows(tests.get("wais3"), block.interpretation_section),
+                    block.table_key,
+                )
+                add_text(cls._wisc_section_text(sections, block.interpretation_section, context))
 
             if tests.get("bpa2"):
                 add_title("BPA-2 Bateria Psicológica para Avaliação da Atenção")
@@ -2526,6 +2597,44 @@ class ReportExportService:
                         )
                     ),
                 )
+
+            if tests.get("bfp"):
+                bfp_test = tests.get("bfp")
+                add_title("BFP – Bateria Fatorial de Personalidade")
+                add_text(cls._bfp_description_text())
+                add_table("BFP Resultados dos fatores", cls._bfp_rows(bfp_test), "bfp")
+                add_chart("BFP – Bateria Fatorial de Personalidade", cls._bfp_chart(bfp_test))
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        section_or_test_interpretation("bfp", "aspectos_emocionais_comportamentais", bfp_test)
+                    ),
+                )
+
+            scared_tests = cls._find_tests(context, "scared")
+            if scared_tests:
+                add_title("SCARED")
+                inserted_scared_pair = False
+                for scared_test in scared_tests:
+                    form_label = cls._scared_form_label(scared_test)
+                    add_table(
+                        f"SCARED Resultados {form_label}",
+                        cls._scared_rows(scared_test),
+                        cls._scared_table_key(scared_test),
+                    )
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor,
+                        cls._normalize_interpretation_text(
+                            cls._resolve_interpretation_text(None, None, scared_test)
+                        ),
+                    )
+                    if not inserted_scared_pair:
+                        add_chart(
+                            cls._scared_form_title(scared_test),
+                            cls._scared_chart(scared_test),
+                            template_key="scared_pair",
+                        )
+                        inserted_scared_pair = True
 
             if tests.get("srs2"):
                 srs2_test = tests.get("srs2")
@@ -3050,7 +3159,6 @@ class ReportExportService:
             ("IVP", indices.get("velocidade_processamento")),
             ("QIV", indices.get("qi_verbal")),
             ("QIE", indices.get("qi_execucao")),
-            ("GAI", indices.get("gai")),
             ("QIT", indices.get("qi_total")),
         ]
         labels = []
@@ -3751,6 +3859,69 @@ class ReportExportService:
         )
 
     @classmethod
+    def _bfp_description_text(cls) -> str:
+        return (
+            "A Bateria Fatorial de Personalidade (BFP) foi utilizada para investigar tracos de personalidade com base no modelo dos Cinco Grandes Fatores, permitindo compreender tendencias emocionais, interpessoais, motivacionais e comportamentais. Seus resultados devem ser integrados a anamnese, observacao clinica e demais instrumentos aplicados."
+        )
+
+    @classmethod
+    def _bfp_rows(cls, test: dict | None):
+        computed = (test or {}).get("computed_payload") or {}
+        factors = computed.get("factors") or ((test or {}).get("structured_results") or {}).get("factors") or {}
+        factor_order = computed.get("factor_order") or ["NN", "EE", "SS", "RR", "AA"]
+        rows = [["Fator", "Pts Bts", "Percentil", "Classificação"]]
+        for code in factor_order:
+            factor = factors.get(code)
+            if not factor:
+                continue
+            rows.append([
+                f"{factor.get('name') or code} ({code})",
+                cls._num(factor.get("raw_score")),
+                cls._num(factor.get("percentile")),
+                factor.get("classification") or "-",
+            ])
+        return rows if len(rows) > 1 else None
+
+    @classmethod
+    def _bfp_chart(cls, test: dict | None):
+        computed = (test or {}).get("computed_payload") or {}
+        factors = computed.get("factors") or ((test or {}).get("structured_results") or {}).get("factors") or {}
+        factor_order = computed.get("factor_order") or ["NN", "EE", "SS", "RR", "AA"]
+        labels = []
+        values = []
+        for code in factor_order:
+            factor = factors.get(code)
+            if not factor:
+                continue
+            labels.append(code)
+            raw_score = factor.get("raw_score") or 0
+            weighted = float(factor.get("weighted_score") or raw_score)
+            values.append(weighted)
+        if not labels or not values:
+            return None
+        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={"projection": "polar"}, dpi=180)
+        fig.patch.set_facecolor("white")
+        cls._apply_figure_border(fig)
+        angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+        angles += angles[:1]
+        values_plot = values + values[:1]
+        ax.plot(angles, values_plot, "o-", linewidth=2, color="#2F6DB3")
+        ax.fill(angles, values_plot, alpha=0.25, color="#2F6DB3")
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(labels, fontsize=11, fontweight="bold")
+        ax.set_ylim(0, 25)
+        ax.set_yticks([0, 5, 10, 15, 20, 25])
+        ax.set_yticklabels(["0", "5", "10", "15", "20", "25"], fontsize=8)
+        ax.axhline(10, color="#5E8E3E", linestyle="--", linewidth=1.5, label="Normal (50° pct)")
+        ax.grid(True, color="#BFBFBF", linestyle="-", linewidth=0.5)
+        ax.spines["polar"].set_color("#BFBFBF")
+        ax.legend(loc="upper right", bbox_to_anchor=(1.15, 1.1), fontsize=8)
+        output = BytesIO()
+        fig.savefig(output, format="png", facecolor=fig.get_facecolor())
+        plt.close(fig)
+        return output.getvalue()
+
+    @classmethod
     def _srs2_description_text(cls) -> str:
         return (
             "A SRS-2 e uma escala destinada a investigacao de dificuldades em comunicacao social, cognicao social, motivacao social, percepcao social e padroes restritos e repetitivos, contribuindo para o rastreio de tracos associados ao Transtorno do Espectro Autista. Seus resultados devem ser compreendidos em articulacao com a observacao clinica e a historia do desenvolvimento."
@@ -4270,7 +4441,7 @@ class ReportExportService:
                         cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
                     else:
                         cls._set_cell_shading(cell, cls.FDT_BODY_FILL)
-                elif table_key in {"etdah", "srs2"} or cls._is_scared_table_key(table_key):
+                elif cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key):
                     if row_index == 0 and title_text:
                         cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
                     elif row_index in {0, 1} and title_text:
@@ -4289,9 +4460,9 @@ class ReportExportService:
                     cls._set_cell_no_wrap(cell, True)
                 if table_key == "fdt" and row_index in {0, 1}:
                     cls._set_cell_no_wrap(cell, True)
-                if (table_key in {"etdah", "srs2"} or cls._is_scared_table_key(table_key)) and row_index in ({0, 1} if title_text else {0}):
+                if (cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key)) and row_index in ({0, 1} if title_text else {0}):
                     cls._set_cell_no_wrap(cell, True)
-                if table_key == "etdah" and cell_index == 0:
+                if cls._is_etdah_table_key(table_key) and cell_index == 0:
                     cls._set_cell_no_wrap(cell, True)
                 if table_key == "srs2" and cell_index == len(row.cells) - 1:
                     cls._set_cell_no_wrap(cell, True)
@@ -4319,7 +4490,7 @@ class ReportExportService:
                         paragraph.paragraph_format.space_after = Pt(0)
                         paragraph.paragraph_format.line_spacing = 1.5
                         paragraph.paragraph_format.first_line_indent = Pt(0)
-                    elif table_key in {"etdah", "srs2"} or cls._is_scared_table_key(table_key):
+                    elif cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key):
                         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
                         paragraph.paragraph_format.space_before = Pt(0)
                         paragraph.paragraph_format.space_after = Pt(0)
@@ -4342,7 +4513,7 @@ class ReportExportService:
                             run.font.size = Pt(9)
                         elif table_key == "fdt":
                             run.font.size = Pt(10) if row_index == 0 else Pt(9)
-                        elif table_key in {"etdah", "srs2"} or cls._is_scared_table_key(table_key):
+                        elif cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key):
                             run.font.size = Pt(10) if row_index == 0 else Pt(9)
                         else:
                             run.font.size = cls.TABLE_SIZE
@@ -4358,14 +4529,14 @@ class ReportExportService:
                             run.font.color.rgb = RGBColor(0, 0, 0)
                         if table_key == "fdt":
                             run.font.color.rgb = RGBColor(0, 0, 0)
-                        if table_key in {"etdah", "srs2"} or cls._is_scared_table_key(table_key):
+                        if cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key):
                             run.font.color.rgb = RGBColor(0, 0, 0)
                         if table_key == "srs2" and row_index == len(table.rows) - 1:
                             run.bold = True
                         if table_key == "srs2" and row_index == len(table.rows) - 1:
                             run.bold = True
                 cell.vertical_alignment = (
-                    WD_CELL_VERTICAL_ALIGNMENT.CENTER if table_key in {"wisc", "bpa", "fdt", "etdah", "srs2"} or cls._is_scared_table_key(table_key) else None
+                    WD_CELL_VERTICAL_ALIGNMENT.CENTER if table_key in {"wisc", "bpa", "fdt", "srs2"} or cls._is_etdah_table_key(table_key) or cls._is_scared_table_key(table_key) else None
                 )
 
             if table_key == "wisc" and row_index > 0 and row.cells[0].text == "Fala Espontânea":
@@ -4486,6 +4657,8 @@ class ReportExportService:
 
     @classmethod
     def _table_widths(cls, table_key: str):
+        if cls._is_etdah_table_key(table_key):
+            table_key = "etdah"
         return {
             "wisc": [
                 Inches(1.75),

@@ -4,6 +4,16 @@ from __future__ import annotations
 BFP_CODE = "bfp"
 BFP_NAME = "BFP - Bateria Fatorial de Personalidade"
 
+BFP_CLASSIFICATION_MEANING = {
+    "Muito Baixo": "traço muito reduzido em relação à amostra normativa",
+    "Baixo": "traço reduzido em relação à amostra normativa",
+    "Média Inferior": "tendência discretamente reduzida, ainda próxima da faixa esperada",
+    "Média": "funcionamento compatível com a média normativa",
+    "Média Superior": "tendência aumentada em relação à média normativa",
+    "Superior": "traço elevado em relação à amostra normativa",
+    "Muito Superior": "traço muito elevado em relação à amostra normativa",
+}
+
 SAMPLE_LABELS = {
     "geral": "Geral",
     "masculino": "Masculino",
@@ -41,6 +51,14 @@ FACTOR_DEFINITIONS = {
         "name": "Abertura",
         "facets": ["A1", "A2", "A3"],
     },
+}
+
+FACTOR_INTERPRETIVE_NAMES = {
+    "NN": "neuroticismo",
+    "EE": "extroversao",
+    "SS": "socializacao",
+    "RR": "realizacao",
+    "AA": "abertura",
 }
 
 FACET_DEFINITIONS = {
@@ -275,3 +293,53 @@ NORMS = {
 }
 
 MIDDLE_TEXT = "Apresenta padrões comportamentais, cognitivos e emocionais comuns à maior parte da população, ou seja, tende a apresentar padrões mais adaptativos, usuais na nossa sociedade. Escores médios significam também maior flexibilidade, uma vez que em algumas situações a pessoa pode demonstrar certa característica mais intensamente e em outras, não."
+
+FACTOR_INTERPRETATION_TEMPLATES = {
+    "neuroticismo": {
+        "elevado": "O fator Neuroticismo apresentou classificação {classification}, sugerindo maior tendência à reatividade emocional, sensibilidade ao estresse e vivência mais intensa de afetos negativos. Esse padrão pode se manifestar por preocupações frequentes, insegurança, oscilação emocional e maior dificuldade em lidar com frustrações ou situações de pressão.",
+        "medio": "O fator Neuroticismo situou-se na faixa {classification}, indicando funcionamento emocional compatível com o esperado para a amostra normativa. Esse resultado sugere equilíbrio relativo na vivência de emoções negativas, sem indicativos psicométricos de reatividade emocional acentuada nesse fator.",
+        "reduzido": "O fator Neuroticismo apresentou classificação {classification}, sugerindo menor tendência à instabilidade emocional, menor reatividade a situações de estresse e maior estabilidade afetiva. Esse padrão pode estar associado a maior controle emocional, devendo ser interpretado em conjunto com os demais fatores e dados clínicos.",
+    },
+    "extroversao": {
+        "elevado": "O fator Extroversão apresentou classificação {classification}, sugerindo maior tendência à sociabilidade, iniciativa interpessoal, expressividade comunicativa e busca por interação social. Esse perfil pode favorecer facilidade para estabelecer contatos e expressar emoções de forma mais aberta.",
+        "medio": "O fator Extroversão situou-se na faixa {classification}, indicando repertório social compatível com o esperado para a amostra normativa. Esse resultado sugere equilíbrio entre momentos de interação social e reserva pessoal.",
+        "reduzido": "O fator Extroversão apresentou classificação {classification}, sugerindo tendência a menor busca por interação social, maior reserva interpessoal e menor expressividade em contextos sociais. Esse padrão pode associar-se a postura mais introspectiva e preferência por atividades individualizadas.",
+    },
+    "socializacao": {
+        "elevado": "O fator Socialização apresentou classificação {classification}, sugerindo tendência a maior empatia, cooperação, cordialidade e preocupação com o bem-estar de outras pessoas. Esse perfil pode favorecer relações interpessoais mais colaborativas e postura conciliadora.",
+        "medio": "O fator Socialização situou-se na faixa {classification}, indicando funcionamento interpessoal compatível com o esperado para a amostra normativa. Esse resultado sugere equilíbrio entre cooperação, assertividade e consideração pelas necessidades alheias.",
+        "reduzido": "O fator Socialização apresentou classificação {classification}, sugerindo tendência a menor confiança interpessoal, menor complacência ou maior postura crítica nas relações. Esse padrão pode associar-se a dificuldades de cooperação ou maior tendência a conflitos, devendo ser analisado com cautela.",
+    },
+    "realizacao": {
+        "elevado": "O fator Realização apresentou classificação {classification}, sugerindo maior tendência à organização, responsabilidade, persistência e orientação para metas. Esse perfil pode favorecer planejamento, disciplina e compromisso com demandas acadêmicas, profissionais ou cotidianas.",
+        "medio": "O fator Realização situou-se na faixa {classification}, indicando recursos de organização, persistência e responsabilidade compatíveis com o esperado para a amostra normativa. Esse padrão sugere funcionamento autorregulatório globalmente adequado nesse fator.",
+        "reduzido": "O fator Realização apresentou classificação {classification}, sugerindo tendência a menor organização, menor persistência diante de tarefas prolongadas e maior dificuldade em manter planejamento ou rotina. Esse padrão pode impactar demandas que exigem disciplina, constância e gerenciamento de tempo.",
+    },
+    "abertura": {
+        "elevado": "O fator Abertura à Experiência apresentou classificação {classification}, sugerindo maior curiosidade intelectual, criatividade, flexibilidade cognitiva e interesse por experiências novas. Esse perfil pode favorecer adaptação a contextos inovadores e exploração de ideias.",
+        "medio": "O fator Abertura à Experiência situou-se na faixa {classification}, indicando equilíbrio entre interesse por novidades e preferência por situações familiares. Esse resultado sugere flexibilidade compatível com o esperado para a amostra normativa.",
+        "reduzido": "O fator Abertura à Experiência apresentou classificação {classification}, sugerindo tendência a maior preferência por rotinas conhecidas, menor busca por novidades e postura mais convencional diante de mudanças. Esse padrão pode estar associado a maior necessidade de previsibilidade.",
+    },
+}
+
+FACET_TEMPLATES = {
+    "N1": "A faceta Vulnerabilidade apresentou classificação {classification}, sugerindo maior sensibilidade diante de situações adversas e possível percepção de menor recurso pessoal para lidar com estressores.",
+    "N2": "A faceta Instabilidade Emocional apresentou classificação {classification}, indicando maior tendência a oscilações afetivas e respostas emocionais intensificadas diante de eventos cotidianos.",
+    "N3": "A faceta Passividade apresentou classificação {classification}, sugerindo tendência a menor iniciativa ou maior dificuldade em agir de forma ativa diante de demandas e situações de pressão.",
+    "N4": "A faceta Depressão apresentou classificação {classification}, sugerindo presença aumentada de indicadores subjetivos de desânimo, pessimismo ou menor vitalidade emocional, devendo ser analisada em conjunto com instrumentos específicos de humor.",
+    "E1": "A faceta Comunicação apresentou classificação {classification}, sugerindo {direction} facilidade para expressão verbal, interação e compartilhamento de ideias em contextos sociais.",
+    "E2": "A faceta Altivez apresentou classificação {classification}, indicando tendência relacionada à autoconfiança, exposição pessoal e percepção de valor próprio nas relações sociais.",
+    "E3": "A faceta Dinamismo apresentou classificação {classification}, sugerindo nível {direction} de energia, iniciativa e ritmo de envolvimento em atividades.",
+    "E4": "A faceta Interações Sociais apresentou classificação {classification}, sugerindo tendência {direction} busca por contato interpessoal e participação em situações sociais.",
+    "S1": "A faceta Amabilidade apresentou classificação {classification}, sugerindo tendência {direction} cordialidade, acolhimento e disponibilidade nas relações interpessoais.",
+    "S2": "A faceta Pró-sociabilidade apresentou classificação {classification}, indicando tendência {direction} consideração por regras sociais, cooperação e condutas voltadas à convivência harmoniosa.",
+    "S3": "A faceta Confiança nas Pessoas apresentou classificação {classification}, sugerindo tendência {direction} abertura para confiar em outras pessoas e interpretar intenções interpessoais de forma positiva.",
+    "R1": "A faceta Competência apresentou classificação {classification}, sugerindo percepção {direction} de eficácia pessoal, capacidade de realização e segurança para executar tarefas.",
+    "R2": "A faceta Ponderação apresentou classificação {classification}, indicando tendência {direction} reflexão antes de agir, planejamento e controle de respostas impulsivas.",
+    "R3": "A faceta Empenho apresentou classificação {classification}, sugerindo tendência {direction} persistência, dedicação e manutenção de esforço em atividades dirigidas a objetivos.",
+    "A1": "A faceta Abertura a Ideias apresentou classificação {classification}, sugerindo tendência {direction} curiosidade intelectual, interesse por conceitos abstratos e exploração de novas formas de pensamento.",
+    "A2": "A faceta Liberalismo apresentou classificação {classification}, indicando tendência {direction} flexibilidade frente a valores, costumes e perspectivas diferentes das habituais.",
+    "A3": "A faceta Busca por Novidades apresentou classificação {classification}, sugerindo tendência {direction} interesse por experiências novas, mudanças e situações pouco rotineiras.",
+}
+
+BFP_CLOSING_TEXT = "Em análise clínica, os resultados do BFP devem ser compreendidos como indicadores de tendências de personalidade, e não como determinantes absolutos do comportamento. A interpretação deve ser integrada à anamnese, observação clínica, histórico de funcionamento e demais instrumentos utilizados na avaliação."

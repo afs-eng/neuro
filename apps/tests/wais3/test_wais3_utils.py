@@ -1,4 +1,5 @@
 from apps.tests.wais3 import utils
+from apps.tests.wais3.constants import classify_composite_score, classify_scaled_score
 from apps.tests.wais3.loaders import WAIS3NormLoader
 
 
@@ -43,3 +44,13 @@ def test_convert_qiv_sum_65_to_standard_score_105():
     qiv = comps.get("qi_verbal")
     assert qiv["standard_score"] == 105
     assert int(float(qiv["percentile"])) == 63
+
+
+def test_scaled_score_classification_matches_wais3_skill_thresholds():
+    assert classify_scaled_score(7) == "Média Inferior"
+    assert classify_scaled_score(5) == "Limítrofe"
+    assert classify_scaled_score(4) == "Deficitário"
+
+
+def test_composite_score_classification_uses_deficitario_label():
+    assert classify_composite_score(69) == "Deficitário"

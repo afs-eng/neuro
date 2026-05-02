@@ -79,7 +79,10 @@ export default function EditPatientPage() {
     setError('');
 
     try {
-      await api.patch(`/api/patients/${patientId}`, formData);
+      await api.patch(`/api/patients/${patientId}`, {
+        ...formData,
+        email: formData.email.trim() || undefined,
+      });
       router.push(`/dashboard/patients/${patientId}`);
     } catch (err: any) {
       setError(err?.message || 'Erro ao salvar alterações do paciente');

@@ -81,7 +81,7 @@ interface Report {
 
 function calculateAge(birthDate: string | undefined | null): string {
   if (!birthDate) return "—";
-  const birth = new Date(birthDate);
+  const birth = new Date(birthDate + "T00:00:00");
   const today = new Date();
   if (isNaN(birth.getTime())) return "—";
 
@@ -98,7 +98,7 @@ function calculateAge(birthDate: string | undefined | null): string {
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString("pt-BR");
+    return new Date(dateStr + "T00:00:00").toLocaleDateString("pt-BR");
   } catch {
     return "—";
   }
@@ -107,7 +107,7 @@ function formatDate(dateStr: string | null | undefined): string {
 function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString("pt-BR");
+    return new Date(dateStr + "T00:00:00").toLocaleDateString("pt-BR");
   } catch {
     return "—";
   }

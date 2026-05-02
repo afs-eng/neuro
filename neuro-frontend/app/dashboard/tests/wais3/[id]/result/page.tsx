@@ -45,6 +45,7 @@ interface ResultData {
     psychometrics_tables?: Record<string, any>
     facilidades_dificuldades?: any[]
     discrepancias?: any[]
+    render_ready_tables?: any
     digitos?: any
   }
   interpretation_text?: string
@@ -76,6 +77,99 @@ const DIGIT_PROCESS_ROWS = [
   { key: 'diferenca_maior_sequencia', label: 'Diferença OD - OI' },
 ]
 
+const STATUS_AFFECTED_COLUMNS = new Set([
+  'Significância Estatística - Nível',
+  'Significância Estatística - nível',
+  'Frequência da Diferença da Amostra de Padronização',
+  'Frequência da Diferença na Amostra de Padronização',
+  'Facilidade (+)',
+  'Dificuldade (-)',
+])
+
+function getStatusPlaceholder(status?: string) {
+  if (status === 'below_threshold') return 'NS'
+  if (status === 'missing_norm') return 'N/D'
+  if (status === 'missing_score') return 'Aus.'
+  return '—'
+}
+
+function buildStatusSummary(...groups: Record<string, any>[][]) {
+  const summary = {
+    significant: 0,
+    below_threshold: 0,
+    missing_norm: 0,
+    missing_score: 0,
+  }
+
+  for (const rows of groups) {
+    for (const row of rows || []) {
+      const status = row?.status
+      if (status && status in summary) {
+        summary[status as keyof typeof summary] += 1
+      }
+    }
+  }
+
+  return summary
+}
+
+function RenderReadyTable({
+  title,
+  columns,
+  rows,
+}: {
+  title: string
+  columns: string[]
+  rows: Record<string, any>[]
+}) {
+  if (!rows.length) return null
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
+      <div className="px-5 py-4 border-b border-slate-200">
+        <h3 className="font-semibold text-slate-900">{title}</h3>
+        <p className="mt-1 text-xs text-slate-500">NS = não significativo. N/D = norma indisponível.</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-slate-50">
+              {columns.map((column) => (
+                <th key={column} className="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide first:min-w-[240px]">
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {rows.map((row, index) => (
+              <tr key={index} className="hover:bg-slate-50">
+                {columns.map((column) => {
+                  const value = row[column]
+                  const status = row.status as string | undefined
+                  const reason = row.reason as string | undefined
+                  const shouldUseStatusPlaceholder = value == null && STATUS_AFFECTED_COLUMNS.has(column) && status
+                  const displayValue = shouldUseStatusPlaceholder ? getStatusPlaceholder(status) : (value ?? '—')
+
+                  return (
+                    <td
+                      key={column}
+                      title={reason || undefined}
+                      className={`px-5 py-3 text-sm text-slate-700 ${column === columns[0] ? 'font-medium text-slate-900' : 'text-center'} ${shouldUseStatusPlaceholder ? 'text-slate-500' : ''}`}
+                    >
+                      {displayValue}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export default function WAIS3ResultPage() {
   const params = useParams()
   const [result, setResult] = useState<ResultData | null>(null)
@@ -106,6 +200,11 @@ export default function WAIS3ResultPage() {
 
   const classified = result.classified_payload || {}
   const computed = result.computed_payload || {}
+  const renderReadyTables = computed.render_ready_tables || {}
+  const statusSummary = buildStatusSummary(
+    renderReadyTables.facilidades_dificuldades?.linhas || [],
+    renderReadyTables.discrepancias?.linhas || [],
+  )
   const indices = classified.indices || computed.indices || {}
   const subtestes = (classified.subtestes_ordenados && classified.subtestes_ordenados.length > 0)
     ? classified.subtestes_ordenados
@@ -133,6 +232,25 @@ export default function WAIS3ResultPage() {
             <h1 className="text-3xl font-medium tracking-tight text-zinc-900">WAIS-III - Resultado</h1>
             <p className="mt-1 text-sm text-zinc-600">{result.patient_name}</p>
             {result.applied_on && <p className="mt-1 text-xs text-zinc-500">Avaliado em: {new Date(result.applied_on).toLocaleDateString('pt-BR')}</p>}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 mb-6">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Significativas</div>
+              <div className="mt-1 text-2xl font-semibold text-emerald-900">{statusSummary.significant}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">Abaixo do Corte</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-900">{statusSummary.below_threshold}</div>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">Sem Norma</div>
+              <div className="mt-1 text-2xl font-semibold text-amber-900">{statusSummary.missing_norm}</div>
+            </div>
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">Escore Ausente</div>
+              <div className="mt-1 text-2xl font-semibold text-rose-900">{statusSummary.missing_score}</div>
+            </div>
           </div>
 
           {/* Índices Principais */}
@@ -243,51 +361,44 @@ export default function WAIS3ResultPage() {
           )}
 
           {/* Facilidades e Dificuldades */}
-          {computed.facilidades_dificuldades && computed.facilidades_dificuldades.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
-              <div className="px-5 py-4 border-b border-slate-200"><h3 className="font-semibold text-slate-900">Facilidades e Dificuldades por Subteste</h3></div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead><tr className="bg-slate-50"><th className="text-left px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Subteste</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Escore</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Média</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Diferença</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Tipo</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Significância</th></tr></thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {computed.facilidades_dificuldades.map((fd: any, i: number) => (
-                      <tr key={i} className={`hover:bg-slate-50 ${fd.tipo === 'facilidade' ? 'bg-green-50/50' : 'bg-red-50/50'}`}>
-                        <td className="px-5 py-3 text-sm font-medium text-slate-900">{fd.subteste}</td>
-                        <td className="px-5 py-3 text-sm text-center text-slate-700 font-semibold">{fd.escore}</td>
-                        <td className="px-5 py-3 text-sm text-center text-slate-700">{fd.media}</td>
-                        <td className="px-5 py-3 text-sm text-center text-slate-700 font-semibold">{fd.diferenca}</td>
-                        <td className="px-5 py-3 text-sm text-center text-slate-700">{fd.tipo}</td>
-                        <td className="px-5 py-3 text-sm text-center text-slate-700">{fd.significancia}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {renderReadyTables.facilidades_dificuldades && (
+            <>
+              <RenderReadyTable
+                title={renderReadyTables.facilidades_dificuldades.titulo}
+                columns={renderReadyTables.facilidades_dificuldades.colunas || []}
+                rows={renderReadyTables.facilidades_dificuldades.linhas || []}
+              />
+              <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+                <h4 className="font-semibold text-slate-900 mb-3">Determinação das Facilidades e Dificuldades</h4>
+                <div className="grid gap-3 md:grid-cols-2 text-sm text-slate-700">
+                  <div className={`rounded-xl border px-4 py-3 ${renderReadyTables.facilidades_dificuldades.determinacao?.diferenca_media_total?.checked ? 'border-sky-300 bg-sky-50' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="font-medium text-slate-900">{renderReadyTables.facilidades_dificuldades.determinacao?.diferenca_media_total?.label || 'Diferença da Média Total'}</div>
+                    <div className="mt-1">{renderReadyTables.facilidades_dificuldades.determinacao?.diferenca_media_total?.checked ? 'Selecionado' : 'Não selecionado'}</div>
+                  </div>
+                  <div className={`rounded-xl border px-4 py-3 ${renderReadyTables.facilidades_dificuldades.determinacao?.diferenca_media_verbal_execucao?.checked ? 'border-sky-300 bg-sky-50' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="font-medium text-slate-900">{renderReadyTables.facilidades_dificuldades.determinacao?.diferenca_media_verbal_execucao?.label || 'Diferença da Média Verbal e da Média de Execução'}</div>
+                    <div className="mt-1">{renderReadyTables.facilidades_dificuldades.determinacao?.diferenca_media_verbal_execucao?.checked ? 'Selecionado' : 'Não selecionado'}</div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Discrepâncias entre Índices */}
-          {computed.discrepancias && computed.discrepancias.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
-              <div className="px-5 py-4 border-b border-slate-200"><h3 className="font-semibold text-slate-900">Discrepâncias entre Índices</h3></div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead><tr className="bg-slate-50"><th className="text-left px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Par</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Diferença</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Valor Crítico</th><th className="text-center px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Nível</th></tr></thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {computed.discrepancias.map((disc: any, i: number) =>
-                      disc.pares.map((par: any, j: number) => (
-                        <tr key={`${i}-${j}`} className="hover:bg-slate-50">
-                          <td className="px-5 py-3 text-sm font-medium text-slate-900">{par.par}</td>
-                          <td className="px-5 py-3 text-sm text-center text-slate-700 font-semibold">{par.diferenca}</td>
-                          <td className="px-5 py-3 text-sm text-center text-slate-700">{par.critico}</td>
-                          <td className="px-5 py-3 text-sm text-center text-slate-700">{par.nivel}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          {renderReadyTables.discrepancias && (
+            <RenderReadyTable
+              title={renderReadyTables.discrepancias.titulo}
+              columns={renderReadyTables.discrepancias.colunas || []}
+              rows={renderReadyTables.discrepancias.linhas || []}
+            />
+          )}
+
+          {renderReadyTables.digitos && (
+            <RenderReadyTable
+              title={renderReadyTables.digitos.titulo}
+              columns={renderReadyTables.digitos.colunas || []}
+              rows={renderReadyTables.digitos.linhas || []}
+            />
           )}
 
           {/* Análise de Dígitos */}

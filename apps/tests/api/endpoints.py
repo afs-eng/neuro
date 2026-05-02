@@ -1086,6 +1086,9 @@ def wais3_preview(request, payload: WAIS3SubmitIn) -> tuple[int, dict]:
         "age_range": computed.get("idade_normativa"),
         "indices": computed.get("indices", {}),
         "subtestes": computed.get("subtestes", {}),
+        "facilidades_dificuldades_tabela": computed.get("facilidades_dificuldades_tabela", {}),
+        "discrepancias_tabela": computed.get("discrepancias_tabela", {}),
+        "render_ready_tables": computed.get("render_ready_tables", {}),
         "digitos": computed.get("digitos", {}),
         "warnings": computed.get("warnings", []),
     }
