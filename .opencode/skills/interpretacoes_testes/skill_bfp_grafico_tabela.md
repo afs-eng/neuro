@@ -597,6 +597,83 @@ Esta skill não substitui a análise psicológica. Ela apenas organiza os result
 
 ---
 
+# 8. ANÁLISE AUTOMATIZADA PARA INSERÇÃO NO LAUDO
+
+Esta seção apresenta um conjunto mínimo de regras e uma função exemplo que produzem um resumo interpretativo curto (para inclusão no laudo) a partir dos resultados numéricos já calculados (percentis e classificações). A saída é pensada para ser revista pelo avaliador antes da inserção final.
+
+Regras principais usadas na análise automática:
+
+- Destacar fatores com percentil >= 85 (elevado/superior) ou < 15 (baixo/muito baixo).
+- Marcar como "extremo" percentis >= 97.5 ou < 2.5.
+- Sinalizar combinações clinicamente relevantes (ex.: Neuroticismo elevado + Realização reduzida).
+- Não gerar diagnóstico — usar linguagem condicional ("sugere", "pode indicar").
+
+Exemplo de função (pseudocódigo / Python para implementação no backend):
+
+```python
+def summarize_bfp_for_report(results: dict) -> dict:
+    """Gera um resumo curto, lista de fatores relevantes e recomendações de destaque.
+
+    Input expected format:
+    {
+        'NN': {'percentile': 99.0, 'classification': 'Muito Superior'},
+        'EE': {'percentile': 4.8, 'classification': 'Muito Baixo'},
+        ...
+    }
+    Output example:
+    {
+        'summary': 'Perfil com elevação em Neuroticismo e redução em Extroversão...',
+        'relevant': [{'code':'NN','percentile':99.0,'flag':'Muito Superior'}...],
+        'recommendations': ['Integrar com anamnese','Verificar sintomas ansiosos']
+    }
+    """
+    thresholds = {'highlight_low':15, 'highlight_high':85, 'extreme_low':2.5, 'extreme_high':97.5}
+    mapping = {
+        'NN':'Neuroticismo','EE':'Extroversão','SS':'Socialização','RR':'Realização','AA':'Abertura'
+    }
+
+    relevant = []
+    for code, data in (results or {}).items():
+        p = float(data.get('percentile') or 0)
+        classification = data.get('classification') or '-'
+        flag = None
+        if p >= thresholds['extreme_high'] or p < thresholds['extreme_low']:
+            flag = 'extremo'
+        elif p >= thresholds['highlight_high'] or p < thresholds['highlight_low']:
+            flag = 'relevante'
+
+        if flag:
+            relevant.append({'code':code,'name':mapping.get(code,code),'percentile':p,'classification':classification,'flag':flag})
+
+    # Síntese simples
+    elev = [r for r in relevant if r['percentile'] >= thresholds['highlight_high']]
+    reduz = [r for r in relevant if r['percentile'] < thresholds['highlight_low']]
+
+    parts = []
+    if elev:
+        parts.append('elevação em ' + ', '.join([f"{r['name']} ({r['classification']})" for r in elev]))
+    if reduz:
+        parts.append('redução em ' + ', '.join([f"{r['name']} ({r['classification']})" for r in reduz]))
+
+    summary = 'Perfil sem alterações significativas.' if not parts else ('; '.join(parts) + '.')
+
+    # Regras de combinação (exemplos úteis para laudo)
+    combos = []
+    codes = {r['code']:r for r in relevant}
+    if 'NN' in codes and 'RR' in codes:
+        if codes['NN']['percentile'] >= 85 and codes['RR']['percentile'] < 30:
+            combos.append('Neuroticismo elevado associado a Realização reduzida pode sugerir impacto emocional na organização e manutenção de metas.')
+    if 'NN' in codes and 'EE' in codes:
+        if codes['NN']['percentile'] >= 85 and codes['EE']['percentile'] < 30:
+            combos.append('Neuroticismo elevado com Extroversão reduzida pode indicar vivência interna de sofrimento com menor busca por apoio social.')
+
+    recommendations = ['Integrar achados à anamnese e observação clínica', 'Confrontar com instrumentos de humor/ansiedade quando aplicáveis']
+
+    return {'summary': summary, 'relevant': relevant, 'combinations': combos, 'recommendations': recommendations}
+```
+
+Observação: a função acima é um ponto de partida. Ajustes locais (linguagem, limiares normativos, nomes dos códigos) devem ser aplicados conforme o padrão da base normativa do sistema.
+
 # Referências
 
 - `apps/reports/services/report_export_service.py` (linhas 3866-3881): `_bfp_rows()`

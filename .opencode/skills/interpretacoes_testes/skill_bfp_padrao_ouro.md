@@ -547,4 +547,27 @@ Sempre finalizar com:
 
 ```text
 Em análise clínica, os resultados do BFP devem ser compreendidos como indicadores de tendências de personalidade, e não como determinantes absolutos do comportamento. A interpretação deve ser integrada à anamnese, observação clínica, histórico de funcionamento e demais instrumentos utilizados na avaliação.
+
+---
+
+# 13. ANÁLISE AUTOMATIZADA PARA LAUDO (SUGESTÃO)
+
+Adicionar ao backend uma função de resumo automátizado para gerar um parágrafo sintético e itens de destaque que possam ser revisados e inseridos no laudo pelo avaliador. Isso padroniza saídas e aumenta auditabilidade.
+
+Regras resumidas:
+
+- Destacar fatores com percentil >= 85 ou < 15.
+- Marcar como "extremo" percentis >= 97.5 ou < 2.5.
+- Priorizar linguagem condicional ("sugere", "pode indicar").
+
+Exemplo de implementação (pseudocódigo Python):
+
+```python
+def summarize_bfp_for_report(results: dict) -> dict:
+    # Mesma função ilustrativa disponível em skill_bfp_grafico_tabela.md
+    # Retorna: {'summary': str, 'relevant': list, 'combinations': list, 'recommendations': list}
+    ...
+```
+
+Observação: adaptar nomes de chaves (neuroticismo/extroversao/...) conforme o payload real do sistema.
 ```

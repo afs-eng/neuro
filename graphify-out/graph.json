@@ -49524,8 +49524,8 @@
       "source_file": "apps/reports/tests.py",
       "source_location": "L917",
       "weight": 1.0,
-      "_src": "tests_reportexportchartsanitizationtests_test_rebuild_qualitative_section_places_bfp_between_ebadep_and_srs2_in_wais3_model",
-      "_tgt": "str",
+      "_src": "str",
+      "_tgt": "tests_reportexportchartsanitizationtests_test_rebuild_qualitative_section_places_bfp_between_ebadep_and_srs2_in_wais3_model",
       "source": "str",
       "target": "tests_reportexportchartsanitizationtests_test_rebuild_qualitative_section_places_bfp_between_ebadep_and_srs2_in_wais3_model"
     },
@@ -66935,11 +66935,11 @@
       "source_file": "apps/reports/services/report_export_service.py",
       "source_location": "L35",
       "weight": 0.8,
-      "_src": "report_export_service_reportexportservice",
-      "_tgt": "wais3_report_builder_wais3reportbuilder",
+      "_src": "wais3_report_builder_wais3reportbuilder",
+      "_tgt": "report_export_service_reportexportservice",
+      "confidence_score": 0.5,
       "source": "wais3_report_builder_wais3reportbuilder",
-      "target": "report_export_service_reportexportservice",
-      "confidence_score": 0.5
+      "target": "report_export_service_reportexportservice"
     },
     {
       "relation": "calls",
@@ -66948,8 +66948,8 @@
       "source_file": "apps/reports/services/report_export_service.py",
       "source_location": "L454",
       "weight": 1.0,
-      "_src": "report_export_service_wais3_report_builder",
-      "_tgt": "wais3_report_builder_for_adolescent",
+      "_src": "wais3_report_builder_for_adolescent",
+      "_tgt": "report_export_service_wais3_report_builder",
       "source": "wais3_report_builder_for_adolescent",
       "target": "report_export_service_wais3_report_builder"
     },
@@ -66960,8 +66960,8 @@
       "source_file": "apps/reports/services/report_export_service.py",
       "source_location": "L455",
       "weight": 1.0,
-      "_src": "report_export_service_wais3_report_builder",
-      "_tgt": "wais3_report_builder_for_adult",
+      "_src": "wais3_report_builder_for_adult",
+      "_tgt": "report_export_service_wais3_report_builder",
       "source": "wais3_report_builder_for_adult",
       "target": "report_export_service_wais3_report_builder"
     },

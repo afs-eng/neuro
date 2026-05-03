@@ -7,8 +7,8 @@ FDT_STAGE_LABELS = {
     "leitura": "Leitura",
     "contagem": "Contagem",
     "escolha": "Escolha",
-    "alternancia": "Alternancia",
-    "inibicao": "Inibicao",
+    "alternancia": "Alternância",
+    "inibicao": "Inibição",
     "flexibilidade": "Flexibilidade",
 }
 

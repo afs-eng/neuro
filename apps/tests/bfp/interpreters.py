@@ -195,3 +195,89 @@ def build_bfp_interpretation(merged_data: dict, patient_name: str | None = None)
 
 def get_report_interpretation(merged_data: dict, patient_name: str | None = None) -> str:
     return build_bfp_interpretation(merged_data, patient_name=patient_name)
+
+
+def build_bfp_report_highlights(merged_data: dict) -> dict:
+    """Gera um resumo compacto (highlights) para uso em laudos e legendas de gráficos.
+
+    Usa o payload já normalizado (merged_data) produzido pela pipeline do teste.
+    Retorna:
+      {
+        'summary': <curto parágrafo>,
+        'relevant': [ {'code','name','percentile','classification','flag'} ],
+        'combinations': [str,...],
+        'recommendations': [str,...]
+      }
+    """
+    factors = merged_data.get("factors") or {}
+    mapping = {code: _factor_key(code) for code in FACTOR_DEFINITIONS}
+
+    relevant = []
+    for code in FACTOR_DEFINITIONS:
+        item = factors.get(code)
+        if not item:
+            continue
+        pct = float(item.get("percentile") or 0)
+        classification = item.get("classification") or "-"
+        flag = None
+        if pct >= 97.5 or pct < 2.5:
+            flag = "extremo"
+        elif pct >= 85 or pct < 15:
+            flag = "relevante"
+        if flag:
+            relevant.append(
+                {
+                    "code": code,
+                    "name": mapping.get(code, code),
+                    "percentile": pct,
+                    "classification": classification,
+                    "flag": flag,
+                }
+            )
+
+    elev = [r for r in relevant if r["percentile"] >= 85]
+    reduz = [r for r in relevant if r["percentile"] < 15]
+
+    parts = []
+    if elev:
+        parts.append("elevação em " + ", ".join([f"{r['name']} ({r['classification']})" for r in elev]))
+    if reduz:
+        parts.append("redução em " + ", ".join([f"{r['name']} ({r['classification']})" for r in reduz]))
+
+    summary = "Perfil sem alterações clinicamente salientes nos fatores principais." if not parts else ("; ".join(parts) + ".")
+
+    combinations = []
+    nn = factors.get("NN") or {}
+    ee = factors.get("EE") or {}
+    rr = factors.get("RR") or {}
+    ss = factors.get("SS") or {}
+    aa = factors.get("AA") or {}
+
+    try:
+        if float(nn.get("percentile") or 0) >= 85 and float(rr.get("percentile") or 100) < 30:
+            combinations.append(
+                "Neuroticismo elevado associado a Realização reduzida pode indicar impacto emocional sobre organização e manutenção de metas."
+            )
+        if float(nn.get("percentile") or 0) >= 85 and float(ee.get("percentile") or 100) < 30:
+            combinations.append(
+                "Neuroticismo elevado com Extroversão reduzida pode sugerir vivência interna de sofrimento com menor procura de apoio social."
+            )
+        if float(ss.get("percentile") or 100) < 30 and float(nn.get("percentile") or 0) >= 85:
+            combinations.append(
+                "Socialização reduzida combinada à elevação em Neuroticismo pode aumentar a vulnerabilidade a conflitos interpessoais."
+            )
+    except Exception:
+        # proteção simples; não falhar em caso de dados inesperados
+        pass
+
+    recommendations = [
+        "Integrar estes achados à anamnese e à observação clínica.",
+        "Confrontar com instrumentos de humor/ansiedade quando aplicável.",
+    ]
+
+    return {
+        "summary": summary,
+        "relevant": relevant,
+        "combinations": combinations,
+        "recommendations": recommendations,
+    }
