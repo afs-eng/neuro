@@ -3993,11 +3993,22 @@ class ReportExportService:
         
         percentis = []
         for code in facet_codes:
-            facet = facets.get(code) or {}
-            pct = facet.get("percentile")
-            if pct is None:
+            facet = facets.get(code)
+            if facet is None:
+                percentis.append(50.0)
+                continue
+            if isinstance(facet, int):
+                pct = facet
+            elif isinstance(facet, dict):
+                pct = facet.get("percentile")
+                if pct is None:
+                    pct = 50
+            else:
                 pct = 50
-            percentis.append(float(pct))
+            try:
+                percentis.append(float(pct))
+            except (TypeError, ValueError):
+                percentis.append(50.0)
         
         if len(percentis) != 17:
             return None

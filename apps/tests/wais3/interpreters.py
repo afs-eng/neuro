@@ -25,8 +25,12 @@ def classify_composite_score(value: int | None) -> str:
     return "Muito Superior"
 
 
-def _get_score_value(score_dict: dict) -> int | None:
+def _get_score_value(score_dict) -> int | None:
     if score_dict is None:
+        return None
+    if isinstance(score_dict, (int, float)):
+        return int(score_dict)
+    if not isinstance(score_dict, dict):
         return None
     value = score_dict.get("pontuacao_composta")
     if value is None:
@@ -77,15 +81,27 @@ def _format_score(score_dict: dict) -> str:
 
 def build_wais3_interpretation(merged_data: dict, patient_name: str) -> str:
     indices = merged_data.get("indices") or {}
+    if not isinstance(indices, dict):
+        indices = {}
     gai = merged_data.get("gai_data") or {}
+    if not isinstance(gai, dict):
+        gai = {}
     
-    qit = indices.get("qi_total") or {}
-    qiv = indices.get("qi_verbal") or {}
-    qie = indices.get("qi_execucao") or {}
-    icv = indices.get("compreensao_verbal") or {}
-    iop = indices.get("organizacao_perceptual") or {}
-    imo = indices.get("memoria_operacional") or {}
-    ivp = indices.get("velocidade_processamento") or {}
+    def safe_get_index(key):
+        value = indices.get(key)
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, (int, float)):
+            return {"pontuacao_composta": value}
+        return {}
+    
+    qit = safe_get_index("qi_total")
+    qiv = safe_get_index("qi_verbal")
+    qie = safe_get_index("qi_execucao")
+    icv = safe_get_index("compreensao_verbal")
+    iop = safe_get_index("organizacao_perceptual")
+    imo = safe_get_index("memoria_operacional")
+    ivp = safe_get_index("velocidade_processamento")
     
     qit_val = _get_score_value(qit)
     qiv_val = _get_score_value(qiv)
