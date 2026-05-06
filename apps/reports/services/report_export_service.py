@@ -121,6 +121,21 @@ class ReportExportService:
     FIXED_INTERESTED_PARTY = "Familiares"
     FIXED_PURPOSE = "Averiguação das capacidades cognitivas para auxílio diagnóstico"
     PRIMARY_REPORT_TEST_CODES = ("wisc4", "wais3", "wasi")
+    INVALID_DOCX_PATTERNS = (
+        "Sem conteúdo disponível para esta seção.",
+        "undefined",
+        "null",
+        "None",
+        "Interp Interpretação",
+        "Parte superior do formulário",
+        "Parte inferior do formulário",
+    )
+    REFERENCE_SECTION_HEADINGS = (
+        "17. REFERÊNCIAS BIBLIOGRÁFICAS",
+        "REFERÊNCIAS BIBLIOGRÁFICAS",
+        "REFERENCIA BIBLIOGRÁFICA",
+        "REFERÊNCIAS",
+    )
     logger = logging.getLogger(__name__)
 
     @classmethod
@@ -380,6 +395,7 @@ class ReportExportService:
 
         cls._ensure_model_table_styles(document)
         cls._normalize_model_header_footer(document)
+        cls._sanitize_generated_document(document, report, context)
 
         output = BytesIO()
         document.save(output)
@@ -2189,6 +2205,150 @@ class ReportExportService:
         cls._replace_identification_block(document, report, context)
         cls._replace_wais3_demand_block(document, sections, context)
         cls._replace_wais3_procedures_block(document, report, sections, context)
+
+    @classmethod
+    def _sanitize_generated_document(cls, document: Document, report, context: dict):
+        cls._remove_invalid_paragraph_patterns(document)
+        cls._normalize_document_spacing(document)
+        cls._remove_invalid_content_after_references(document)
+        cls._remove_empty_paragraphs(document)
+        cls._validate_patient_identity(document, report, context)
+        cls._validate_unique_wasi_result(document)
+
+    @classmethod
+    def _remove_invalid_paragraph_patterns(cls, document: Document):
+        for paragraph in document.paragraphs:
+            text = paragraph.text or ""
+            updated = text
+            for pattern in cls.INVALID_DOCX_PATTERNS:
+                updated = updated.replace(pattern, "")
+            if updated != text:
+                paragraph.text = updated
+
+    @classmethod
+    def _normalize_document_spacing(cls, document: Document):
+        for paragraph in document.paragraphs:
+            normalized = PtBrTextService.normalize(paragraph.text or "")
+            normalized = re.sub(r"[ \t]{2,}", " ", normalized)
+            normalized = re.sub(r"\s+([,.;:])", r"\1", normalized)
+            normalized = re.sub(r"\n{3,}", "\n\n", normalized)
+            if normalized != (paragraph.text or ""):
+                paragraph.text = normalized.strip()
+
+    @classmethod
+    def _remove_invalid_content_after_references(cls, document: Document):
+        body = document._body._element
+        found_references = False
+        for element in list(body.iterchildren()):
+            text = cls._body_element_text(element)
+            upper_text = text.upper()
+            if any(heading in upper_text for heading in cls.REFERENCE_SECTION_HEADINGS):
+                found_references = True
+                continue
+            if not found_references:
+                continue
+            if element.tag.endswith("tbl"):
+                body.remove(element)
+                continue
+            if cls._is_invalid_post_references_text(text):
+                body.remove(element)
+
+    @classmethod
+    def _remove_empty_paragraphs(cls, document: Document):
+        body = document._body._element
+        for paragraph in list(document.paragraphs):
+            if paragraph.text.strip():
+                continue
+            parent = paragraph._p.getparent()
+            if parent is body:
+                body.remove(paragraph._p)
+
+    @classmethod
+    def _validate_patient_identity(cls, document: Document, report, context: dict):
+        patient_name = ((context or {}).get("patient") or {}).get("full_name")
+        if not patient_name and getattr(report, "patient", None) is not None:
+            patient_name = getattr(report.patient, "full_name", "")
+        patient_name = (patient_name or "").strip()
+        if not patient_name:
+            return
+
+        allowed_tokens = {token for token in patient_name.split() if token}
+        ignored_names = {
+            patient_name,
+            cls.FIXED_AUTHOR.split("(", 1)[0].strip(),
+            "Conselho Federal",
+            "Microsoft Word",
+            "Escala Wechsler",
+            "Bateria Psicológica",
+            "Teste dos",
+            "Rey Auditory",
+            "Escala Baptista",
+        }
+        candidates = re.findall(
+            r"\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)+\b",
+            cls._document_text_before_references(document),
+        )
+        foreign_names = []
+        for name in candidates:
+            if name in ignored_names:
+                continue
+            first_name = name.split()[0]
+            if name == patient_name or first_name in allowed_tokens:
+                continue
+            if name not in foreign_names:
+                foreign_names.append(name)
+        if foreign_names:
+            raise ValueError(
+                "Exportação bloqueada: o laudo contém nomes divergentes de pacientes: "
+                + ", ".join(foreign_names)
+            )
+
+    @classmethod
+    def _validate_unique_wasi_result(cls, document: Document):
+        text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+        patterns = (
+            r"QIT\s*=\s*(\d+)",
+            r"QI\s*Total\s*=\s*(\d+)",
+            r"QI\s*TOTAL\s*(\d+)",
+        )
+        values = []
+        for pattern in patterns:
+            values.extend(re.findall(pattern, text, flags=re.IGNORECASE))
+        unique_values = list(dict.fromkeys(values))
+        if len(unique_values) > 1:
+            raise ValueError(
+                "Exportação bloqueada: resultados divergentes de QIT/QI Total encontrados: "
+                + ", ".join(unique_values)
+            )
+
+    @classmethod
+    def _document_text_before_references(cls, document: Document) -> str:
+        lines = []
+        for paragraph in document.paragraphs:
+            text = (paragraph.text or "").strip()
+            if any(heading in text.upper() for heading in cls.REFERENCE_SECTION_HEADINGS):
+                break
+            if text.startswith(("Autora:", "Filiação:")):
+                continue
+            lines.append(text)
+        return "\n".join(lines)
+
+    @staticmethod
+    def _body_element_text(element) -> str:
+        return "".join(node.text or "" for node in element.iter())
+
+    @classmethod
+    def _is_invalid_post_references_text(cls, text: str) -> bool:
+        stripped = (text or "").strip()
+        if not stripped:
+            return True
+        if any(pattern in stripped for pattern in cls.INVALID_DOCX_PATTERNS):
+            return True
+        if stripped.startswith(("{", "[")):
+            return True
+        if re.search(r'"[^\"]+"\s*:', stripped):
+            return True
+        return False
 
     @classmethod
     def _replace_identification_block(cls, document: Document, report, context: dict):

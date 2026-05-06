@@ -2435,6 +2435,57 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
             names = set(docx.namelist())
             self.assertIn('word/drawings/drawing1.xml', names)
 
+    def test_sanitize_generated_document_removes_invalid_text_and_tables_after_references(self):
+        document = Document()
+        document.add_paragraph('Texto  com  espaços  extras .')
+        document.add_paragraph('Sem conteúdo disponível para esta seção.')
+        document.add_paragraph('17. REFERÊNCIAS BIBLIOGRÁFICAS')
+        document.add_paragraph('WECHSLER, D. Referência válida.')
+        document.add_paragraph('{"raw": true}')
+        document.add_table(rows=1, cols=1)
+
+        ReportExportService._sanitize_generated_document(
+            document,
+            report=SimpleNamespace(patient=SimpleNamespace(full_name='Maria Clara Souza')),
+            context={'patient': {'full_name': 'Maria Clara Souza'}},
+        )
+
+        texts = [paragraph.text for paragraph in document.paragraphs if paragraph.text.strip()]
+
+        self.assertIn('Texto com espaços extras.', texts)
+        self.assertIn('17. REFERÊNCIAS BIBLIOGRÁFICAS', texts)
+        self.assertIn('WECHSLER, D. Referência válida.', texts)
+        self.assertNotIn('Sem conteúdo disponível para esta seção.', texts)
+        self.assertNotIn('{"raw": true}', texts)
+        self.assertEqual(len(document.tables), 0)
+
+    def test_validate_patient_identity_blocks_foreign_name_before_references(self):
+        document = Document()
+        document.add_paragraph('Nome: Maria Clara Souza')
+        document.add_paragraph('A conclusão descreve João Vitor Almeida com outro histórico clínico.')
+
+        with self.assertRaisesMessage(ValueError, 'nomes divergentes de pacientes'):
+            ReportExportService._validate_patient_identity(
+                document,
+                report=SimpleNamespace(patient=SimpleNamespace(full_name='Maria Clara Souza')),
+                context={'patient': {'full_name': 'Maria Clara Souza'}},
+            )
+
+    def test_validate_unique_wasi_result_blocks_distinct_qit_values(self):
+        document = Document()
+        document.add_paragraph('QI Total (QIT = 68), classificado como limítrofe.')
+        document.add_paragraph('Em outra seção, QIT = 122 foi informado indevidamente.')
+
+        with self.assertRaisesMessage(ValueError, 'resultados divergentes de QIT/QI Total'):
+            ReportExportService._validate_unique_wasi_result(document)
+
+    def test_validate_unique_wasi_result_allows_repeated_same_qit_value(self):
+        document = Document()
+        document.add_paragraph('QI Total (QIT = 86), classificado como média inferior.')
+        document.add_paragraph('Síntese clínica: QIT = 86, mantendo a mesma interpretação.')
+
+        ReportExportService._validate_unique_wasi_result(document)
+
     def test_append_body_element_before_sectpr_keeps_section_properties_last(self):
         document = Document()
         document.add_paragraph('Antes')

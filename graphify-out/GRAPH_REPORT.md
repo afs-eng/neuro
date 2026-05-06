@@ -1,12 +1,12 @@
-# Graph Report - neuro  (2026-05-05)
+# Graph Report - neuro  (2026-05-06)
 
 ## Corpus Check
-- 598 files · ~446,267 words
+- 598 files · ~458,801 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2885 nodes · 6178 edges · 71 communities detected
-- Extraction: 69% EXTRACTED · 31% INFERRED · 0% AMBIGUOUS · INFERRED: 1928 edges (avg confidence: 0.73)
+- 2918 nodes · 6284 edges · 73 communities detected
+- Extraction: 69% EXTRACTED · 31% INFERRED · 0% AMBIGUOUS · INFERRED: 1965 edges (avg confidence: 0.73)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -47,19 +47,19 @@
 - [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Community 35|Community 35]]
 - [[_COMMUNITY_Community 36|Community 36]]
-- [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 37|Community 37]]
 - [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Community 41|Community 41]]
-- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 42|Community 42]]
 - [[_COMMUNITY_Community 45|Community 45]]
 - [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
 - [[_COMMUNITY_Community 48|Community 48]]
-- [[_COMMUNITY_Community 51|Community 51]]
-- [[_COMMUNITY_Community 52|Community 52]]
-- [[_COMMUNITY_Community 55|Community 55]]
-- [[_COMMUNITY_Community 62|Community 62]]
-- [[_COMMUNITY_Community 63|Community 63]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
+- [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
@@ -68,30 +68,32 @@
 - [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
 - [[_COMMUNITY_Community 73|Community 73]]
-- [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 76|Community 76]]
-- [[_COMMUNITY_Community 79|Community 79]]
-- [[_COMMUNITY_Community 83|Community 83]]
-- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 81|Community 81]]
 - [[_COMMUNITY_Community 85|Community 85]]
-- [[_COMMUNITY_Community 120|Community 120]]
-- [[_COMMUNITY_Community 121|Community 121]]
-- [[_COMMUNITY_Community 146|Community 146]]
-- [[_COMMUNITY_Community 173|Community 173]]
-- [[_COMMUNITY_Community 268|Community 268]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 175|Community 175]]
+- [[_COMMUNITY_Community 270|Community 270]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `_rebuild_qualitative_section()` - 72 edges
-2. `_build_adolescent_document()` - 70 edges
-3. `split()` - 62 edges
-4. `WAIS3NormLoader` - 51 edges
-5. `ReportExportChartSanitizationTests` - 51 edges
+1. `_rebuild_qualitative_section()` - 79 edges
+2. `_build_adolescent_document()` - 74 edges
+3. `ReportExportChartSanitizationTests` - 65 edges
+4. `split()` - 63 edges
+5. `WAIS3NormLoader` - 51 edges
 6. `testContext()` - 49 edges
 7. `TestContext` - 41 edges
 8. `find()` - 40 edges
-9. `Pt()` - 36 edges
+9. `Pt()` - 37 edges
 10. `Patient` - 32 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -110,39 +112,39 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.02
-Nodes (233): getDisplayName(), getUserInitials(), _calcular_idade(), split(), find(), Pt(), remove(), formatClassification() (+225 more)
+Nodes (255): getDisplayName(), getUserInitials(), split(), cloneCopyEvent(), find(), Pt(), remove(), raw_score_matches_interval() (+247 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.03
-Nodes (139): gerar_grafico_bpa(), gerar_grafico_bpa_bytes(), _render_bpa_chart(), analyze_supplementary(), _b6_columns_for_age(), _b7_column_for_age(), _build_below_threshold_reason(), _build_discrepancy_interpretation() (+131 more)
+Cohesion: 0.04
+Nodes (128): get_instrument_age_rule(), BaseTestModule, BAICalculator, calculate_percentile_from_t(), estimate_confidence_interval(), estimate_percentile(), estimate_t_score(), Calcula a partir de um dicionário simples (uso via TestContext). (+120 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.02
-Nodes (116): check(), ensure_available(), _timeout(), AILogService, log_generation_end(), log_generation_error(), log_generation_start(), build_anamnesis_snapshot() (+108 more)
+Cohesion: 0.03
+Nodes (87): EvaluationAdmin, EvaluationDocumentAdmin, PatientAdmin, AIHealthcheckService, AnamnesisChannel, AnamnesisInvite, AnamnesisInviteQuerySet, AnamnesisInviteStatus (+79 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.06
-Nodes (93): get_instrument_age_rule(), create_test_application(), update_test_application(), BaseTestModule, classify_cars2_hf(), CARS2HFModule, MCHATModule, bai_result() (+85 more)
+Cohesion: 0.03
+Nodes (116): build_anamnesis_snapshot(), audit_report(), _build_audit_payload(), _call_ai(), ClinicalConsistencyAuditService, _normalize_audit_result(), _parse_json(), DataPresenceGuard (+108 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.03
-Nodes (93): BaseModel, _build_chart_series_item(), build_fdt_charts(), _build_scale_result(), calcular_escore(), calcular_pontuacoes(), calculate_derived_scores(), calculate_error_result() (+85 more)
+Nodes (92): A(), Ae(), B(), Be(), c(), $e(), ee(), F() (+84 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.03
-Nodes (92): A(), Ae(), B(), Be(), c(), $e(), ee(), F() (+84 more)
+Nodes (103): analyze_supplementary(), _b6_columns_for_age(), _b7_column_for_age(), _build_below_threshold_reason(), _build_discrepancy_interpretation(), _build_discrepancy_table(), _build_process_result(), _build_render_ready_tables() (+95 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.03
-Nodes (85): EvaluationAdmin, EvaluationDocumentAdmin, AIHealthcheckService, AnamnesisChannel, AnamnesisInvite, AnamnesisInviteQuerySet, AnamnesisInviteStatus, AnamnesisResponse (+77 more)
+Cohesion: 0.04
+Nodes (104): Migration, seed_templates_v2(), get_default_templates(), create_admin(), can_access_evaluation(), can_edit(), can_edit_documents(), can_edit_evaluations() (+96 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.04
-Nodes (103): Migration, seed_templates_v2(), get_default_templates(), create_admin(), can_access_evaluation(), can_edit(), can_edit_documents(), can_edit_evaluations() (+95 more)
+Cohesion: 0.03
+Nodes (63): check(), ensure_available(), _timeout(), AnthropicProvider, create_test_application(), update_test_application(), BaseAIProvider, generate() (+55 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.04
-Nodes (79): calculate_raw_scores(), classificar_percentil(), classify_guilmette(), compute_scared_scores(), formatar_percentil_e_classificacao(), inverter_pontuacao(), manual_percentile_from_raw(), percentile_guilmette() (+71 more)
+Cohesion: 0.03
+Nodes (70): AILogService, log_generation_end(), log_generation_error(), log_generation_start(), BaseModel, calcular_escore(), calcular_pontuacoes(), calculate_total() (+62 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.05
@@ -150,31 +152,31 @@ Nodes (91): Meta, TestApplication, TestApplicationQuerySet, Preview WAIS-III res
 
 ### Community 10 - "Community 10"
 Cohesion: 0.03
-Nodes (64): BaseCommand, Command, Management command to create an admin user from environment variables., Command, build_js(), main(), merge(), Merge user data over defaults recursively for top-level keys. (+56 more)
+Nodes (63): BaseCommand, Command, Management command to create an admin user from environment variables., Command, build_js(), main(), merge(), Merge user data over defaults recursively for top-level keys. (+55 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.04
-Nodes (72): _age_metric(), buscar_ponderado(), calculate_confidence_interval(), calculate_index_score(), calculate_qi_total(), _carregar_tabela_equivalente(), _carregar_tabela_ncp(), _composite_result() (+64 more)
+Cohesion: 0.05
+Nodes (63): calculate_raw_scores(), classificar_percentil(), classify_guilmette(), formatar_percentil_e_classificacao(), inverter_pontuacao(), manual_percentile_from_raw(), percentile_guilmette(), points_scaled() (+55 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.03
-Nodes (41): checker(), clearAcross(), hide(), ready(), reset(), show(), showClear(), showQuestion() (+33 more)
-
-### Community 13 - "Community 13"
 Cohesion: 0.04
 Nodes (26): buildStatusSummary(), calcularEscores(), clearForm(), fetchData(), fetchEvaluation(), fetchResult(), formatAppliedOn(), formatNumber() (+18 more)
+
+### Community 13 - "Community 13"
+Cohesion: 0.03
+Nodes (29): Data(), leverageNative(), $(), He(), focusNextItem(), addPopupIndex(), dismissAddRelatedObjectPopup(), dismissChangeRelatedObjectPopup() (+21 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.05
 Nodes (50): AbstractUser, UserAdmin, BearerAuth, BaseUserAdmin, create_user_endpoint(), forgot_password(), list_users(), login() (+42 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.09
-Nodes (37): BAICalculator, calculate_percentile_from_t(), estimate_confidence_interval(), estimate_percentile(), estimate_t_score(), Calcula a partir de um dicionário simples (uso via TestContext)., Calcula percentil a partir do escore T usando distribuição normal padrão., Intervalo de confiança estimado (±5 pontos T). (+29 more)
+Cohesion: 0.06
+Nodes (40): compute_scared_scores(), classify_scared_scores(), _automatic_paragraph(), _available_core_indices(), build_wais3_interpretation(), build_wasi_interpretation(), _classification_bucket(), _classification_phrase() (+32 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.06
-Nodes (34): classify_srs2_scores(), _acquisition_phrase(), _build_ravlt_chart_payload(), _clinical_summary(), _consolidation_phrase(), _efficiency_phrase(), _expected_phrase(), _first_name() (+26 more)
+Cohesion: 0.07
+Nodes (42): _build_chart_series_item(), build_fdt_charts(), _build_scale_result(), calculate_derived_scores(), calculate_error_result(), calculate_fdt_results(), calculate_metric_result(), calculate_stage_totals() (+34 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.05
@@ -185,40 +187,40 @@ Cohesion: 0.06
 Nodes (32): calculateAge(), fetchPatientData(), formatDisplayDate(), getInstrumentAgeRangeLabel(), getInstrumentAgeRestriction(), getPatientAgeNumber(), handleBuildReport(), handleCancelAnamnesis() (+24 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.14
-Nodes (30): _adolescent_history_sections(), _age_years(), _anamnesis_summary(), _answers_payload(), _build_conclusion_text(), _build_filiation(), _build_wisc4_adolescent_conclusion(), _clean_clinical_interpretation() (+22 more)
+Cohesion: 0.08
+Nodes (31): ABC, can_access_patient(), can_edit_patients(), can_view_patients(), create_patient_endpoint(), delete_patient_endpoint(), get_patient_endpoint(), list_patients() (+23 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.06
-Nodes (15): AppConfig, AccountsConfig, AiConfig, AnamnesisConfig, ApiConfig, AuditConfig, CommonConfig, DocumentsConfig (+7 more)
+Cohesion: 0.08
+Nodes (32): _age_metric(), _composite_result(), compute_wasi_payload(), normal_cdf(), _subtest_result(), _to_date(), classify_composite_score(), classify_subtest_z_score() (+24 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.09
-Nodes (22): _calculate_clusters(), classify_wais3_payload(), _classify_wechsler(), _estimate_cpi(), _load_cluster_table(), _load_gai_table(), Load GAI table from CSV., Load cluster table from CSV. (+14 more)
+Cohesion: 0.07
+Nodes (25): classify_srs2_scores(), _build_ravlt_chart_payload(), _clinical_summary(), _consolidation_phrase(), _expected_phrase(), _first_name(), _format_score(), _global_memory_phrase() (+17 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.11
-Nodes (18): calculate_total(), classify_score(), get_age_group(), get_norms_dir(), load_table(), find_strengths_weaknesses(), SubtestCode, SubtestConfig (+10 more)
+Cohesion: 0.06
+Nodes (15): AppConfig, AccountsConfig, AiConfig, AnamnesisConfig, ApiConfig, AuditConfig, CommonConfig, DocumentsConfig (+7 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.08
 Nodes (11): Boolean(), DateField(), FieldRenderer(), formatDateForDisplay(), normalizeOptions(), getGenerationDetails(), getPercentileWidth(), handleLogin() (+3 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.12
-Nodes (16): ABC, ICalculator, IClassifier, IInterpreter, IValidator, Protocol, AgeGroup, ClassificationResult (+8 more)
+Cohesion: 0.19
+Nodes (23): ReportValidationService, validate_for_generation(), _bpa2_age_group_for_application(), _bpa2_reference_scores(), _build_bpa2_chart_data(), _build_bpa2_rows(), _build_fdt_rows(), _build_ravlt_rows() (+15 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.15
-Nodes (17): PatientAdmin, can_access_patient(), can_edit_patients(), can_view_patients(), create_patient_endpoint(), delete_patient_endpoint(), get_patient_endpoint(), list_patients() (+9 more)
-
-### Community 26 - "Community 26"
 Cohesion: 0.21
 Nodes (9): CalculationError, ClassificationError, InstrumentNotFoundError, InterpretationError, InvalidAgeRangeError, InvalidEducationRangeError, NormTableNotFoundError, RawDataValidationError (+1 more)
 
+### Community 26 - "Community 26"
+Cohesion: 0.17
+Nodes (17): convert_a1_to_csv(), convert_composite_scores(), convert_psychometrics(), convert_supplementary(), expand_range_to_raw_scores(), main(), parse_range(), Conversor de tabelas XLSM/XLSX do WAIS-III para CSV.  Converte as tabelas normat (+9 more)
+
 ### Community 27 - "Community 27"
-Cohesion: 0.22
-Nodes (3): AIProvider, AIService, get_ai_service()
+Cohesion: 0.24
+Nodes (13): checker(), clearAcross(), hide(), ready(), reset(), show(), showClear(), showQuestion() (+5 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.27
@@ -241,72 +243,72 @@ Cohesion: 0.25
 Nodes (2): env_list(), Base Django settings shared across environments.
 
 ### Community 33 - "Community 33"
+Cohesion: 0.32
+Nodes (5): gerar_grafico_bpa(), gerar_grafico_bpa_bytes(), _render_bpa_chart(), gerar_grafico_wasi(), Gera o gráfico WASI e salva em arquivo.
+
+### Community 34 - "Community 34"
 Cohesion: 0.29
 Nodes (3): fetchAPI(), resolveApiUrl(), stringifyApiError()
 
-### Community 34 - "Community 34"
+### Community 35 - "Community 35"
 Cohesion: 0.57
 Nodes (6): compareEvaluationsByDeadline(), formatDate(), getDaysUntil(), getEvaluationDeadlineMeta(), getToday(), parseDateValue()
 
-### Community 35 - "Community 35"
+### Community 36 - "Community 36"
 Cohesion: 0.33
 Nodes (1): AIGuard
 
-### Community 36 - "Community 36"
+### Community 37 - "Community 37"
 Cohesion: 0.4
 Nodes (1): getUserInitials()
 
-### Community 39 - "Community 39"
-Cohesion: 0.5
-Nodes (3): InstrumentAdmin, TestApplicationAdmin, TestInterpretationTemplateAdmin
-
 ### Community 40 - "Community 40"
 Cohesion: 0.5
-Nodes (1): Migration
+Nodes (3): InstrumentAdmin, TestApplicationAdmin, TestInterpretationTemplateAdmin
 
 ### Community 41 - "Community 41"
 Cohesion: 0.5
 Nodes (1): Migration
 
-### Community 44 - "Community 44"
+### Community 42 - "Community 42"
+Cohesion: 0.5
+Nodes (1): Migration
+
+### Community 45 - "Community 45"
 Cohesion: 0.67
 Nodes (2): saveDraft(), submitResponse()
 
-### Community 45 - "Community 45"
+### Community 46 - "Community 46"
 Cohesion: 0.5
 Nodes (1): getGreeting()
 
-### Community 46 - "Community 46"
+### Community 47 - "Community 47"
 Cohesion: 0.83
 Nodes (3): cycleTheme(), initTheme(), setTheme()
 
-### Community 47 - "Community 47"
+### Community 48 - "Community 48"
 Cohesion: 0.67
 Nodes (2): main(), Run administrative tasks.
 
-### Community 48 - "Community 48"
+### Community 49 - "Community 49"
 Cohesion: 0.67
 Nodes (1): Migration
 
-### Community 51 - "Community 51"
+### Community 50 - "Community 50"
+Cohesion: 1.0
+Nodes (2): _curva_suave_fluida(), gerar_grafico_pontos_compostos()
+
+### Community 53 - "Community 53"
 Cohesion: 0.67
 Nodes (2): get_param(), Get a parameter from JSON body (if sent) or from form POST data.      Keeps endp
 
-### Community 52 - "Community 52"
+### Community 54 - "Community 54"
 Cohesion: 1.0
 Nodes (2): convert_one(), main()
 
-### Community 55 - "Community 55"
+### Community 57 - "Community 57"
 Cohesion: 0.67
 Nodes (1): Page()
-
-### Community 62 - "Community 62"
-Cohesion: 1.0
-Nodes (1): Migration
-
-### Community 63 - "Community 63"
-Cohesion: 1.0
-Nodes (1): Migration
 
 ### Community 64 - "Community 64"
 Cohesion: 1.0
@@ -340,11 +342,11 @@ Nodes (1): Migration
 Cohesion: 1.0
 Nodes (1): Migration
 
-### Community 73 - "Community 73"
+### Community 72 - "Community 72"
 Cohesion: 1.0
 Nodes (1): Migration
 
-### Community 74 - "Community 74"
+### Community 73 - "Community 73"
 Cohesion: 1.0
 Nodes (1): Migration
 
@@ -356,15 +358,15 @@ Nodes (1): Migration
 Cohesion: 1.0
 Nodes (1): Migration
 
-### Community 79 - "Community 79"
+### Community 77 - "Community 77"
 Cohesion: 1.0
 Nodes (1): Migration
 
-### Community 83 - "Community 83"
+### Community 78 - "Community 78"
 Cohesion: 1.0
 Nodes (1): Migration
 
-### Community 84 - "Community 84"
+### Community 81 - "Community 81"
 Cohesion: 1.0
 Nodes (1): Migration
 
@@ -372,23 +374,31 @@ Nodes (1): Migration
 Cohesion: 1.0
 Nodes (1): Migration
 
-### Community 120 - "Community 120"
+### Community 86 - "Community 86"
+Cohesion: 1.0
+Nodes (1): Migration
+
+### Community 87 - "Community 87"
+Cohesion: 1.0
+Nodes (1): Migration
+
+### Community 122 - "Community 122"
 Cohesion: 1.0
 Nodes (1): ASGI config for config project.  It exposes the ASGI callable as a module-level
 
-### Community 121 - "Community 121"
+### Community 123 - "Community 123"
 Cohesion: 1.0
 Nodes (1): WSGI config for config project.  It exposes the WSGI callable as a module-level
 
-### Community 146 - "Community 146"
+### Community 148 - "Community 148"
 Cohesion: 1.0
 Nodes (1): Classifica o escore T do BAI conforme faixas normativas.
 
-### Community 173 - "Community 173"
+### Community 175 - "Community 175"
 Cohesion: 1.0
 Nodes (1): Verifica se a avaliação possui dados mínimos para gerar um laudo clínico coerent
 
-### Community 268 - "Community 268"
+### Community 270 - "Community 270"
 Cohesion: 1.0
 Nodes (1): Case reproduzindo os dados do WAIS-III 2020 para um adulto de 30 anos.      Os v
 
@@ -401,89 +411,91 @@ Nodes (1): Case reproduzindo os dados do WAIS-III 2020 para um adulto de 30 anos
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 32`** (9 nodes): `env_bool()`, `env_list()`, `Base Django settings shared across environments.`, `base.py`, `__init__.py`, `local.py`, `production.py`, `_append_unique()`, `_hostname_from_url()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 35`** (6 nodes): `__init__.py`, `AIGuard`, `check_output_length()`, `sanitize_output()`, `validate_data_safety()`, `validate_no_clinical_decision()`
+- **Thin community `Community 36`** (6 nodes): `__init__.py`, `AIGuard`, `check_output_length()`, `sanitize_output()`, `validate_data_safety()`, `validate_no_clinical_decision()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (5 nodes): `getDisplayName()`, `getRole()`, `getUserInitials()`, `handleLogout()`, `AppHeader.tsx`
+- **Thin community `Community 37`** (5 nodes): `getDisplayName()`, `getRole()`, `getUserInitials()`, `handleLogout()`, `AppHeader.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 40`** (4 nodes): `add_wais3_instrument()`, `Migration`, `remove_wais3_instrument()`, `0003_add_wais3_instrument.py`
+- **Thin community `Community 41`** (4 nodes): `add_wais3_instrument()`, `Migration`, `remove_wais3_instrument()`, `0003_add_wais3_instrument.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 41`** (4 nodes): `deactivate_v1_templates()`, `Migration`, `reactivate_v1_templates()`, `0003_deactivate_v1_templates.py`
+- **Thin community `Community 42`** (4 nodes): `deactivate_v1_templates()`, `Migration`, `reactivate_v1_templates()`, `0003_deactivate_v1_templates.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 44`** (4 nodes): `saveDraft()`, `submitResponse()`, `updateField()`, `InternalAnamnesisEditor.tsx`
+- **Thin community `Community 45`** (4 nodes): `saveDraft()`, `submitResponse()`, `updateField()`, `InternalAnamnesisEditor.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 45`** (4 nodes): `page.tsx`, `getGreeting()`, `initDashboard()`, `StatusBadge()`
+- **Thin community `Community 46`** (4 nodes): `page.tsx`, `getGreeting()`, `initDashboard()`, `StatusBadge()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (3 nodes): `main()`, `manage.py`, `Run administrative tasks.`
+- **Thin community `Community 48`** (3 nodes): `main()`, `manage.py`, `Run administrative tasks.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (3 nodes): `Migration`, `seed_default_instruments()`, `0002_seed_default_instruments.py`
+- **Thin community `Community 49`** (3 nodes): `Migration`, `seed_default_instruments()`, `0002_seed_default_instruments.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 51`** (3 nodes): `utils.py`, `get_param()`, `Get a parameter from JSON body (if sent) or from form POST data.      Keeps endp`
+- **Thin community `Community 50`** (3 nodes): `wisc4_pontos_compostos_linha_fluida.py`, `_curva_suave_fluida()`, `gerar_grafico_pontos_compostos()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 52`** (3 nodes): `convert_one()`, `main()`, `convert_csvs_to_xlsm.py`
+- **Thin community `Community 53`** (3 nodes): `utils.py`, `get_param()`, `Get a parameter from JSON body (if sent) or from form POST data.      Keeps endp`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 55`** (3 nodes): `page.tsx`, `page.tsx`, `Page()`
+- **Thin community `Community 54`** (3 nodes): `convert_one()`, `main()`, `convert_csvs_to_xlsm.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 62`** (2 nodes): `Migration`, `0008_patient_responsible_name_patient_responsible_phone.py`
+- **Thin community `Community 57`** (3 nodes): `page.tsx`, `page.tsx`, `Page()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 63`** (2 nodes): `Migration`, `0004_alter_patient_schooling.py`
+- **Thin community `Community 64`** (2 nodes): `Migration`, `0008_patient_responsible_name_patient_responsible_phone.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 64`** (2 nodes): `Migration`, `0005_remove_patient_institution.py`
+- **Thin community `Community 65`** (2 nodes): `Migration`, `0004_alter_patient_schooling.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 65`** (2 nodes): `Migration`, `0011_patient_created_by.py`
+- **Thin community `Community 66`** (2 nodes): `Migration`, `0005_remove_patient_institution.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 66`** (2 nodes): `Migration`, `0003_alter_patient_schooling.py`
+- **Thin community `Community 67`** (2 nodes): `Migration`, `0011_patient_created_by.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 67`** (2 nodes): `Migration`, `0010_alter_patient_responsible_null.py`
+- **Thin community `Community 68`** (2 nodes): `Migration`, `0003_alter_patient_schooling.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 68`** (2 nodes): `Migration`, `0007_remove_patient_occupation.py`
+- **Thin community `Community 69`** (2 nodes): `Migration`, `0010_alter_patient_responsible_null.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 69`** (2 nodes): `Migration`, `0009_alter_patient_notes_null.py`
+- **Thin community `Community 70`** (2 nodes): `Migration`, `0007_remove_patient_occupation.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 70`** (2 nodes): `Migration`, `0002_patient_grade_year_patient_institution.py`
+- **Thin community `Community 71`** (2 nodes): `Migration`, `0009_alter_patient_notes_null.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 71`** (2 nodes): `Migration`, `0006_alter_patient_occupation.py`
+- **Thin community `Community 72`** (2 nodes): `Migration`, `0002_patient_grade_year_patient_institution.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 73`** (2 nodes): `Migration`, `0007_user_two_factor_fields.py`
+- **Thin community `Community 73`** (2 nodes): `Migration`, `0006_alter_patient_occupation.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 74`** (2 nodes): `Migration`, `0005_user_sex.py`
+- **Thin community `Community 75`** (2 nodes): `Migration`, `0007_user_two_factor_fields.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 75`** (2 nodes): `Migration`, `0003_alter_user_crp_alter_user_email.py`
+- **Thin community `Community 76`** (2 nodes): `Migration`, `0005_user_sex.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 76`** (2 nodes): `Migration`, `0004_alter_user_crp_alter_user_email.py`
+- **Thin community `Community 77`** (2 nodes): `Migration`, `0003_alter_user_crp_alter_user_email.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 79`** (2 nodes): `Migration`, `0002_evaluationprogressentry.py`
+- **Thin community `Community 78`** (2 nodes): `Migration`, `0004_alter_user_crp_alter_user_email.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 83`** (2 nodes): `Migration`, `0003_report_interested_party_report_purpose.py`
+- **Thin community `Community 81`** (2 nodes): `Migration`, `0002_evaluationprogressentry.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 84`** (2 nodes): `Migration`, `0002_alter_reportsection_options_and_more.py`
+- **Thin community `Community 85`** (2 nodes): `Migration`, `0003_report_interested_party_report_purpose.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 85`** (2 nodes): `Migration`, `0004_report_ai_metadata_reportsection_generation_metadata_and_more.py`
+- **Thin community `Community 86`** (2 nodes): `Migration`, `0002_alter_reportsection_options_and_more.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 120`** (2 nodes): `ASGI config for config project.  It exposes the ASGI callable as a module-level`, `asgi.py`
+- **Thin community `Community 87`** (2 nodes): `Migration`, `0004_report_ai_metadata_reportsection_generation_metadata_and_more.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 121`** (2 nodes): `wsgi.py`, `WSGI config for config project.  It exposes the WSGI callable as a module-level`
+- **Thin community `Community 122`** (2 nodes): `ASGI config for config project.  It exposes the ASGI callable as a module-level`, `asgi.py`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 146`** (1 nodes): `Classifica o escore T do BAI conforme faixas normativas.`
+- **Thin community `Community 123`** (2 nodes): `wsgi.py`, `WSGI config for config project.  It exposes the WSGI callable as a module-level`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 173`** (1 nodes): `Verifica se a avaliação possui dados mínimos para gerar um laudo clínico coerent`
+- **Thin community `Community 148`** (1 nodes): `Classifica o escore T do BAI conforme faixas normativas.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 268`** (1 nodes): `Case reproduzindo os dados do WAIS-III 2020 para um adulto de 30 anos.      Os v`
+- **Thin community `Community 175`** (1 nodes): `Verifica se a avaliação possui dados mínimos para gerar um laudo clínico coerent`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 270`** (1 nodes): `Case reproduzindo os dados do WAIS-III 2020 para um adulto de 30 anos.      Os v`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `split()` connect `Community 0` to `Community 1`, `Community 2`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 14`, `Community 16`, `Community 18`, `Community 19`, `Community 22`, `Community 23`, `Community 32`, `Community 34`, `Community 36`, `Community 45`?**
-  _High betweenness centrality (0.135) - this node is a cross-community bridge._
-- **Why does `testContext()` connect `Community 3` to `Community 0`, `Community 1`, `Community 10`?**
-  _High betweenness centrality (0.056) - this node is a cross-community bridge._
-- **Why does `TestContext` connect `Community 3` to `Community 4`, `Community 9`, `Community 10`, `Community 15`, `Community 22`, `Community 24`?**
-  _High betweenness centrality (0.055) - this node is a cross-community bridge._
-- **Are the 133 inferred relationships involving `str` (e.g. with `_totp_code()` and `login()`) actually correct?**
-  _`str` has 133 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 12 inferred relationships involving `_rebuild_qualitative_section()` (e.g. with `.test_rebuild_qualitative_section_for_wasi_omits_missing_sections()` and `.test_rebuild_qualitative_section_for_wasi_preserves_native_template_charts()`) actually correct?**
-  _`_rebuild_qualitative_section()` has 12 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `split()` connect `Community 0` to `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 7`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 14`, `Community 15`, `Community 18`, `Community 20`, `Community 21`, `Community 23`, `Community 24`, `Community 26`, `Community 32`, `Community 35`, `Community 37`, `Community 46`?**
+  _High betweenness centrality (0.141) - this node is a cross-community bridge._
+- **Why does `testContext()` connect `Community 1` to `Community 0`, `Community 24`, `Community 10`?**
+  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+- **Why does `TestContext` connect `Community 1` to `Community 8`, `Community 9`, `Community 10`, `Community 19`?**
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Are the 138 inferred relationships involving `str` (e.g. with `_totp_code()` and `login()`) actually correct?**
+  _`str` has 138 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 15 inferred relationships involving `_rebuild_qualitative_section()` (e.g. with `.test_rebuild_qualitative_section_for_wasi_omits_missing_sections()` and `.test_rebuild_qualitative_section_for_wasi_does_not_include_epq_j_without_validated_test()`) actually correct?**
+  _`_rebuild_qualitative_section()` has 15 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 3 inferred relationships involving `_build_adolescent_document()` (e.g. with `.test_build_adolescent_document_uses_model_wisc4_titles_when_optional_tests_are_missing()` and `str`) actually correct?**
   _`_build_adolescent_document()` has 3 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 61 inferred relationships involving `split()` (e.g. with `display_name()` and `initials()`) actually correct?**
-  _`split()` has 61 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 3 inferred relationships involving `ReportExportChartSanitizationTests` (e.g. with `ReportExportService` and `ReportGenerationService`) actually correct?**
+  _`ReportExportChartSanitizationTests` has 3 INFERRED edges - model-reasoned connections that need verification._
