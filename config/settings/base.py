@@ -201,7 +201,7 @@ EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", "")
 EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
 
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("openRouter_key", "")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "")
 OPENAI_REFERER = os.getenv("OPENAI_REFERER", "")
 OPENAI_TITLE = os.getenv("OPENAI_TITLE", "")

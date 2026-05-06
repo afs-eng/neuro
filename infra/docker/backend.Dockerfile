@@ -23,8 +23,10 @@ COPY requirements.txt pyproject.toml uv.lock ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN chmod +x /app/infra/docker/backend.entrypoint.sh
 
 EXPOSE 8000
+ENTRYPOINT ["/app/infra/docker/backend.entrypoint.sh"]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
 # --------------------------------------------------------
@@ -47,9 +49,8 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
-RUN python manage.py collectstatic --noinput
+RUN chmod +x /app/infra/docker/backend.entrypoint.sh
 
 EXPOSE 8000
-
+ENTRYPOINT ["/app/infra/docker/backend.entrypoint.sh"]
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--log-file", "-"]

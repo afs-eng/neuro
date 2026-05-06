@@ -6,13 +6,15 @@
 
 ```bash
 # 1. Copie o arquivo de exemplo
-cp .env.example .env
+# ja deixei um .env de desenvolvimento pronto no projeto
+# se quiser recriar do zero, use:
+# cp .env.example .env
 
 # 2. Suba todos os servicos
 docker compose up --build
 
-# 3. Rode as migracoes (primeira vez)
-docker compose exec backend python manage.py migrate
+# 3. Baixe o modelo da Ollama (primeira vez)
+docker compose exec ollama ollama pull qwen3.5:27b
 
 # 4. Crie superusuario
 docker compose exec backend python manage.py createsuperuser
@@ -26,6 +28,7 @@ Apos iniciar:
 - **Backend API:** http://localhost:8000/api
 - **Django Admin:** http://localhost:8000/admin
 - **API Docs (Swagger):** http://localhost:8000/api/docs
+- **Ollama API:** http://localhost:11434
 
 ## Producao Self-Hosted (VPS)
 
@@ -57,6 +60,7 @@ Apos iniciar em producao:
 # Ver logs
 docker compose logs -f backend
 docker compose logs -f frontend
+docker compose logs -f ollama
 
 # Parar servicos
 docker compose down

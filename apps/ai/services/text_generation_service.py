@@ -30,25 +30,62 @@ class TextGenerationService:
             request.provider,
             {"timeout": request.timeout, "model": request.model},
         )
+        
+        fallback_provider = getattr(settings, "AI_FALLBACK_PROVIDER", None)
+        
         provider = ProviderFactory.create(request.provider)
+        
+        if provider is None:
+            if fallback_provider:
+                request.provider = fallback_provider
+                provider = ProviderFactory.create(fallback_provider)
+                if provider:
+                    AILogService.log_generation_start(
+                        request.prompt_name,
+                        f"{request.provider} (fallback)",
+                        {"timeout": request.timeout, "model": request.model},
+                    )
+        
+        if provider is None:
+            raise ValueError("IA desabilitada. Configure AI_PROVIDER=ollama ou openai.")
+        
         system_prompt = PromptRegistryService.read("base_system_prompt.txt")
         section_prompt = PromptRegistryService.read(prompt_name)
         full_user_prompt = f"{section_prompt}\n\n{user_prompt}".strip()
-        try:
-            result = provider.generate(
-                system_prompt=system_prompt,
-                user_prompt=full_user_prompt,
-                model=request.model,
-                temperature=request.temperature,
-                timeout=request.timeout,
-                max_tokens=request.max_tokens,
-                **request.metadata,
-            )
-        except ValueError:
-            raise
-        except Exception as exc:
-            AILogService.log_generation_error(prompt_name, exc)
-            raise ValueError(f"Falha ao gerar texto com IA: {exc}") from exc
-        normalized = GenerationResponse.from_dict(result).as_dict()
-        AILogService.log_generation_end(prompt_name, normalized)
-        return normalized
+        
+        last_error = None
+        providers_tried = [request.provider]
+        
+        while provider:
+            try:
+                result = provider.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=full_user_prompt,
+                    model=request.model,
+                    temperature=request.temperature,
+                    timeout=request.timeout,
+                    max_tokens=request.max_tokens,
+                    **request.metadata,
+                )
+                normalized = GenerationResponse.from_dict(result).as_dict()
+                AILogService.log_generation_end(prompt_name, normalized)
+                return normalized
+            except Exception as exc:
+                last_error = exc
+                AILogService.log_generation_error(prompt_name, exc)
+                
+                if fallback_provider and request.provider != fallback_provider:
+                    AILogService.log_generation_start(
+                        prompt_name,
+                        f"{fallback_provider} (fallback)",
+                        {"timeout": request.timeout, "model": request.model},
+                    )
+                    request.provider = fallback_provider
+                    provider = ProviderFactory.create(fallback_provider)
+                    providers_tried.append(fallback_provider)
+                    fallback_provider = None
+                    continue
+                    
+                break
+        
+        raise ValueError(f"Falha ao gerar texto com IA: {last_error}") from last_error

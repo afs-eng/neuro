@@ -375,35 +375,61 @@ class RAVLTModule(BaseTestModule):
         ip = result_map.get("Interferência Proativa", {})
         ir = result_map.get("Interferência Retroativa", {})
 
+        a1_score = _format_score(a1.get('bruto'))
+        a2_score = _format_score(a2.get('bruto'))
+        a3_score = _format_score(a3.get('bruto'))
+        a4_score = _format_score(a4.get('bruto'))
+        a5_score = _format_score(a5.get('bruto'))
+        b1_score = _format_score(b1.get('bruto'))
+        a6_score = _format_score(a6.get('bruto'))
+        a7_score = _format_score(a7.get('bruto'))
+        r_score = _format_score(r.get('bruto'))
+        alt_score = _format_score(alt.get('bruto'))
+        ret_score = _format_score(ret.get('bruto'))
+        ip_score = _format_score(ip.get('bruto'))
+        ir_score = _format_score(ir.get('bruto'))
+
         parts = []
         parts.append(
             "Interpretação e Observações Clínicas: "
             f"{name} apresentou desempenho {_global_memory_phrase(alt.get('classificacao', 'Média'))} na memória episódica auditivo-verbal, "
-            f"{_learning_curve_phrase(a1.get('bruto', 0), a2.get('bruto', 0), a3.get('bruto', 0), a4.get('bruto', 0), a5.get('bruto', 0))} "
-            f"{_efficiency_phrase(alt.get('classificacao', 'Média'))}. "
-            f"A evocação imediata inicial já se mostrou {_expected_phrase(a1.get('classificacao', 'Média'))} (A1 = {_format_score(a1.get('bruto'))}), "
-            f"com progressão consistente nas tentativas subsequentes (A2 = {_format_score(a2.get('bruto'))}, A3 = {_format_score(a3.get('bruto'))}, A4 = {_format_score(a4.get('bruto'))}, A5 = {_format_score(a5.get('bruto'))}), "
-            f"{_acquisition_phrase(a5.get('classificacao', 'Média'))}."
+            "com curva de aprendizagem "
+            f"{('adequada' if alt.get('classificacao') in {'Média', 'Média Superior', 'Superior', 'Muito Superior'} else 'oscilante')} "
+            "e resultados globalmente "
+            f"{('dentro ou acima do esperado' if alt.get('classificacao') in {'Média', 'Média Superior', 'Superior', 'Muito Superior'} else 'com oscilações em relação ao esperado')} "
+            "nas etapas de aquisição, retenção e evocação do material verbal. "
+            f"Observou-se evocação imediata inicial {_expected_phrase(a1.get('classificacao', 'Média'))} na primeira tentativa (A1 = {a1_score}), "
+            f"com progressão consistente nas tentativas subsequentes (A2 = {a2_score}, A3 = {a3_score}, A4 = {a4_score}, A5 = {a5_score}), "
+            "evidenciando "
+            f"{('boa' if a5.get('classificacao') in {'Média', 'Média Superior', 'Superior', 'Muito Superior'} else 'menor')} capacidade de codificação, armazenamento progressivo e aproveitamento do efeito de repetição."
         )
 
         parts.append(
-            f"A evocação da lista interferente (B1 = {_format_score(b1.get('bruto'))}) situou-se {_expected_phrase(b1.get('classificacao', 'Média'))}, "
-            "sugerindo registro adequado de novo material verbal. "
-            f"Após a interferência, a recuperação da lista original permaneceu {_expected_phrase(a6.get('classificacao', 'Média'))} (A6 = {_format_score(a6.get('bruto'))}), "
-            f"assim como a evocação tardia (A7 = {_format_score(a7.get('bruto'))}), {_consolidation_phrase(a7.get('classificacao', 'Média'))}. "
-            f"O desempenho em reconhecimento (R = {_format_score(r.get('bruto'))}) esteve {_expected_phrase(r.get('classificacao', 'Média'))}, "
+            f"Clinicamente, esse perfil indica que {name} apresenta "
+            f"{('boa' if alt.get('classificacao') in {'Média', 'Média Superior', 'Superior', 'Muito Superior'} else 'oscilante')} capacidade para registrar, manter e ampliar informações verbais apresentadas em sequência, "
+            "com desempenho funcional em tarefas que exigem aprendizagem cumulativa, memorização sequencial e evocação espontânea de conteúdos."
+        )
+
+        parts.append(
+            f"A evocação da lista interferente (B1 = {b1_score}) situou-se {_expected_phrase(b1.get('classificacao', 'Média'))}, "
+            "sugerindo boa capacidade de registro imediato de uma nova série verbal, mesmo após exposição repetida à lista anterior. "
+            f"Após a interferência, a evocação da lista original (A6 = {a6_score}) permaneceu {_expected_phrase(a6.get('classificacao', 'Média'))}, "
+            "indicando manutenção adequada das informações previamente aprendidas. "
+            f"Na evocação tardia (A7 = {a7_score}), o desempenho também se mostrou {_expected_phrase(a7.get('classificacao', 'Média'))}, "
+            f"{_consolidation_phrase(a7.get('classificacao', 'Média'))}."
+        )
+
+        parts.append(
+            f"O desempenho em reconhecimento (R = {r_score}) situou-se {_expected_phrase(r.get('classificacao', 'Média'))}, "
             f"{_storage_phrase(r.get('classificacao', 'Média'))}. "
-            f"A aprendizagem total (ALT = {_format_score(alt.get('bruto'))}) foi {_expected_phrase(alt.get('classificacao', 'Média'))}, "
-            "confirmando o rendimento global nesse domínio."
-        )
-
-        parts.append(
-            f"O índice de retenção (RET = {_format_score(ret.get('bruto'))}) manteve-se {_expected_phrase(ret.get('classificacao', 'Média'))}, "
-            "indicando preservação do material após intervalo. "
-            f"O índice de interferência proativa (I.P. = {_format_score(ip.get('bruto'))}) situou-se {_expected_phrase(ip.get('classificacao', 'Média'))}, "
-            "sugerindo vulnerabilidade à influência de conteúdos previamente aprendidos sobre a aquisição de novas informações. "
-            f"Já o índice de interferência retroativa (I.R. = {_format_score(ir.get('bruto'))}) mostrou-se {_expected_phrase(ir.get('classificacao', 'Média'))}, "
-            "sem evidência de prejuízo relevante da nova aprendizagem sobre a recuperação do conteúdo anterior."
+            f"A aprendizagem total do material verbal (ALT = {alt_score}) ficou {_expected_phrase(alt.get('classificacao', 'Média'))}, "
+            "indicando desempenho global "
+            f"{('satisfatório' if alt.get('classificacao') in {'Média', 'Média Superior', 'Superior', 'Muito Superior'} else 'com limitações')} na aquisição cumulativa das palavras ao longo das tentativas. "
+            f"O índice de retenção (RET = {ret_score}) mostrou-se {_expected_phrase(ret.get('classificacao', 'Média'))}, sugerindo preservação da informação aprendida ao longo do intervalo. "
+            f"O índice de interferência proativa (I.P. = {ip_score}) também se manteve {_expected_phrase(ip.get('classificacao', 'Média'))}, "
+            "indicando ausência de prejuízo relevante da aprendizagem anterior sobre a aquisição de novas informações. "
+            f"Já o índice de interferência retroativa (I.R. = {ir_score}) permaneceu {_expected_phrase(ir.get('classificacao', 'Média'))}, "
+            "sugerindo que a lista interferente não produziu impacto clinicamente significativo sobre o material originalmente aprendido."
         )
 
         parts.append(

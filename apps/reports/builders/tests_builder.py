@@ -20,6 +20,7 @@ SECTION_MAP = {
     "epq_j": "escalas_complementares",
     "scared": "escalas_complementares",
     "srs2": "escalas_complementares",
+    "bai": "escalas_complementares",
     "ebadep_a": "escalas_complementares",
     "ebaped_ij": "escalas_complementares",
     "etdah_ad": "atencao",
@@ -271,6 +272,17 @@ def _build_bpa2_chart_data(payload: dict, evaluation, applied_on) -> dict:
         "title": "BPA - BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO",
         "domains": domains,
     }
+
+
+def _is_effectively_applied_test(item) -> bool:
+    return bool(
+        getattr(item, "applied_on", None)
+        or getattr(item, "raw_payload", None)
+        or getattr(item, "computed_payload", None)
+        or getattr(item, "classified_payload", None)
+        or getattr(item, "reviewed_payload", None)
+        or str(getattr(item, "interpretation_text", "") or "").strip()
+    )
 
 
 
@@ -592,6 +604,8 @@ def build_validated_tests_snapshot(evaluation) -> list[dict]:
     snapshots: list[dict] = []
 
     for item in tests:
+        if not _is_effectively_applied_test(item):
+            continue
         warnings = []
         structured_results = item.classified_payload or item.computed_payload or {}
         clinical_interpretation = (item.interpretation_text or "").strip()

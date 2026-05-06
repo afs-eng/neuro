@@ -29,7 +29,7 @@ from docx.text.paragraph import Paragraph
 from docx.shared import Inches, Pt, RGBColor
 from docx.shared import Cm
 
-from apps.reports.charts import gerar_grafico_bpa_bytes
+from apps.reports.charts import gerar_grafico_bpa_bytes, gerar_grafico_wasi_bytes
 from apps.reports.models import Report
 from apps.reports.builders.references_builder import build_references
 from apps.reports.builders.wais3_report_builder import WAIS3ReportBuilder
@@ -70,11 +70,12 @@ ET.register_namespace("cx8", "http://schemas.microsoft.com/office/drawing/2016/5
 
 class ReportExportService:
     TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates_assets"
-    DEFAULT_TEMPLATE_PATH = TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
-    ADOLESCENT_TEMPLATE_PATH = TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
-    WAIS3_TEMPLATE_PATH = TEMPLATE_DIR / "Modelo-WAIS3.docx"
-    WISC4_TEMPLATE_PATH = TEMPLATE_DIR / "Modelo-WISC4.docx"
-    TABLE_STYLE_SOURCE_PATH = TEMPLATE_DIR / "Modelo-WISC.docx"
+    LAUDOS_TEMPLATE_DIR = TEMPLATE_DIR / "laudos"
+    DEFAULT_TEMPLATE_PATH = LAUDOS_TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
+    WAIS3_TEMPLATE_PATH = LAUDOS_TEMPLATE_DIR / "Modelo-WAIS3.docx"
+    WISC4_TEMPLATE_PATH = LAUDOS_TEMPLATE_DIR / "Modelo-WISC4.docx"
+    WASI_TEMPLATE_PATH = LAUDOS_TEMPLATE_DIR / "Modelo-WASI.docx"
+    TABLE_STYLE_SOURCE_PATH = WISC4_TEMPLATE_PATH
     FONT_NAME = "Times New Roman"
     BODY_SIZE = Pt(12)
     TABLE_SIZE = Pt(9)
@@ -117,6 +118,7 @@ class ReportExportService:
         "Nenhum instrumento específico deste domínio apresentou interpretação clínica consolidada.",
     }
     FIXED_AUTHOR = "Jacqueline Oliveira Caires (CRP 09/6017)"
+    FIXED_INTERESTED_PARTY = "Familiares"
     FIXED_PURPOSE = "Averiguação das capacidades cognitivas para auxílio diagnóstico"
     PRIMARY_REPORT_TEST_CODES = ("wisc4", "wais3", "wasi")
     logger = logging.getLogger(__name__)
@@ -318,7 +320,7 @@ class ReportExportService:
         created_at = report.created_at.strftime("%d/%m/%Y") if report.created_at else ""
         patient_name = report.patient.full_name if report.patient else ""
         author_name = ReportExportService.FIXED_AUTHOR
-        interested_party = report.interested_party or patient_name
+        interested_party = ReportExportService.FIXED_INTERESTED_PARTY
         purpose = ReportExportService.FIXED_PURPOSE
 
         return f"""
@@ -385,31 +387,42 @@ class ReportExportService:
         header_footer_template_path = cls._header_footer_template_path(template_path, report, context)
         if header_footer_template_path.exists():
             docx_bytes = cls._restore_template_header_footer(docx_bytes, header_footer_template_path)
+        pre_chart_docx_bytes = docx_bytes
         if cls._find_test(context, "wisc4"):
             docx_bytes = cls._populate_wisc4_excel_charts(docx_bytes, context)
         if cls._find_test(context, "wais3") and not cls._is_adolescent_context(context, report):
             docx_bytes = cls._populate_wais3_excel_charts(docx_bytes, context)
+        if cls._find_test(context, "wasi"):
+            docx_bytes = cls._populate_wasi_excel_charts(docx_bytes, context)
+        if not cls._docx_package_is_valid(docx_bytes):
+            cls.logger.warning(
+                "DOCX gerado com estrutura invalida apos atualizacao de graficos; retornando versao anterior aos graficos."
+            )
+            return pre_chart_docx_bytes
         return docx_bytes
 
     @classmethod
     def _header_footer_template_path(cls, template_path: Path, report, context: dict) -> Path:
         if cls._is_adolescent_context(context, report):
-            return cls.ADOLESCENT_TEMPLATE_PATH
+            return cls.DEFAULT_TEMPLATE_PATH
         if cls._primary_report_test_code(context) == "wais3" and template_path.exists():
             return template_path
         return cls.DEFAULT_TEMPLATE_PATH
 
     @classmethod
     def _select_template_path(cls, report: Report, context: dict | None = None):
+        available_codes = set(cls._available_test_codes(context or {}))
+
+        if "wasi" in available_codes and cls.WASI_TEMPLATE_PATH.exists():
+            return cls.WASI_TEMPLATE_PATH
+
         primary_test_code = cls._primary_report_test_code(context or {}) if context else None
+
         if primary_test_code == "wisc4" and cls.WISC4_TEMPLATE_PATH.exists():
             return cls.WISC4_TEMPLATE_PATH
         if primary_test_code == "wais3" and cls.WAIS3_TEMPLATE_PATH.exists():
             return cls.WAIS3_TEMPLATE_PATH
-        patient = getattr(report, "patient", None)
-        age = getattr(patient, "age", None)
-        if age is not None and age < 18 and cls.ADOLESCENT_TEMPLATE_PATH.exists():
-            return cls.ADOLESCENT_TEMPLATE_PATH
+
         return cls.DEFAULT_TEMPLATE_PATH
 
     @classmethod
@@ -457,9 +470,18 @@ class ReportExportService:
     @classmethod
     def _element_contains_chart(cls, element) -> bool:
         try:
-            return bool(element.xpath('.//c:chart', namespaces=cls.CHART_NS))
+            return bool(
+                element.xpath(
+                    './/*[local-name()="chart" and namespace-uri()="http://schemas.openxmlformats.org/drawingml/2006/chart"]'
+                )
+            )
         except TypeError:
-            return "c:chart" in getattr(element, "xml", "") or "charts/chart" in getattr(element, "xml", "")
+            xml = getattr(element, "xml", "")
+            return (
+                "charts/chart" in xml
+                or 'uri="http://schemas.openxmlformats.org/drawingml/2006/chart"' in xml
+                or re.search(r"<[A-Za-z0-9_]+:chart\\b", xml) is not None
+            )
 
     @classmethod
     def _chart_series(cls, root, index: int):
@@ -660,6 +682,26 @@ class ReportExportService:
         return labels, values
 
     @classmethod
+    def _wasi_chart_payload(cls, test: dict | None):
+        if not test:
+            return [], []
+        payload = cls._wasi_payload(test)
+        labels, values = [], []
+        composites = payload.get("composites") or {}
+        index_labels = {
+            "qi_execucao": "QIE",
+            "qi_verbal": "QIV",
+            "qit_4": "QI TOTAL",
+        }
+        for code, label in index_labels.items():
+            composite = composites.get(code) or {}
+            qi = composite.get("qi")
+            if qi is not None:
+                labels.append(label)
+                values.append(float(qi))
+        return labels, values
+
+    @classmethod
     def _bpa_excel_series(cls, test: dict | None):
         chart_data = (test or {}).get("bpa_chart_data") or {}
         domains = {item.get("label"): item.get("values") or {} for item in chart_data.get("domains") or []}
@@ -803,6 +845,62 @@ class ReportExportService:
             return target.lstrip('/')
         resolved = posixpath.normpath((source_path.parent / target).as_posix())
         return resolved.lstrip('./')
+
+    @classmethod
+    def _docx_package_is_valid(cls, docx_bytes: bytes) -> bool:
+        relationship_ns = "http://schemas.openxmlformats.org/package/2006/relationships"
+        content_type_ns = "http://schemas.openxmlformats.org/package/2006/content-types"
+
+        try:
+            with ZipFile(BytesIO(docx_bytes), 'r') as source_zip:
+                names = set(source_zip.namelist())
+                if source_zip.testzip() is not None:
+                    return False
+
+                parsed_parts: dict[str, ET.Element] = {}
+                for name in names:
+                    if not (name.endswith('.xml') or name.endswith('.rels')):
+                        continue
+                    parsed_parts[name] = ET.fromstring(source_zip.read(name))
+
+                for rel_name, rels_root in parsed_parts.items():
+                    if not rel_name.endswith('.rels'):
+                        continue
+                    if rel_name == '_rels/.rels':
+                        source_part = ''
+                    else:
+                        source_part = rel_name.replace('_rels/', '').replace('.rels', '')
+                    for rel in rels_root.findall(f'{{{relationship_ns}}}Relationship'):
+                        target = rel.get('Target')
+                        if not target or rel.get('TargetMode') == 'External':
+                            continue
+                        resolved = cls._resolve_package_target(source_part, target)
+                        if resolved not in names:
+                            return False
+
+                content_types = parsed_parts.get('[Content_Types].xml')
+                if content_types is None:
+                    return False
+                defaults = {
+                    item.get('Extension')
+                    for item in content_types.findall(f'{{{content_type_ns}}}Default')
+                    if item.get('Extension')
+                }
+                overrides = {
+                    (item.get('PartName') or '').lstrip('/')
+                    for item in content_types.findall(f'{{{content_type_ns}}}Override')
+                    if item.get('PartName')
+                }
+                for name in names:
+                    if name == '[Content_Types].xml' or name.endswith('/'):
+                        continue
+                    extension = name.rsplit('.', 1)[-1] if '.' in name else ''
+                    if extension not in defaults and name not in overrides:
+                        return False
+        except Exception:
+            return False
+
+        return True
 
     @classmethod
     def _prune_unused_chart_parts(cls, docx_bytes: bytes) -> bytes:
@@ -1061,6 +1159,16 @@ class ReportExportService:
             cls._update_chart_series(root, 0, categories, values)
             dump_chart(chart_name, root)
 
+        wasi_test = cls._find_test(context, 'wasi')
+        if wasi_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, values = cls._wasi_chart_payload(wasi_test)
+            cls._update_chart_series(root, 0, categories, values)
+            dump_chart(chart_name, root)
+
         bpa_test = cls._find_test(context, 'bpa2')
         if bpa_test:
             chart_name = next_chart_target()
@@ -1152,6 +1260,109 @@ class ReportExportService:
         return cls._prune_unused_chart_parts(output_buffer.getvalue())
 
     @classmethod
+    def _populate_wasi_excel_charts(cls, docx_bytes: bytes, context: dict) -> bytes:
+        replacements: dict[str, bytes] = {}
+        chart_targets = iter(cls._document_chart_targets(docx_bytes))
+
+        def load_chart(name: str):
+            with ZipFile(BytesIO(docx_bytes), 'r') as source_zip:
+                return ET.fromstring(source_zip.read(name))
+
+        def dump_chart(name: str, root):
+            replacements[name] = ET.tostring(root, encoding='utf-8', xml_declaration=True)
+
+        def next_chart_target() -> str | None:
+            return next(chart_targets, None)
+
+        wasi_test = cls._find_test(context, 'wasi')
+        if wasi_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, values = cls._wasi_chart_payload(wasi_test)
+            cls._update_chart_series(root, 0, categories, values)
+            dump_chart(chart_name, root)
+
+        bpa_test = cls._find_test(context, 'bpa2')
+        if bpa_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._bpa_excel_series(bpa_test)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        ravlt_test = cls._find_test(context, 'ravlt')
+        if ravlt_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._ravlt_chart_payload(ravlt_test, context)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        fdt_test = cls._find_test(context, 'fdt')
+        if fdt_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._fdt_chart_payload(fdt_test, automatic=True)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories, series_values = cls._fdt_chart_payload(fdt_test, automatic=False)
+            for idx, values in enumerate(series_values):
+                cls._update_chart_series(root, idx, categories, values)
+            dump_chart(chart_name, root)
+
+        etdah_ad_test = cls._find_test(context, 'etdah_ad')
+        if etdah_ad_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            cls._update_chart_series(
+                root,
+                0,
+                ['F1 - D', 'F2 - I', 'F3 - AE', 'F4 - AMAA', 'F5 - H'],
+                cls._etdah_ad_chart_values(etdah_ad_test),
+            )
+            dump_chart(chart_name, root)
+
+        srs2_test = cls._find_test(context, 'srs2')
+        if srs2_test:
+            chart_name = next_chart_target()
+            if chart_name is None:
+                return docx_bytes
+            root = load_chart(chart_name)
+            categories = ['Perc.S', 'Cog.S', 'Com.S', 'Mot.S', 'PRR', 'CIS', 'TOTAL']
+            cls._update_chart_series(root, 0, categories, cls._srs2_chart_values(srs2_test))
+            dump_chart(chart_name, root)
+
+        source_buffer = BytesIO(docx_bytes)
+        output_buffer = BytesIO()
+        with ZipFile(source_buffer, 'r') as source_zip, ZipFile(output_buffer, 'w') as target_zip:
+            for item in source_zip.infolist():
+                data = replacements.get(item.filename, source_zip.read(item.filename))
+                if re.fullmatch(r'word/charts/chart\d+\.xml', item.filename):
+                    data = cls._sanitize_chart_xml_bytes(data)
+                if item.filename.startswith('word/charts/_rels/chart') and item.filename.endswith('.rels'):
+                    data = cls._strip_external_chart_relationships(data)
+                target_zip.writestr(item, data)
+        return cls._prune_unused_chart_parts(output_buffer.getvalue())
+
+    @classmethod
     def _build_fallback_document(cls, report: Report, context: dict):
         document = Document()
         cls._ensure_model_table_styles(document)
@@ -1159,12 +1370,7 @@ class ReportExportService:
 
         patient = context.get("patient") or {}
         author_name = cls.FIXED_AUTHOR
-        interested_party = (
-            report.interested_party
-            or patient.get("responsible_name")
-            or patient.get("full_name")
-            or "Não informado"
-        )
+        interested_party = cls.FIXED_INTERESTED_PARTY
         purpose = cls.FIXED_PURPOSE
 
         cls._add_center_title(document, report.title or "Laudo Neuropsicológico")
@@ -1252,25 +1458,6 @@ class ReportExportService:
 
     @classmethod
     def _is_adolescent_context(cls, context: dict, report) -> bool:
-        patient = getattr(report, "patient", None)
-        age = getattr(patient, "age", None)
-        if age is not None:
-            return age < 18
-        birth_date = (context.get("patient") or {}).get("birth_date") or ""
-        if birth_date:
-            try:
-                from datetime import date
-
-                year, month, day = map(int, birth_date.split("-"))
-                born = date(year, month, day)
-                today = date.today()
-                return (
-                    today.year
-                    - born.year
-                    - ((today.month, today.day) < (born.month, born.day))
-                ) < 18
-            except ValueError:
-                return False
         return False
 
     @classmethod
@@ -1293,12 +1480,7 @@ class ReportExportService:
         patient = context.get("patient") or {}
         evaluation = context.get("evaluation") or {}
         author_name = cls.FIXED_AUTHOR
-        interested_party = (
-            report.interested_party
-            or patient.get("responsible_name")
-            or patient.get("full_name")
-            or "Familiares"
-        )
+        interested_party = cls.FIXED_INTERESTED_PARTY
         table_index = 1
         chart_index = 1
         primary_test = cls._primary_report_test_code(context)
@@ -1315,6 +1497,13 @@ class ReportExportService:
                 "scared_pair": template_chart_blocks[7] if len(template_chart_blocks) > 7 else None,
                 "srs2": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
             }
+        elif primary_test == "wasi" and cls.WASI_TEMPLATE_PATH.exists():
+            wasi_template_blocks = cls._extract_chart_blocks_from_template_path(cls.WASI_TEMPLATE_PATH)
+            template_chart_map = {
+                "wasi": wasi_template_blocks[0] if len(wasi_template_blocks) > 0 else None,
+                "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
+                "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
+            }
         else:
             template_chart_map = {
                 "wisc4": template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
@@ -1326,6 +1515,7 @@ class ReportExportService:
                 "etdah_ad": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
                 "scared_pair": template_chart_blocks[7] if len(template_chart_blocks) > 7 else None,
                 "srs2": template_chart_blocks[9] if len(template_chart_blocks) > 9 else None,
+                "wasi": template_chart_blocks[0] if template_chart_blocks else None,
             }
 
         def append_table_with_interpretation(
@@ -1665,6 +1855,32 @@ class ReportExportService:
                 cls._epq_chart(cls._find_test(context, "epq_j")),
             )
 
+        if cls._find_test(context, "bai"):
+            bai_test = cls._find_test(context, "bai")
+            append_section_heading("BAI")
+            cls._append_paragraph(document, cls._bai_description_text())
+            append_table_with_interpretation(
+                cls._bai_rows(bai_test),
+                "scale_summary",
+                section_or_test_interpretation("bai", None, bai_test),
+                "BAI - Resultado da sintomatologia ansiosa",
+            )
+
+        if cls._find_test(context, "ebadep_a") or cls._find_test(context, "ebadep_ij") or cls._find_test(context, "ebaped_ij"):
+            ebadep_test = cls._find_test(context, "ebadep_a") or cls._find_test(context, "ebadep_ij") or cls._find_test(context, "ebaped_ij")
+            append_section_heading("EBADEP-A")
+            cls._append_paragraph(document, cls._ebadep_description_text())
+            append_table_with_interpretation(
+                cls._ebadep_rows(ebadep_test),
+                "scale_summary",
+                cls._resolve_interpretation_text(
+                    sections.get("aspectos_emocionais_comportamentais"),
+                    None,
+                    ebadep_test,
+                ),
+                "EBADEP-A - Resultado da sintomatologia",
+            )
+
         if cls._find_test(context, "srs2"):
             srs2_test = cls._find_test(context, "srs2")
             append_section_heading("SRS-2 – ESCALA DE RESPONSIVIDADE SOCIAL")
@@ -1960,6 +2176,16 @@ class ReportExportService:
                 document, heading, boundaries.get(heading), text
             )
 
+        cls._rename_heading_if_present(document, "Conclusão", "14. CONCLUSÃO")
+        cls._rename_heading_if_present(
+            document,
+            "Sugestões de Conduta (Encaminhamentos):",
+            "15. SUGESTÕES DE CONDUTA (ENCAMINHAMENTOS):",
+        )
+        cls._rename_heading_if_present(document, "Considerações Finais", "16. CONSIDERAÇÕES FINAIS")
+        cls._rename_heading_if_present(document, "Referências Bibliográficas", "17. REFERÊNCIAS BIBLIOGRÁFICAS")
+        cls._rename_heading_if_present(document, "Referencia Bibliográfica", "17. REFERÊNCIAS BIBLIOGRÁFICAS")
+
         cls._replace_identification_block(document, report, context)
         cls._replace_wais3_demand_block(document, sections, context)
         cls._replace_wais3_procedures_block(document, report, sections, context)
@@ -1973,9 +2199,9 @@ class ReportExportService:
         cls._remove_nodes_between(start, end)
 
         patient = (context or {}).get("patient") or {}
-        author_name = getattr(getattr(report, "author", None), "display_name", None) or cls.FIXED_AUTHOR
-        interested_party = getattr(report, "interested_party", "") or patient.get("full_name") or "Não informado"
-        purpose = getattr(report, "purpose", "") or cls.FIXED_PURPOSE
+        author_name = cls.FIXED_AUTHOR
+        interested_party = cls.FIXED_INTERESTED_PARTY
+        purpose = cls.FIXED_PURPOSE
 
         anchor = cls._insert_paragraph_after(start, "1.1. Identificação do laudo:")
         cls._format_subtitle_paragraph(anchor)
@@ -1983,7 +2209,8 @@ class ReportExportService:
         anchor = cls._insert_identification_label_value_after(anchor, "Interessado", interested_party)
         anchor = cls._insert_identification_label_value_after(anchor, "Finalidade", purpose)
 
-        anchor = cls._insert_paragraph_after(anchor, "1.2. Identificação do paciente:")
+        patient_heading = "1.2. Identificação da paciente:" if patient.get("sex") == "F" else "1.2. Identificação do paciente:"
+        anchor = cls._insert_paragraph_after(anchor, patient_heading)
         cls._format_subtitle_paragraph(anchor)
         anchor = cls._insert_identification_label_value_after(
             anchor, "Nome", patient.get("full_name") or "Não informado"
@@ -2003,6 +2230,43 @@ class ReportExportService:
         paragraph = cls._insert_paragraph_after(anchor, "")
         cls._append_identification_label_value(paragraph, label, value)
         return paragraph
+
+    @classmethod
+    def _insert_bullet_paragraph_after(cls, anchor, text: str):
+        paragraph = cls._insert_paragraph_after(anchor, "")
+        bullet_prefix = paragraph.add_run("• ")
+        bullet_prefix.font.name = cls.FONT_NAME
+        bullet_prefix.font.size = cls.BODY_SIZE
+        label, separator, description = PtBrTextService.normalize(text).partition(":")
+        label_run = paragraph.add_run(label)
+        label_run.font.name = cls.FONT_NAME
+        label_run.font.size = cls.BODY_SIZE
+        label_run.bold = True
+        if separator:
+            separator_run = paragraph.add_run(f":{description}")
+            separator_run.font.name = cls.FONT_NAME
+            separator_run.font.size = cls.BODY_SIZE
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = cls.BODY_SPACE_AFTER
+        paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        paragraph.paragraph_format.first_line_indent = Pt(0)
+        paragraph.paragraph_format.left_indent = Cm(0.63)
+        return paragraph
+
+    @staticmethod
+    def _sanitize_procedures_section_text(text: str | None) -> str:
+        normalized = PtBrTextService.normalize(text or "").strip()
+        if not normalized or normalized == "Sem conteúdo disponível para esta seção.":
+            return ""
+        lines = [line.strip() for line in normalized.splitlines() if line.strip()]
+        clean_lines = [
+            line for line in lines
+            if not line.startswith("•") and not line.startswith("-")
+        ]
+        if clean_lines:
+            return clean_lines[0]
+        return ""
 
     @classmethod
     def _append_identification_label_value(cls, paragraph, label: str, value: str):
@@ -2052,8 +2316,22 @@ class ReportExportService:
 
     @classmethod
     def _replace_wais3_procedures_block(cls, document: Document, report, sections: dict[str, str], context: dict):
-        # O modelo já contém a lista de instrumentos utilizados em PROCEDIMENTOS
-        pass
+        start = cls._find_paragraph(document, "PROCEDIMENTOS")
+        if start is None:
+            return
+        end = cls._find_paragraph(document, "ANÁLISE")
+        cls._remove_nodes_between(start, end)
+
+        anchor = cls._insert_paragraph_after(
+            start, cls._wais3_procedures_intro_text(report, sections)
+        )
+        cls._format_body_paragraph(anchor)
+
+        for item in cls._procedure_items(context):
+            anchor = cls._insert_bullet_paragraph_after(
+                anchor,
+                f"{item['name']}: {item['description']}",
+            )
 
     @classmethod
     def _wais3_demand_text(cls, sections: dict[str, str], context: dict) -> str:
@@ -2066,8 +2344,8 @@ class ReportExportService:
 
     @classmethod
     def _wais3_procedures_intro_text(cls, report, sections: dict[str, str]) -> str:
-        section_text = PtBrTextService.normalize(sections.get("procedimentos") or "")
-        if section_text and section_text != "Sem conteúdo disponível para esta seção.":
+        section_text = cls._sanitize_procedures_section_text(sections.get("procedimentos"))
+        if section_text:
             return section_text
         testing_sessions = getattr(getattr(report, "evaluation", None), "testing_sessions_count", None)
         if testing_sessions:
@@ -2104,6 +2382,7 @@ class ReportExportService:
                 "etdah_pais": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
                 "etdah_ad": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
                 "scared_pair": template_chart_blocks[7] if len(template_chart_blocks) > 7 else None,
+                "epq": template_chart_blocks[8] if len(template_chart_blocks) > 8 else None,
                 "srs2": template_chart_blocks[9] if len(template_chart_blocks) > 9 else None,
             }
         elif tests.get("wais3"):
@@ -2131,6 +2410,16 @@ class ReportExportService:
                     if len(wisc4_template_chart_blocks) > 7
                     else None
                 ),
+                "srs2": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
+            }
+        elif tests.get("wasi"):
+            template_chart_map = {
+                "wasi": template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
+                "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
+                "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
+                "fdt_auto": template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
+                "fdt_control": template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
+                "etdah_ad": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
                 "srs2": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
             }
 
@@ -2293,6 +2582,25 @@ class ReportExportService:
                     )
                 ),
             )
+        elif tests.get("wasi"):
+            add_text(cls._wasi_intro_text(tests.get("wasi"), context))
+            for lead, tail in cls._wasi_global_bullet_parts(tests.get("wasi")):
+                add_text(f"- {lead} - {tail}")
+            add_title(f"Desempenho {patient_title} no WASI")
+            add_chart(
+                "WASI - INDICES DE QIS",
+                cls._wasi_chart_image(tests.get("wasi")),
+                show_caption=True,
+                template_key="wasi",
+            )
+            anchor = cls._insert_interpretation_block_after(
+                anchor,
+                cls._normalize_interpretation_text(
+                    section_or_test_interpretation(
+                        "eficiencia_intelectual", None, tests.get("wasi")
+                    )
+                ),
+            )
 
         if is_adolescent and tests.get("wisc4"):
             add_title("Subescalas WISC-IV")
@@ -2335,22 +2643,21 @@ class ReportExportService:
             if tests.get("bpa2"):
                 add_numbered_section("BPA-2 – BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO")
                 add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
+                anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
                 add_chart(
                     "BPA-2 Resultados da Avaliação da Atenção",
                     cls._bpa_chart_bytes(tests.get("bpa2")),
                     template_key="bpa2",
                 )
-                anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
 
             if tests.get("ravlt"):
                 add_numbered_section("RAVLT – REY AUDITORY VERBAL LEARNING TEST")
-                ravlt_interpretation = sections.get("ravlt", sections.get("memoria_aprendizagem", ""))
-                anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
-                add_chart(
-                    "RAVLT Resultados",
-                    cls._ravlt_chart(tests.get("ravlt")),
-                    template_key="ravlt",
+                ravlt_interpretation = cls._resolve_interpretation_text(
+                    sections.get("ravlt"),
+                    sections.get("memoria_aprendizagem"),
+                    tests.get("ravlt"),
                 )
+                anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
                 add_table(
                     cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
                 )
@@ -2358,6 +2665,11 @@ class ReportExportService:
                     anchor = cls._insert_interpretation_block_after(
                         anchor, cls._normalize_interpretation_text(ravlt_interpretation)
                     )
+                add_chart(
+                    "RAVLT Resultados",
+                    cls._ravlt_chart(tests.get("ravlt")),
+                    template_key="ravlt",
+                )
 
             if tests.get("fdt"):
                 add_numbered_section("FDT – TESTE DOS CINCO DÍGITOS")
@@ -2367,7 +2679,11 @@ class ReportExportService:
                     cls._fdt_rows(tests.get("fdt")),
                     "fdt",
                 )
-                fdt_interpretation = sections.get("fdt", sections.get("funcoes_executivas", ""))
+                fdt_interpretation = cls._resolve_interpretation_text(
+                    sections.get("fdt"),
+                    sections.get("funcoes_executivas"),
+                    tests.get("fdt"),
+                )
                 if fdt_interpretation:
                     anchor = cls._insert_interpretation_block_after(
                         anchor, cls._normalize_interpretation_text(fdt_interpretation)
@@ -2406,6 +2722,7 @@ class ReportExportService:
 
             if tests.get("etdah_ad"):
                 add_numbered_section("E-TDAH-AD")
+                add_text(cls._etdah_ad_description_text())
                 add_table(
                     "ETDAH-AD RESULTADO",
                     cls._etdah_rows(tests.get("etdah_ad")),
@@ -2463,6 +2780,39 @@ class ReportExportService:
                 add_chart(
                     "EPQ-J Percentis",
                     cls._epq_chart(tests.get("epq_j")),
+                    template_key="epq",
+                )
+
+            if tests.get("bai"):
+                bai_test = tests.get("bai")
+                add_numbered_section("BAI")
+                add_text(cls._bai_description_text())
+                add_table(
+                    "BAI - Resultado da sintomatologia ansiosa",
+                    cls._bai_rows(bai_test),
+                    "bai_scores",
+                )
+                add_chart(
+                    "BAI - Perfil do resultado",
+                    cls._bai_chart(bai_test),
+                )
+                add_text(section_or_test_interpretation("bai", None, bai_test))
+
+            if tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij"):
+                ebadep_test = tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij")
+                add_numbered_section("EBADEP-A")
+                add_text(cls._ebadep_description_text())
+                add_table(
+                    "EBADEP-A - Resultado da sintomatologia",
+                    cls._ebadep_rows(ebadep_test),
+                    "scale_summary",
+                )
+                add_text(
+                    cls._resolve_interpretation_text(
+                        sections.get("aspectos_emocionais_comportamentais"),
+                        None,
+                        ebadep_test,
+                    )
                 )
 
             if tests.get("bfp"):
@@ -2473,7 +2823,11 @@ class ReportExportService:
                 if bfp_tables:
                     for table_rows in bfp_tables:
                         add_table("Resultados gerais", table_rows, "bfp")
-                add_chart("BFP – Bateria Fatorial de Personalidade", cls._bfp_chart(bfp_test))
+                add_chart(
+                    "BFP – Bateria Fatorial de Personalidade",
+                    cls._bfp_chart(bfp_test),
+                    template_key="bfp",
+                )
                 anchor = cls._insert_interpretation_block_after(
                     anchor,
                     cls._normalize_interpretation_text(
@@ -2484,12 +2838,13 @@ class ReportExportService:
             if tests.get("srs2"):
                 srs2_test = tests.get("srs2")
                 add_numbered_section("SRS-2 – ESCALA DE RESPONSIVIDADE SOCIAL")
-                add_text(
-                    section_or_test_interpretation(
-                        "srs2", None, srs2_test
-                    )
-                )
                 add_table("SRS-2 Resultados", cls._srs2_rows(srs2_test), "srs2")
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        section_or_test_interpretation("srs2", None, srs2_test)
+                    ),
+                )
                 add_chart(
                     "SRS-2 Resultados",
                     cls._srs2_chart(srs2_test),
@@ -2600,6 +2955,26 @@ class ReportExportService:
                     ),
                 )
 
+            if tests.get("bai"):
+                bai_test = tests.get("bai")
+                add_title("BAI")
+                add_text(cls._bai_description_text())
+                add_table(
+                    "BAI - Resultado da sintomatologia ansiosa",
+                    cls._bai_rows(bai_test),
+                    "bai_scores",
+                )
+                add_chart(
+                    "BAI - Perfil do resultado",
+                    cls._bai_chart(bai_test),
+                )
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        section_or_test_interpretation("bai", None, bai_test)
+                    ),
+                )
+
             if tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij"):
                 ebadep_test = tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij")
                 add_title("EBADEP-A")
@@ -2624,7 +2999,11 @@ class ReportExportService:
                 if bfp_tables:
                     for table_rows in bfp_tables:
                         add_table("Resultados gerais", table_rows, "bfp")
-                add_chart("BFP – Bateria Fatorial de Personalidade", cls._bfp_chart(bfp_test))
+                add_chart(
+                    "BFP – Bateria Fatorial de Personalidade",
+                    cls._bfp_chart(bfp_test),
+                    template_key="bfp",
+                )
                 anchor = cls._insert_interpretation_block_after(
                     anchor,
                     cls._normalize_interpretation_text(
@@ -2673,95 +3052,337 @@ class ReportExportService:
                     cls._srs2_chart(srs2_test),
                     template_key="srs2",
                 )
-        else:
-            add_title("5.1. Atenção")
-            add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
-            add_chart(
-                "BPA-2 Resultados da Avaliação da Atenção",
-                cls._bpa_chart_bytes(tests.get("bpa2")),
-            )
-            anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
+        elif tests.get("wasi"):
+            add_title("5.2. Subescalas WASI")
 
-            add_title("5.2. Memória e Aprendizagem")
-            anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
-            add_chart("RAVLT Resultados", cls._ravlt_chart(tests.get("ravlt")))
-            add_table(
-                cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
-            )
-
-            add_title("5.3. Funções Executivas")
-            add_text(cls._fdt_description_text())
-            add_table(
-                "FDT Processos Automáticos e Controlados",
-                cls._fdt_rows(tests.get("fdt")),
-                "fdt",
-            )
-            fdt_interpretation = sections.get("funcoes_executivas", "")
-            if fdt_interpretation:
-                anchor = cls._insert_interpretation_block_after(
-                    anchor, cls._normalize_interpretation_text(fdt_interpretation)
+            verbal_rows = cls._wasi_subscale_rows(tests.get("wasi"), "verbal")
+            if verbal_rows:
+                add_title("5.2.1. Escala Verbal")
+                add_table("Resultado da escala verbal", verbal_rows, "wisc")
+                add_text(
+                    cls._strip_markdown_heading_prefix(sections.get("linguagem"), "Linguagem")
+                    or cls._wasi_verbal_interpretation_text(tests.get("wasi"), context)
                 )
-            add_chart(
-                "FDT Processos Automáticos",
-                cls._fdt_chart(tests.get("fdt"), automatic=True),
-                width=Cm(14),
-                height=Cm(10),
-            )
-            add_chart(
-                "FDT Processos Controlados",
-                cls._fdt_chart(tests.get("fdt"), automatic=False),
-                width=Cm(14),
-                height=Cm(10),
-            )
 
-            add_title("5.4. Aspectos Emocionais, Comportamentais e Escalas Complementares")
-            add_text(sections.get("aspectos_emocionais_comportamentais", ""))
-            add_table(
-                "E-TDAH Resultados",
-                cls._etdah_rows(tests.get("etdah_ad") or tests.get("etdah_pais")),
-                "etdah_ad" if tests.get("etdah_ad") else "etdah_pais",
-            )
-            add_chart(
-                "E-TDAH Resultados",
-                cls._etdah_chart(tests.get("etdah_ad") or tests.get("etdah_pais")),
-            )
-            for scared_test in cls._find_tests(context, "scared"):
-                form_label = cls._scared_form_label(scared_test)
+            execution_rows = cls._wasi_subscale_rows(tests.get("wasi"), "execucao")
+            if execution_rows:
+                add_title("5.2.2. Escala de Execução")
+                add_table("Resultados da escala de execução", execution_rows, "wisc")
+                add_text(
+                    cls._strip_markdown_heading_prefix(sections.get("gnosias_praxias"), "Gnosias e Praxias")
+                    or cls._wasi_execution_interpretation_text(tests.get("wasi"), context)
+                )
+
+            section_index = 6
+
+            def add_numbered_section(title: str):
+                nonlocal section_index
+                add_title(f"{section_index}. {title}")
+                section_index += 1
+
+            if tests.get("bpa2"):
+                add_numbered_section("BPA-2 BATERIA PSICOLÓGICA PARA AVALIAÇÃO DA ATENÇÃO")
+                add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
+                anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
+                add_chart(
+                    "BPA-2 Resultados da Avaliação da Atenção",
+                    cls._bpa_chart_bytes(tests.get("bpa2")),
+                    template_key="bpa2",
+                )
+
+            if tests.get("ravlt"):
+                add_numbered_section("RAVLT REY AUDITORY VERBAL LEARNING TEST")
+                anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
                 add_table(
-                    f"SCARED - Resultados {form_label}",
-                    cls._scared_rows(scared_test),
-                    cls._scared_table_key(scared_test)
+                    cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
                 )
-                anchor = cls._insert_interpretation_block_after(
+                ravlt_interpretation = cls._resolve_interpretation_text(
+                    sections.get("ravlt"),
+                    sections.get("memoria_aprendizagem"),
+                    tests.get("ravlt"),
+                )
+                if ravlt_interpretation:
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor, cls._normalize_interpretation_text(ravlt_interpretation)
+                    )
+                add_chart(
+                    "RAVLT Resultados",
+                    cls._ravlt_chart(tests.get("ravlt")),
+                    template_key="ravlt",
+                )
+
+            if tests.get("fdt"):
+                add_numbered_section("FDT- TESTE DOS CINCO DÍGITOS")
+                add_text(cls._fdt_description_text())
+                add_table(
+                    "FDT Processos Automáticos e Controlados",
+                    cls._fdt_rows(tests.get("fdt")),
+                    "fdt",
+                )
+                fdt_interpretation = cls._resolve_interpretation_text(
+                    sections.get("fdt"),
+                    sections.get("funcoes_executivas"),
+                    tests.get("fdt"),
+                )
+                if fdt_interpretation:
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor, cls._normalize_interpretation_text(fdt_interpretation)
+                    )
+                add_chart(
+                    "FDT Processos Automáticos",
+                    cls._fdt_chart(tests.get("fdt"), automatic=True),
+                    width=Cm(14),
+                    height=Cm(10),
+                    template_key="fdt_auto",
+                )
+                add_chart(
+                    "FDT Processos Controlados",
+                    cls._fdt_chart(tests.get("fdt"), automatic=False),
+                    width=Cm(14),
+                    height=Cm(10),
+                    template_key="fdt_control",
+                )
+
+            if tests.get("etdah_ad"):
+                add_numbered_section("ETDAH-AD")
+                add_text(cls._etdah_ad_description_text())
+                add_table(
+                    "E-TDAH Resultados",
+                    cls._etdah_rows(tests.get("etdah_ad")),
+                    "etdah_ad",
+                )
+                anchor = cls._insert_etdah_ad_interpretation_block_after(
                     anchor,
                     cls._normalize_interpretation_text(
-                        cls._resolve_interpretation_text(None, None, scared_test)
+                        section_or_test_interpretation("etdah_ad", None, tests.get("etdah_ad"))
                     ),
                 )
                 add_chart(
-                    cls._scared_form_title(scared_test),
-                    cls._scared_chart(scared_test),
+                    "E-TDAH Resultados",
+                    cls._etdah_chart(tests.get("etdah_ad")),
+                    template_key="etdah_ad",
                 )
-            add_table(
-                "EPQ-J Resultados da personalidade",
-                cls._epq_rows(tests.get("epq_j")),
-                "epq",
+
+            if tests.get("bfp"):
+                add_numbered_section("BFP- BATERIA FATORIAL DE PERSONALIDADE")
+                add_text(cls._bfp_description_text())
+                for table_rows in cls._bfp_rows(tests.get("bfp")) or []:
+                    add_table("BFP Resultados dos fatores", table_rows, "bfp")
+                add_chart(
+                    "BFP – Bateria Fatorial de Personalidade",
+                    cls._bfp_chart(tests.get("bfp")),
+                    template_key="bfp",
+                )
+                add_text(
+                    section_or_test_interpretation(
+                        "bfp",
+                        "aspectos_emocionais_comportamentais",
+                        tests.get("bfp"),
+                    )
+                )
+
+            if tests.get("bai"):
+                add_numbered_section("BAI INVENTÁRIO DE ANSIEDADE DE BECK")
+                add_text(cls._bai_description_text())
+                add_table(
+                    "BAI - Resultado da sintomatologia ansiosa",
+                    cls._bai_rows(tests.get("bai")),
+                    "bai_scores",
+                )
+                add_chart(
+                    "BAI - Perfil do resultado",
+                    cls._bai_chart(tests.get("bai")),
+                )
+                add_text(section_or_test_interpretation("bai", None, tests.get("bai")))
+
+            if tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij"):
+                ebadep_test = tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij")
+                add_numbered_section("EBADEP-A")
+                add_text(cls._ebadep_description_text())
+                add_table(
+                    "Resultados da EBADEP",
+                    cls._ebadep_rows(ebadep_test),
+                    "scale_summary",
+                )
+                add_text(
+                    cls._resolve_interpretation_text(
+                        sections.get("aspectos_emocionais_comportamentais"),
+                        None,
+                        ebadep_test,
+                    )
+                )
+
+            if tests.get("srs2"):
+                add_numbered_section("SRS-2 ESCALA DE RESPONSIVIDADE SOCIAL")
+                add_table("SRS-2 Resultados", cls._srs2_rows(tests.get("srs2")), "srs2")
+                anchor = cls._insert_interpretation_block_after(
+                    anchor,
+                    cls._normalize_interpretation_text(
+                        section_or_test_interpretation("srs2", None, tests.get("srs2"))
+                    ),
+                )
+                add_chart(
+                    "SRS-2 Resultados",
+                    cls._srs2_chart(tests.get("srs2")),
+                    template_key="srs2",
+                )
+        else:
+            section_index = 1
+
+            def add_numbered_section(title: str):
+                nonlocal section_index
+                add_title(f"5.{section_index}. {title}")
+                section_index += 1
+
+            if tests.get("bpa2"):
+                add_numbered_section("Atenção")
+                add_table("Atenção BPA-2 Resultados", cls._bpa_rows(tests.get("bpa2"), context), "bpa")
+                add_chart(
+                    "BPA-2 Resultados da Avaliação da Atenção",
+                    cls._bpa_chart_bytes(tests.get("bpa2")),
+                    template_key="bpa2",
+                )
+                anchor = cls._insert_bpa_interpretation_block_after(anchor, tests.get("bpa2"), context)
+
+            if tests.get("ravlt"):
+                add_numbered_section("Memória e Aprendizagem")
+                anchor = cls._insert_ravlt_conceptual_paragraph_after(anchor)
+                add_chart(
+                    "RAVLT Resultados",
+                    cls._ravlt_chart(tests.get("ravlt")),
+                    template_key="ravlt",
+                )
+                add_table(
+                    cls._ravlt_table_caption(), cls._ravlt_rows(tests.get("ravlt"), context), "ravlt"
+                )
+
+            if tests.get("fdt"):
+                add_numbered_section("Funções Executivas")
+                add_text(cls._fdt_description_text())
+                add_table(
+                    "FDT Processos Automáticos e Controlados",
+                    cls._fdt_rows(tests.get("fdt")),
+                    "fdt",
+                )
+                fdt_interpretation = sections.get("funcoes_executivas", "")
+                if fdt_interpretation:
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor, cls._normalize_interpretation_text(fdt_interpretation)
+                    )
+                add_chart(
+                    "FDT Processos Automáticos",
+                    cls._fdt_chart(tests.get("fdt"), automatic=True),
+                    width=Cm(14),
+                    height=Cm(10),
+                    template_key="fdt_auto",
+                )
+                add_chart(
+                    "FDT Processos Controlados",
+                    cls._fdt_chart(tests.get("fdt"), automatic=False),
+                    width=Cm(14),
+                    height=Cm(10),
+                    template_key="fdt_control",
+                )
+
+            has_emotional_tests = any(
+                [
+                    tests.get("etdah_ad"),
+                    tests.get("etdah_pais"),
+                    tests.get("bai"),
+                    cls._find_tests(context, "scared"),
+                    tests.get("epq_j"),
+                    tests.get("bfp"),
+                    tests.get("srs2"),
+                    tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij"),
+                ]
             )
-            add_chart(
-                "EPQ-J - Percentis",
-                cls._epq_chart(tests.get("epq_j")),
-            )
-            add_table("SRS-2 Resultados", cls._srs2_rows(tests.get("srs2")), "srs2")
-            add_chart("SRS-2 Resultados", cls._srs2_chart(tests.get("srs2")))
-            add_table(
-                "Resultados da EBADEP",
-                cls._ebadep_rows(
-                    tests.get("ebadep_a")
-                    or tests.get("ebadep_ij")
-                    or tests.get("ebaped_ij")
-                ),
-                "scale_summary",
-            )
+            if has_emotional_tests:
+                add_numbered_section("Aspectos Emocionais, Comportamentais e Escalas Complementares")
+                add_text(sections.get("aspectos_emocionais_comportamentais", ""))
+                if tests.get("etdah_ad") or tests.get("etdah_pais"):
+                    add_table(
+                        "E-TDAH Resultados",
+                        cls._etdah_rows(tests.get("etdah_ad") or tests.get("etdah_pais")),
+                        "etdah_ad" if tests.get("etdah_ad") else "etdah_pais",
+                    )
+                    add_chart(
+                        "E-TDAH Resultados",
+                        cls._etdah_chart(tests.get("etdah_ad") or tests.get("etdah_pais")),
+                        template_key="etdah_ad" if tests.get("etdah_ad") else "etdah_pais",
+                    )
+                if tests.get("bai"):
+                    add_title("BAI")
+                    add_text(cls._bai_description_text())
+                    add_table(
+                        "BAI - Resultado da sintomatologia ansiosa",
+                        cls._bai_rows(tests.get("bai")),
+                        "scale_summary",
+                    )
+                    add_text(section_or_test_interpretation("bai", None, tests.get("bai")))
+                for scared_test in cls._find_tests(context, "scared"):
+                    form_label = cls._scared_form_label(scared_test)
+                    add_table(
+                        f"SCARED - Resultados {form_label}",
+                        cls._scared_rows(scared_test),
+                        cls._scared_table_key(scared_test)
+                    )
+                    anchor = cls._insert_interpretation_block_after(
+                        anchor,
+                        cls._normalize_interpretation_text(
+                            cls._resolve_interpretation_text(None, None, scared_test)
+                        ),
+                    )
+                    add_chart(
+                        cls._scared_form_title(scared_test),
+                        cls._scared_chart(scared_test),
+                        template_key="scared_pair",
+                    )
+                if tests.get("epq_j"):
+                    add_table(
+                        "EPQ-J Resultados da personalidade",
+                        cls._epq_rows(tests.get("epq_j")),
+                        "epq",
+                    )
+                    add_chart(
+                        "EPQ-J - Percentis",
+                        cls._epq_chart(tests.get("epq_j")),
+                        template_key="epq",
+                    )
+                if tests.get("bfp"):
+                    add_title("BFP – Bateria Fatorial de Personalidade")
+                    add_text(cls._bfp_description_text())
+                    for table_rows in cls._bfp_rows(tests.get("bfp")) or []:
+                        add_table("BFP Resultados dos fatores", table_rows, "bfp")
+                    add_text(
+                        section_or_test_interpretation(
+                            "bfp",
+                            "aspectos_emocionais_comportamentais",
+                            tests.get("bfp"),
+                        )
+                    )
+                if tests.get("srs2"):
+                    add_table("SRS-2 Resultados", cls._srs2_rows(tests.get("srs2")), "srs2")
+                    add_chart(
+                        "SRS-2 Resultados",
+                        cls._srs2_chart(tests.get("srs2")),
+                        template_key="srs2",
+                    )
+                if tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij"):
+                    ebadep_test = tests.get("ebadep_a") or tests.get("ebadep_ij") or tests.get("ebaped_ij")
+                    add_title("EBADEP-A")
+                    add_text(cls._ebadep_description_text())
+                    add_table(
+                        "Resultados da EBADEP",
+                        cls._ebadep_rows(ebadep_test),
+                        "scale_summary",
+                    )
+                    add_text(
+                        cls._resolve_interpretation_text(
+                            sections.get("aspectos_emocionais_comportamentais"),
+                            None,
+                            ebadep_test,
+                        )
+                    )
 
     @classmethod
     def _find_paragraph(cls, document: Document, text: str | None):
@@ -2771,6 +3392,22 @@ class ReportExportService:
             if paragraph.text.strip() == text:
                 return paragraph
         return None
+
+    @classmethod
+    def _rename_heading_if_present(cls, document: Document, old_text: str, new_text: str):
+        paragraph = cls._find_paragraph(document, old_text)
+        if paragraph is None:
+            return
+        paragraph.text = new_text
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        paragraph.paragraph_format.space_before = cls.HEADING_SPACE_BEFORE
+        paragraph.paragraph_format.space_after = cls.HEADING_SPACE_AFTER
+        paragraph.paragraph_format.line_spacing = cls.BODY_LINE_SPACING
+        paragraph.paragraph_format.first_line_indent = Pt(0)
+        for run in paragraph.runs:
+            run.font.name = cls.FONT_NAME
+            run.font.size = cls.TITLE_SIZE
+            run.bold = True
 
     @classmethod
     def _remove_nodes_between(cls, start_paragraph, end_paragraph):
@@ -3062,6 +3699,54 @@ class ReportExportService:
         )
 
     @classmethod
+    def _wasi_intro_text(cls, test: dict | None, context: dict) -> str:
+        if not test:
+            return ""
+        payload = cls._wasi_payload(test)
+        composites = payload.get("composites") or {}
+        qit = composites.get("qit_4") or composites.get("qit_2") or {}
+        qit_value = qit.get("qi")
+        qit_classification = qit.get("classification", "não informada")
+        patient_name = cls._patient_reference_name(context or {})
+        if qit_value is None:
+            return (
+                f"Capacidade Cognitiva Global: {patient_name} realizou a Escala Wechsler Abreviada de Inteligência (WASI), instrumento destinado à avaliação do funcionamento intelectual global. "
+                "No momento, os dados necessários para o cálculo automatizado dos quocientes intelectuais ainda não estão disponíveis."
+            )
+        return (
+            f"Capacidade Cognitiva Global: {patient_name} obteve, a partir da Escala Wechsler Abreviada de Inteligência (WASI), "
+            f"QI Total (QIT = {qit_value}), ficando na classificação {qit_classification}, quando comparado à média geral. "
+            "Em relação aos índices fatoriais (medidas mais apuradas da inteligência), apresentou os seguintes resultados:"
+        )
+
+    @classmethod
+    def _wasi_global_bullet_parts(cls, test: dict | None) -> list[tuple[str, str]]:
+        if not test:
+            return []
+        payload = cls._wasi_payload(test)
+        composites = payload.get("composites") or {}
+
+        qiv = composites.get("qi_verbal") or {}
+        qie = composites.get("qi_execucao") or {}
+        qit = composites.get("qit_4") or composites.get("qit_2") or {}
+
+        definitions = [
+            ("QIV (Coeficiente de Inteligência Verbal)", qiv, "Avalia os processos verbais e de conhecimento adquirido, tendo uma maior semelhança com o conceito de inteligência cristalizada. No WASI, ele é composto dos subtestes Semelhanças e Vocabulário."),
+            ("QIE (Coeficiente de Inteligência de Execução)", qie, "Avalia a organização perceptual, capacidade de manipular estímulos visuais com rapidez e velocidade, e outros processos não verbais, assumindo maior proximidade com o conceito de inteligência fluida. No WASI, ele é composto dos subtestes Cubos e Raciocínio Matricial."),
+            ("QIT (Coeficiente de Inteligência Total)", qit, "Avalia o nível geral do funcionamento intelectual."),
+        ]
+
+        rows: list[tuple[str, str]] = []
+        for label, item, description in definitions:
+            if not item:
+                continue
+            qi = item.get("qi")
+            classification = item.get("classification", "")
+            value_str = f"{qi} — {classification}" if qi and classification else str(qi) if qi else "-"
+            rows.append((f"{label} — {value_str}", description))
+        return rows
+
+    @classmethod
     def _wais3_global_bullet_parts(cls, test: dict | None) -> list[tuple[str, str]]:
         payload = cls._wais3_payload(test)
         indices = payload.get("indices") or {}
@@ -3168,6 +3853,98 @@ class ReportExportService:
                 ]
             )
         return rows if len(rows) > 1 else None
+
+    @classmethod
+    def _wasi_payload(cls, test: dict | None) -> dict:
+        test = test or {}
+        merged = {}
+        for source in (
+            test.get("computed_payload") or {},
+            test.get("structured_results") or {},
+            test.get("composites") or {},
+        ):
+            if isinstance(source, dict):
+                merged.update(source)
+        return merged
+
+    @classmethod
+    def _wasi_subscale_rows(cls, test: dict | None, scale: str):
+        payload = cls._wasi_payload(test)
+        subtests = payload.get("subtests") or {}
+        if not isinstance(subtests, dict):
+            subtests = {}
+
+        scale_codes = {
+            "verbal": ["vc", "sm"],
+            "execucao": ["cb", "rm"],
+        }
+        rows = [[
+            "Testes Utilizados",
+            "Escore Máximo",
+            "Escore Médio",
+            "Escore Mínimo",
+            "Escore Obtido",
+            "Classificação",
+        ]]
+        for code in scale_codes.get(scale, []):
+            item = subtests.get(code) or {}
+            if not item:
+                continue
+            rows.append([
+                item.get("name") or code.upper(),
+                "80",
+                "40 - 60",
+                "20",
+                cls._num(item.get("t_score") if item.get("t_score") is not None else item.get("raw_score")),
+                item.get("classification") or "-",
+            ])
+        return rows if len(rows) > 1 else None
+
+    @classmethod
+    def _wasi_subscale_item(cls, test: dict | None, code: str) -> dict:
+        payload = cls._wasi_payload(test)
+        subtests = payload.get("subtests") or {}
+        if not isinstance(subtests, dict):
+            return {}
+        return subtests.get(code) or {}
+
+    @classmethod
+    def _wasi_verbal_interpretation_text(cls, test: dict | None, context: dict) -> str:
+        patient_name = cls._patient_reference_name(context or {})
+        semelhancas = cls._wasi_subscale_item(test, "sm")
+        vocabulario = cls._wasi_subscale_item(test, "vc")
+        sem_class = semelhancas.get("classification", "não informada")
+        voc_class = vocabulario.get("classification", "não informada")
+        return (
+            f"Interpretação: A avaliação da escala verbal de {patient_name} foi realizada por meio dos subtestes Vocabulário e Semelhanças da Escala Wechsler Abreviada de Inteligência – WASI, permitindo examinar aspectos relacionados ao raciocínio verbal, amplitude lexical, conhecimento semântico e capacidade de abstração conceitual.\n"
+            f"No subteste Vocabulário, {patient_name} apresentou desempenho classificado na faixa {voc_class.lower()}, evidenciando repertório lexical adequado, capacidade funcional de nomeação, compreensão semântica e definição de palavras. Esse resultado sugere domínio preservado do conhecimento verbal adquirido, bem como organização do pensamento mediado pela linguagem, favorecendo a comunicação e a compreensão de conteúdos verbais estruturados.\n"
+            f"No subteste Semelhanças, observou-se desempenho na faixa {sem_class.lower()}, indicando capacidade de abstração verbal, formação de conceitos e identificação de relações entre estímulos. Esse desempenho reflete funcionamento em processos de categorização, raciocínio lógico verbal e integração conceitual.\n"
+            f"Em análise clínica, os resultados da Escala Verbal indicam funcionamento compatível com o perfil evidenciado nos subtestes avaliados, sugerindo recursos de compreensão verbal, raciocínio abstrato mediado pela linguagem e organização conceitual em nível coerente com o desempenho global observado no WASI. Esse perfil favorece a aprendizagem baseada em instruções verbais e a adaptação a contextos que demandam comunicação estruturada."
+        )
+
+    @classmethod
+    def _wasi_execution_interpretation_text(cls, test: dict | None, context: dict) -> str:
+        patient_name = cls._patient_reference_name(context or {})
+        cubos = cls._wasi_subscale_item(test, "cb")
+        matricial = cls._wasi_subscale_item(test, "rm")
+        cubos_class = cubos.get("classification", "não informada")
+        matricial_class = matricial.get("classification", "não informada")
+        return (
+            f"Interpretação: A avaliação da escala de execução de {patient_name} foi realizada por meio dos subtestes Cubos e Raciocínio Matricial da Escala Wechsler Abreviada de Inteligência – WASI, permitindo examinar habilidades de raciocínio visuoespacial, análise de padrões, integração perceptual e organização motora.\n"
+            f"No subteste Cubos, {patient_name} apresentou desempenho classificado na faixa {cubos_class.lower()}, indicando organização visuoespacial, análise perceptiva e coordenação visomotora compatíveis com o perfil observado. Esse resultado sugere capacidade funcional de estruturar estímulos visuais, integrar partes em um todo e executar tarefas com demanda construtiva.\n"
+            f"No subteste Raciocínio Matricial, o desempenho na faixa {matricial_class.lower()} evidencia raciocínio lógico não verbal, capacidade de identificar padrões, inferir regras e resolver problemas abstratos. Esse desempenho indica funcionamento em tarefas que exigem análise visual e raciocínio fluido.\n"
+            f"Em análise clínica, os resultados da Escala de Execução indicam funcionamento compatível com o perfil evidenciado nos subtestes avaliados, sugerindo recursos de raciocínio não verbal, percepção de padrões, organização visuoespacial e resolução de problemas abstratos em nível coerente com o desempenho global observado no WASI."
+        )
+
+    @staticmethod
+    def _strip_markdown_heading_prefix(text: str | None, heading: str) -> str:
+        if not text:
+            return ""
+        normalized = str(text).strip()
+        for variant in (f"**{heading}**", heading):
+            if normalized.startswith(variant):
+                normalized = normalized[len(variant):].lstrip("\n :.-")
+        return normalized
 
     @classmethod
     def _wais3_chart(cls, test: dict | None):
@@ -3840,7 +4617,15 @@ class ReportExportService:
                 **(test_payload.get("structured_results") or {}),
             }
             return build_wais3_interpretation(merged, "Paciente")
-        
+
+        if test_payload and test_payload.get("instrument_code") == "wasi":
+            from apps.tests.wasi.interpreters import build_wasi_interpretation
+            merged = {
+                **(test_payload.get("computed_payload") or {}),
+                **(test_payload.get("structured_results") or {}),
+            }
+            return build_wasi_interpretation(merged, patient_name="Paciente")
+
         return ""
 
     @classmethod
@@ -3860,23 +4645,49 @@ class ReportExportService:
 
     @classmethod
     def _fallback_test_interpretation(cls, test_payload: dict | None) -> str:
-        if not test_payload or test_payload.get("instrument_code") != "srs2":
+        if not test_payload:
             return ""
 
-        merged_data = {
-            **(test_payload.get("computed_payload") or {}),
-            **(
-                test_payload.get("classified_payload")
-                or test_payload.get("structured_results")
-                or {}
-            ),
-        }
-        return (interpret_srs2_results(merged_data) or "").strip()
+        instrument_code = test_payload.get("instrument_code")
+
+        if instrument_code == "srs2":
+            merged_data = {
+                **(test_payload.get("computed_payload") or {}),
+                **(
+                    test_payload.get("classified_payload")
+                    or test_payload.get("structured_results")
+                    or {}
+                ),
+            }
+            return (interpret_srs2_results(merged_data) or "").strip()
+
+        if instrument_code == "bai":
+            from apps.tests.bai.interpreters import get_report_interpretation
+
+            merged_data = {
+                **(test_payload.get("computed_payload") or {}),
+                **(test_payload.get("classified_payload") or {}),
+            }
+            return (get_report_interpretation(merged_data) or "").strip()
+
+        if instrument_code == "ebadep_a":
+            from apps.tests.ebadep_a.interpreters import get_report_interpretation
+
+            classified_payload = (test_payload.get("classified_payload") or {}).get("result") or (
+                test_payload.get("classified_payload") or {}
+            )
+            classificacao = (
+                classified_payload.get("classificacao")
+                or (test_payload.get("classified_payload") or {}).get("classificacao")
+            )
+            return (get_report_interpretation(classificacao or "", "Paciente") or "").strip()
+
+        return ""
 
     @classmethod
     def _ravlt_conceptual_text(cls) -> str:
         return (
-            "O Rey Auditory Verbal Learning Test (RAVLT) é um instrumento neuropsicológico destinado à avaliação da memória episódica auditivo-verbal, permitindo investigar a aprendizagem verbal, a retenção, a evocação tardia, o reconhecimento e a resistência à interferência. Seu desempenho oferece indicadores relevantes sobre os processos de codificação, consolidação e recuperação de informações verbais."
+            "O Rey Auditory Verbal Learning Test (RAVLT) é um teste neuropsicológico amplamente utilizado para avaliar a memória verbal, a capacidade de aprendizado auditivo e a retenção de informações ao longo do tempo. Desenvolvido por Rey (1958), o RAVLT permite analisar diferentes aspectos da memória, como a curva de aprendizado, a interferência, o esquecimento e o reconhecimento verbal (Lezak et al., 2004). Ele é frequentemente utilizado na investigação de déficits cognitivos associados a doenças neurodegenerativas, lesões cerebrais traumáticas e transtornos psiquiátricos (Strauss, Sherman & Spreen, 2006). Os resultados do teste auxiliam no diagnóstico diferencial de condições como doença de Alzheimer e TDAH, além de fornecerem subsídios para o planejamento de intervenções cognitivas (Salthouse, 2010). Assim, o RAVLT é uma ferramenta essencial para a avaliação da memória e da aprendizagem verbal."
         )
 
     @classmethod
@@ -3892,6 +4703,12 @@ class ReportExportService:
         )
 
     @classmethod
+    def _bai_description_text(cls) -> str:
+        return (
+            "O Inventário de Ansiedade de Beck (BAI) é um instrumento de autorrelato utilizado para mensurar a intensidade de sintomas ansiosos, com ênfase em manifestações fisiológicas, cognitivas e subjetivas de ansiedade. Seu resultado contribui para o rastreio clínico e deve ser interpretado em conjunto com a entrevista, a observação comportamental e os demais instrumentos do protocolo avaliativo."
+        )
+
+    @classmethod
     def _ebadep_description_text(cls) -> str:
         return (
             "A EBADEP-A avalia a presença e a intensidade de sintomas depressivos em adultos, contemplando dimensões cognitivas, afetivas, somáticas e motivacionais. Seu resultado contribui para o rastreio de indicadores clínicos, devendo ser interpretado em conjunto com a anamnese e a observação clínica."
@@ -3902,6 +4719,111 @@ class ReportExportService:
         return (
             "A Bateria Fatorial de Personalidade (BFP) foi utilizada para investigar traços de personalidade com base no modelo dos Cinco Grandes Fatores, permitindo compreender tendências emocionais, interpessoais, motivacionais e comportamentais. Seus resultados devem ser integrados à anamnese, observação clínica e demais instrumentos aplicados."
         )
+
+    @classmethod
+    def _bai_rows(cls, test: dict | None):
+        payload = {
+            **((test or {}).get("computed_payload") or {}),
+            **((test or {}).get("classified_payload") or {}),
+        }
+        if not payload:
+            return None
+
+        summary = ((test or {}).get("computed_payload") or {}).get("tables", {}).get("summary_table", [])
+        summary_row = summary[0] if summary else {}
+        classificacao = payload.get("classificacao") or {}
+        descricao = (
+            summary_row.get("description")
+            or classificacao.get("interpretation")
+            or payload.get("interpretacao_faixa")
+            or "-"
+        )
+        escala = summary_row.get("scale") or "Escore Total"
+        bruto = summary_row.get("raw_score")
+        norma = summary_row.get("norm_value")
+        if bruto is None:
+            bruto = payload.get("escore_total") or payload.get("total_raw_score")
+        if norma is None:
+            norma = payload.get("t_score")
+
+        return [
+            ["Escala", "Pontuação bruta", "Valor da norma"],
+            [escala, cls._num(bruto), cls._num(norma)],
+            [descricao, "", ""],
+        ]
+
+    @classmethod
+    def _bai_chart(cls, test: dict | None):
+        payload = {
+            **((test or {}).get("computed_payload") or {}),
+            **((test or {}).get("classified_payload") or {}),
+        }
+        if not payload:
+            return None
+
+        total_raw_score = payload.get("total_raw_score") or payload.get("escore_total")
+        t_score = payload.get("t_score")
+        if total_raw_score is None or t_score is None:
+            return None
+
+        min_score = 20
+        max_score = 80
+        safe_t = max(min_score, min(max_score, float(t_score)))
+        ticks = list(range(20, 81, 5))
+        special_labels = {20: "min", 40: "-s", 50: "m", 60: "+s", 80: "max"}
+
+        fig, ax = plt.subplots(figsize=(11.5, 3.2))
+        ax.set_xlim(16, 108)
+        ax.set_ylim(0, 1)
+        ax.axis("off")
+
+        start_x = 20
+        end_x = 80
+        cell_height = 0.28
+        cell_y = 0.34
+
+        ax.text(16, 0.92, "Inventário de Ansiedade · Padrão", fontsize=10, fontweight="bold")
+        ax.text(16, 0.82, "Amostra Geral · Escore T (50+10z)", fontsize=10, fontweight="bold")
+
+        for x in (16, 22):
+            ax.add_patch(Rectangle((x, cell_y), 6, cell_height, facecolor="#dff5f7", edgecolor="#ffffff"))
+        ax.text(19, cell_y + cell_height / 2, f"{int(total_raw_score)}", ha="center", va="center", fontsize=10)
+        ax.text(25, cell_y + cell_height / 2, f"{safe_t:.0f}", ha="center", va="center", fontsize=10)
+
+        segment_width = (end_x - start_x) / 12
+        for idx in range(12):
+            x0 = 28 + idx * segment_width
+            ax.add_patch(
+                Rectangle(
+                    (x0, cell_y),
+                    segment_width,
+                    cell_height,
+                    facecolor="#b8b8b8" if idx % 2 == 0 else "#a7a7a7",
+                    edgecolor="#ffffff",
+                    linewidth=0.8,
+                )
+            )
+
+        ax.add_patch(Rectangle((88, cell_y), 18, cell_height, facecolor="#dff5f7", edgecolor="#ffffff"))
+        ax.text(89, cell_y + cell_height / 2, "Escore Total", va="center", fontsize=10, fontweight="bold")
+
+        for value in ticks:
+            x = 28 + ((value - start_x) / (end_x - start_x)) * 60
+            ax.plot([x, x], [0.64, 0.69], color="#555555", linewidth=0.8)
+            ax.text(x, 0.73, f"{value}", ha="center", va="bottom", fontsize=8)
+            if value in special_labels:
+                ax.text(x, 0.78, special_labels[value], ha="center", va="bottom", fontsize=10)
+
+        point_x = 28 + ((safe_t - start_x) / (end_x - start_x)) * 60
+        ax.scatter([point_x], [cell_y + cell_height / 2], s=48, color="#e11d48", zorder=3)
+        ax.text(17.2, 0.59, "Dados brutos", rotation=90, fontsize=8, va="center")
+        ax.text(23.2, 0.59, "Normas", rotation=90, fontsize=8, va="center")
+
+        output = BytesIO()
+        fig.tight_layout()
+        fig.savefig(output, format="png", dpi=200, bbox_inches="tight")
+        plt.close(fig)
+        return output.getvalue()
 
     @classmethod
     def _bfp_rows(cls, test: dict | None):
@@ -4542,6 +5464,7 @@ class ReportExportService:
             WD_TABLE_ALIGNMENT.LEFT if table_key in {"wisc", "bpa"} else WD_TABLE_ALIGNMENT.CENTER
         )
         table.autofit = False
+        cls._set_table_layout_fixed(table)
         cls._apply_table_widths(table, table_key)
         title_text = cls._table_title_text(table_key)
         for row_index, row in enumerate(table.rows):
@@ -4587,6 +5510,15 @@ class ReportExportService:
                 elif table_key == "bfp":
                     # BFP: sem fundo colorido, apenas borda inferior
                     pass  # Não usa shading
+                elif table_key == "bai_scores":
+                    if row_index == 0:
+                        cls._set_cell_shading(cell, cls.HEADER_FILL)
+                    elif row_index == 1 and cell_index in {1, 2}:
+                        cls._set_cell_shading(cell, "E9FBFD")
+                    elif row_index == 2:
+                        cls._set_cell_shading(cell, "DFF5F7")
+                elif table_key == "epq":
+                    cls._set_cell_shading(cell, cls.HEADER_FILL)
                 elif row_index == 0:
                     cls._set_cell_shading(cell, cls.HEADER_FILL)
                 if table_key == "wisc" and row_index == 0:
@@ -4654,6 +5586,23 @@ class ReportExportService:
                         paragraph.paragraph_format.space_after = Pt(0)
                         paragraph.paragraph_format.line_spacing = 1.5
                         paragraph.paragraph_format.first_line_indent = Pt(0)
+                    elif table_key == "bai_scores":
+                        if row_index == 0:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                        elif row_index == 1:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                        else:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        paragraph.paragraph_format.space_before = Pt(0)
+                        paragraph.paragraph_format.space_after = Pt(0)
+                        paragraph.paragraph_format.line_spacing = 1.5
+                        paragraph.paragraph_format.first_line_indent = Pt(0)
+                    elif table_key == "epq":
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        paragraph.paragraph_format.space_before = Pt(0)
+                        paragraph.paragraph_format.space_after = Pt(0)
+                        paragraph.paragraph_format.line_spacing = 1.5
+                        paragraph.paragraph_format.first_line_indent = Pt(0)
                     else:
                         paragraph.alignment = (
                             WD_ALIGN_PARAGRAPH.CENTER
@@ -4673,6 +5622,10 @@ class ReportExportService:
                             run.font.size = Pt(10) if row_index == 0 else Pt(9)
                         elif cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key):
                             run.font.size = Pt(10) if row_index == 0 else Pt(9)
+                        elif table_key == "bai_scores":
+                            run.font.size = Pt(10) if row_index == 0 else Pt(9)
+                        elif table_key == "epq":
+                            run.font.size = Pt(10)
                         else:
                             run.font.size = cls.TABLE_SIZE
                         if row_index == 0 or (table_key == "fdt" and row_index == 1):
@@ -4696,8 +5649,10 @@ class ReportExportService:
                         # BFP: linha do fator (última linha) em negrito
                         if table_key == "bfp" and row_index == len(table.rows) - 1:
                             run.bold = True
+                        if table_key == "bai_scores" and row_index == 2:
+                            run.bold = False
                 cell.vertical_alignment = (
-                    WD_CELL_VERTICAL_ALIGNMENT.CENTER if table_key in {"wisc", "bpa", "fdt", "srs2"} or cls._is_etdah_table_key(table_key) or cls._is_scared_table_key(table_key) else None
+                    WD_CELL_VERTICAL_ALIGNMENT.CENTER if table_key in {"wisc", "bpa", "fdt", "srs2", "bai_scores"} or cls._is_etdah_table_key(table_key) or cls._is_scared_table_key(table_key) else None
                 )
 
             if table_key == "wisc" and row_index > 0 and row.cells[0].text == "Fala Espontânea":
@@ -4730,6 +5685,24 @@ class ReportExportService:
                         run.font.size = Pt(10)
                         run.bold = False
                         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+                row.cells[0].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+            if table_key == "bai_scores" and row_index == 2:
+                merged_text = row.cells[0].text.strip()
+                merged = row.cells[0]
+                for idx in range(1, len(row.cells)):
+                    merged = merged.merge(row.cells[idx])
+                merged.text = merged_text
+                paragraph = row.cells[0].paragraphs[0]
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                paragraph.paragraph_format.space_before = Pt(0)
+                paragraph.paragraph_format.space_after = Pt(0)
+                paragraph.paragraph_format.line_spacing = 1.5
+                paragraph.paragraph_format.first_line_indent = Pt(0)
+                for run in paragraph.runs:
+                    run.font.name = cls.FONT_NAME
+                    run.font.size = Pt(9)
+                    run.bold = False
                 row.cells[0].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
     @classmethod
@@ -4864,9 +5837,10 @@ class ReportExportService:
             "scared": [Inches(2.3), Inches(0.9), Inches(0.9), Inches(1.1), Inches(1.1)],
             "scared_parent": [Inches(2.3), Inches(0.9), Inches(0.9), Inches(1.1), Inches(1.1)],
             "scared_self": [Inches(2.0), Inches(1.15), Inches(0.8), Inches(0.9), Inches(1.35)],
-            "epq": [Inches(1.0), Inches(1.0), Inches(1.0), Inches(1.8)],
+            "epq": [Inches(2.0), Inches(0.8), Inches(0.8), Inches(0.8), Inches(1.2)],
             "srs2": [Inches(2.2), Inches(1.05), Inches(0.7), Inches(0.75), Inches(1.95)],
             "scale_summary": [Inches(2.2), Inches(3.0)],
+            "bai_scores": [Inches(3.8), Inches(1.55), Inches(1.55)],
         }.get(table_key)
 
     @classmethod
@@ -5349,20 +6323,22 @@ class ReportExportService:
     def _epq_rows(cls, test: dict | None):
         payload = (test or {}).get("classified_payload") or {}
         factors = payload.get("fatores") or {}
-        rows = [["Fator", "Escore", "Percentil", "Classificação"]]
+        rows = [
+            ["EPQ-J - Inventário de Personal", "EPQ-J - Inventário de Personal", "EPQ-J - Inventário de Personal", "EPQ-J - Inventário de Personal", "EPQ-J - Inventário de Personal"],
+            ["", "P", "E", "N", "S"],
+        ]
+        brute_values = []
+        percentil_values = []
+        classificacao_values = []
         for key in ("P", "E", "N", "S"):
-            item = factors.get(key)
-            if not item:
-                continue
-            rows.append(
-                [
-                    key,
-                    cls._num(item.get("escore")),
-                    cls._num(item.get("percentil")),
-                    item.get("classificacao") or "-",
-                ]
-            )
-        return rows if len(rows) > 1 else None
+            item = factors.get(key, {})
+            brute_values.append(cls._num(item.get("escore")))
+            percentil_values.append(cls._num(item.get("percentil")))
+            classificacao_values.append((item.get("classificacao") or "-").upper())
+        rows.append(["RESULTADO BRUTO"] + brute_values)
+        rows.append(["PERCENTIL"] + percentil_values)
+        rows.append(["CLASSIFICAÇÃO"] + classificacao_values)
+        return rows if len(rows) > 2 else None
 
     @classmethod
     def _srs2_rows(cls, test: dict | None):
@@ -5652,6 +6628,51 @@ class ReportExportService:
             else:
                 errors.append(0.0)
         return cls._build_wisc_chart_png(labels, values, errors)
+
+    @classmethod
+    def _wasi_chart(cls, test: dict | None):
+        if not test:
+            return None
+        payload = cls._wasi_payload(test)
+        composites = payload.get("composites") or {}
+        labels, values, errors = [], [], []
+        index_labels = {
+            "qi_execucao": "QIE",
+            "qi_verbal": "QIV",
+            "qit_4": "QI TOTAL",
+        }
+        for code, label in index_labels.items():
+            composite = composites.get(code) or {}
+            qi = composite.get("qi")
+            if qi is not None:
+                labels.append(label)
+                values.append(float(qi))
+                interval = composite.get("confidence_interval") or (0, 0)
+                if isinstance(interval, (list, tuple)) and len(interval) == 2:
+                    errors.append(abs(float(interval[1]) - float(interval[0])) / 2)
+                else:
+                    errors.append(0.0)
+        return cls._build_wisc_chart_png(labels, values, errors)
+
+    @classmethod
+    def _wasi_chart_image(cls, test: dict | None):
+        if not test:
+            return None
+        payload = cls._wasi_payload(test)
+        composites = payload.get("composites") or {}
+
+        qie = composites.get("qi_execucao", {}).get("qi")
+        qiv = composites.get("qi_verbal", {}).get("qi")
+        qit = composites.get("qit_4", {}).get("qi")
+
+        if qiv is None or qie is None or qit is None:
+            return None
+
+        return gerar_grafico_wasi_bytes(
+            qi_verbal=int(qiv),
+            qi_execucao=int(qie),
+            qi_total=int(qit),
+        )
 
     @classmethod
     def _ravlt_chart(cls, test: dict | None):

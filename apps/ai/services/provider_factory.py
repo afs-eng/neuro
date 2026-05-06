@@ -8,6 +8,9 @@ class ProviderFactory:
     @staticmethod
     def create(provider_name: str | None = None):
         provider = (provider_name or settings.AI_PROVIDER or "ollama").lower()
+        
+        if provider == "none":
+            return None
         config = ProviderConfig(
             provider=provider,
             model=getattr(settings, "OLLAMA_MODEL", "qwen3.5:9b"),
@@ -18,7 +21,7 @@ class ProviderFactory:
                 base_url=config.base_url or "http://localhost:11434", model=config.model
             )
         if provider == "openai":
-            if not settings.OPENAI_API_KEY:
+            if not settings.OPENAI_API_KEY or not settings.OPENAI_API_KEY.startswith("sk-"):
                 raise ValueError("OPENAI_API_KEY nao configurada.")
             from apps.ai.providers.openai_provider import OpenAIProvider
 

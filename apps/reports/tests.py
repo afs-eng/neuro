@@ -5,12 +5,13 @@ from io import BytesIO
 from zipfile import ZipFile
 from datetime import date
 from types import SimpleNamespace
+from unittest.mock import patch
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
 from lxml import etree as LET
 
-from apps.reports.builders.tests_builder import _build_wais3_tables
+from apps.reports.builders.tests_builder import _build_wais3_tables, build_validated_tests_snapshot
 from apps.reports.builders.references_builder import build_references
 from apps.reports.services.report_export_service import ReportExportService
 from apps.reports.services.report_generation_service import ReportGenerationService
@@ -29,6 +30,43 @@ class ReferencesBuilderTests(SimpleTestCase):
         self.assertEqual(len(references), 3)
         self.assertIn("WISC-IV", references[1])
         self.assertIn("Teste dos Cinco Dígitos", references[2])
+
+    @patch("apps.reports.builders.tests_builder.get_test_module", return_value=None)
+    @patch("apps.reports.builders.tests_builder.get_validated_test_applications_by_evaluation")
+    def test_build_validated_tests_snapshot_skips_empty_validated_stub(self, mocked_selector, _mocked_module):
+        evaluation = SimpleNamespace(id=7, patient=SimpleNamespace(full_name="Paciente Exemplo"))
+        mocked_selector.return_value = [
+            SimpleNamespace(
+                id=1,
+                evaluation=evaluation,
+                evaluation_id=evaluation.id,
+                instrument=SimpleNamespace(code="epq_j", name="EPQ-J", category="Personalidade"),
+                applied_on=None,
+                raw_payload={},
+                computed_payload={},
+                classified_payload={},
+                reviewed_payload={},
+                interpretation_text="",
+                is_validated=True,
+            ),
+            SimpleNamespace(
+                id=2,
+                evaluation=evaluation,
+                evaluation_id=evaluation.id,
+                instrument=SimpleNamespace(code="bpa2", name="BPA-2", category="Atenção"),
+                applied_on=date(2026, 5, 5),
+                raw_payload={},
+                computed_payload={},
+                classified_payload={"subtestes": []},
+                reviewed_payload={},
+                interpretation_text="",
+                is_validated=True,
+            ),
+        ]
+
+        snapshot = build_validated_tests_snapshot(evaluation)
+
+        self.assertEqual([item["instrument_code"] for item in snapshot], ["bpa2"])
 
     def test_build_references_deduplicates_equivalent_entries(self):
         references = build_references(
@@ -532,19 +570,463 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         self.assertAlmostEqual(paragraphs[3].paragraph_format.first_line_indent.cm, 1.5, places=2)
         self.assertEqual(paragraphs[4].text.strip(), "Dessa forma, não há hipótese diagnóstica isolada.")
 
-    def test_wais3_template_is_organized_under_templates_assets(self):
+    def test_wais3_template_is_organized_under_laudos_templates_assets(self):
         self.assertEqual(
             ReportExportService.WAIS3_TEMPLATE_PATH,
-            ReportExportService.TEMPLATE_DIR / "Modelo-WAIS3.docx",
+            ReportExportService.LAUDOS_TEMPLATE_DIR / "Modelo-WAIS3.docx",
         )
         self.assertTrue(ReportExportService.WAIS3_TEMPLATE_PATH.exists())
 
-    def test_wisc4_template_is_organized_under_templates_assets(self):
+    def test_wisc4_template_is_organized_under_laudos_templates_assets(self):
         self.assertEqual(
             ReportExportService.WISC4_TEMPLATE_PATH,
-            ReportExportService.TEMPLATE_DIR / "Modelo-WISC4.docx",
+            ReportExportService.LAUDOS_TEMPLATE_DIR / "Modelo-WISC4.docx",
         )
         self.assertTrue(ReportExportService.WISC4_TEMPLATE_PATH.exists())
+
+    def test_wasi_template_is_organized_under_laudos_templates_assets(self):
+        self.assertEqual(
+            ReportExportService.WASI_TEMPLATE_PATH,
+            ReportExportService.LAUDOS_TEMPLATE_DIR / "Modelo-WASI.docx",
+        )
+        self.assertTrue(ReportExportService.WASI_TEMPLATE_PATH.exists())
+
+    def test_extract_template_chart_blocks_detects_wasi_native_charts(self):
+        document = Document(str(ReportExportService.WASI_TEMPLATE_PATH))
+
+        self.assertGreaterEqual(
+            len(ReportExportService._extract_template_chart_blocks(document)),
+            1,
+        )
+
+    def test_replace_simple_sections_rebuilds_wasi_procedures_block_from_context(self):
+        document = Document(str(ReportExportService.WASI_TEMPLATE_PATH))
+
+        ReportExportService._replace_simple_sections(
+            document,
+            self._report_stub(),
+            sections={},
+            context={
+                "patient": {"full_name": "Paciente", "sex": "M", "birth_date": "2008-03-20"},
+                "validated_tests": [
+                    {"instrument_code": "wasi"},
+                    {"instrument_code": "bpa2"},
+                ],
+            },
+        )
+
+        texts = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+        procedures_texts = texts[texts.index("PROCEDIMENTOS"):texts.index("ANÁLISE")]
+
+        self.assertIn(
+            "• Escala Wechsler Abreviada de Inteligência (WASI): Utilizada para estimar o funcionamento intelectual global, verbal e de execução, bem como fornecer indicadores breves sobre a capacidade cognitiva geral.",
+            procedures_texts,
+        )
+        self.assertIn(
+            "• Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2): Avalia a capacidade geral de atenção, incluindo atenção concentrada, alternada, dividida e atenção global.",
+            procedures_texts,
+        )
+        self.assertFalse(any("WAIS-III" in text for text in procedures_texts))
+        self.assertFalse(any("IPHEXA" in text for text in procedures_texts))
+
+    def test_procedures_intro_text_ignores_embedded_bullet_list(self):
+        text = ReportExportService._wais3_procedures_intro_text(
+            self._report_stub(),
+            {
+                "procedimentos": "Para esta avaliação foram realizadas entrevista clínica inicial.\n• Anamnese: Texto antigo\n• BPA-2: Texto antigo"
+            },
+        )
+
+        self.assertEqual(text, "Para esta avaliação foram realizadas entrevista clínica inicial.")
+
+    def test_insert_bullet_paragraph_formats_label_in_bold(self):
+        document = Document()
+        anchor = document.add_paragraph("PROCEDIMENTOS")
+
+        paragraph = ReportExportService._insert_bullet_paragraph_after(
+            anchor,
+            "Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2): Avalia a atenção.",
+        )
+
+        self.assertEqual(paragraph.text, "• Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2): Avalia a atenção.")
+        label_run = next(run for run in paragraph.runs if run.text == "Bateria Psicológica para Avaliação da Atenção – Segunda Edição (BPA-2)")
+        description_run = next(run for run in paragraph.runs if run.text == ": Avalia a atenção.")
+        self.assertTrue(label_run.bold)
+        self.assertFalse(description_run.bold)
+
+    def test_rebuild_qualitative_section_for_wasi_omits_missing_sections(self):
+        document = Document(str(ReportExportService.WASI_TEMPLATE_PATH))
+
+        ReportExportService._replace_simple_sections(
+            document,
+            self._report_stub(),
+            sections={
+                "eficiencia_intelectual": "Interpretação WASI.",
+                "memoria_aprendizagem": "Texto memória.",
+            },
+            context={
+                "patient": {"full_name": "Paciente", "sex": "M", "birth_date": "2008-03-20"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wasi",
+                        "structured_results": {
+                            "composites": {
+                                "qi_verbal": {"qi": 118, "classification": "Media Superior"},
+                                "qi_execucao": {"qi": 120, "classification": "Superior"},
+                                "qit_4": {"qi": 122, "classification": "Superior"},
+                            }
+                        },
+                    },
+                    {
+                        "instrument_code": "ravlt",
+                        "classified_payload": {
+                            "chart": {
+                                "title": "RAVLT",
+                                "labels": ["A1", "A2"],
+                                "series": [{"label": "Paciente", "values": [4, 5], "color": "#70AD47"}],
+                                "y_axis": {"min": 0, "max": 10},
+                            }
+                        },
+                    },
+                ],
+            },
+        )
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={
+                "eficiencia_intelectual": "Interpretação WASI.",
+                "memoria_aprendizagem": "Texto memória.",
+            },
+            context={
+                "patient": {"full_name": "Paciente", "sex": "M", "birth_date": "2008-03-20"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "wasi",
+                        "structured_results": {
+                            "composites": {
+                                "qi_verbal": {"qi": 118, "classification": "Media Superior"},
+                                "qi_execucao": {"qi": 120, "classification": "Superior"},
+                                "qit_4": {"qi": 122, "classification": "Superior"},
+                            }
+                        },
+                    },
+                    {
+                        "instrument_code": "ravlt",
+                        "classified_payload": {
+                            "chart": {
+                                "title": "RAVLT",
+                                "labels": ["A1", "A2"],
+                                "series": [{"label": "Paciente", "values": [4, 5], "color": "#70AD47"}],
+                                "y_axis": {"min": 0, "max": 10},
+                            }
+                        },
+                    },
+                ],
+            },
+        )
+
+        texts = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+
+        self.assertIn("5.1. Memória e Aprendizagem", texts)
+        self.assertNotIn("5.1. Atenção", texts)
+        self.assertNotIn("5.2. Funções Executivas", texts)
+        self.assertNotIn("5.3. Aspectos Emocionais, Comportamentais e Escalas Complementares", texts)
+
+    def test_rebuild_qualitative_section_for_wasi_does_not_include_epq_j_without_validated_test(self):
+        document = Document(str(ReportExportService.WASI_TEMPLATE_PATH))
+        context = {
+            "patient": {"full_name": "Paciente", "sex": "M", "birth_date": "2008-03-20"},
+            "validated_tests": [
+                {
+                    "instrument_code": "wasi",
+                    "structured_results": {
+                        "composites": {
+                            "qi_verbal": {"qi": 118, "classification": "Media Superior"},
+                            "qi_execucao": {"qi": 120, "classification": "Superior"},
+                            "qit_4": {"qi": 122, "classification": "Superior"},
+                        }
+                    },
+                },
+                {
+                    "instrument_code": "bpa2",
+                    "bpa_chart_data": {
+                        "labels": ["AC", "AD", "AA", "AG"],
+                        "series": [{"name": "Percentil", "values": [75, 70, 50, 70]}],
+                    },
+                    "classified_payload": {
+                        "results": {
+                            "ac": {"percentile": 75, "classification": "Media Superior"},
+                            "ad": {"percentile": 70, "classification": "Media Superior"},
+                            "aa": {"percentile": 50, "classification": "Media"},
+                            "ag": {"percentile": 70, "classification": "Media Superior"},
+                        }
+                    },
+                },
+                {
+                    "instrument_code": "fdt",
+                    "classified_payload": {
+                        "results": {
+                            "leitura": {"tempo": 31.91, "erros": 0, "percentil_num": 5},
+                            "contagem": {"tempo": 32.46, "erros": 0, "percentil_num": 5},
+                            "escolha": {"tempo": 62.98, "erros": 1, "percentil_num": 5},
+                            "alternancia": {"tempo": 71.85, "erros": 4, "percentil_num": 5},
+                        }
+                    },
+                },
+                {"instrument_code": "etdah_ad"},
+                {
+                    "instrument_code": "ravlt",
+                    "classified_payload": {
+                        "chart": {
+                            "title": "RAVLT",
+                            "labels": ["A1", "A2"],
+                            "series": [{"label": "Paciente", "values": [4, 5], "color": "#70AD47"}],
+                            "y_axis": {"min": 0, "max": 10},
+                        }
+                    },
+                },
+            ],
+        }
+
+        sections = {
+            "eficiencia_intelectual": "Interpretação WASI.",
+            "atencao": "Texto atenção.",
+            "funcoes_executivas": "Texto funções executivas.",
+            "etdah_ad": "Texto ETDAH-AD.",
+            "memoria_aprendizagem": "Texto memória.",
+        }
+
+        ReportExportService._replace_simple_sections(
+            document,
+            self._report_stub(),
+            sections=sections,
+            context=context,
+        )
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections=sections,
+            context=context,
+        )
+
+        texts = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+
+        self.assertIn("5.1. Atenção", texts)
+        self.assertIn("5.2. Funções Executivas", texts)
+        self.assertIn("5.3. Aspectos Emocionais, Comportamentais e Escalas Complementares", texts)
+        self.assertNotIn("EPQ-J", texts)
+        self.assertFalse(any("EPQ-J" in text for text in texts))
+
+    def test_rebuild_qualitative_section_for_wasi_preserves_native_template_charts(self):
+        document = Document(str(ReportExportService.WASI_TEMPLATE_PATH))
+
+        context = {
+            "patient": {"full_name": "Paciente", "sex": "M", "birth_date": "2008-03-20"},
+            "validated_tests": [
+                {
+                    "instrument_code": "wasi",
+                    "structured_results": {
+                        "composites": {
+                            "qi_verbal": {"qi": 118, "classification": "Media Superior"},
+                            "qi_execucao": {"qi": 120, "classification": "Superior"},
+                            "qit_4": {"qi": 122, "classification": "Superior"},
+                        }
+                    },
+                },
+                {
+                    "instrument_code": "bpa2",
+                    "bpa_chart_data": {
+                        "labels": ["AC", "AD", "AA", "AG"],
+                        "series": [{"name": "Percentil", "values": [75, 70, 50, 70]}],
+                    },
+                    "classified_payload": {
+                        "results": {
+                            "ac": {"percentile": 75, "classification": "Media Superior"},
+                            "ad": {"percentile": 70, "classification": "Media Superior"},
+                            "aa": {"percentile": 50, "classification": "Media"},
+                            "ag": {"percentile": 70, "classification": "Media Superior"},
+                        }
+                    },
+                },
+                {
+                    "instrument_code": "ravlt",
+                    "classified_payload": {
+                        "chart": {
+                            "title": "RAVLT",
+                            "labels": ["A1", "A2"],
+                            "series": [{"label": "Paciente", "values": [4, 5], "color": "#70AD47"}],
+                            "y_axis": {"min": 0, "max": 10},
+                        }
+                    },
+                },
+            ],
+        }
+
+        ReportExportService._replace_simple_sections(
+            document,
+            self._report_stub(),
+            sections={"eficiencia_intelectual": "Interpretação WASI.", "memoria_aprendizagem": "Texto memória."},
+            context=context,
+        )
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={"eficiencia_intelectual": "Interpretação WASI.", "memoria_aprendizagem": "Texto memória."},
+            context=context,
+        )
+
+        self.assertGreaterEqual(len(ReportExportService._extract_template_chart_blocks(document)), 3)
+
+    def test_wasi_subscale_rows_use_expected_table_structure(self):
+        test = {
+            "structured_results": {
+                "subtests": {
+                    "vc": {"name": "Vocabulário", "raw_score": 61, "t_score": 56, "classification": "Média Superior"},
+                    "sm": {"name": "Semelhanças", "raw_score": 61, "t_score": 57, "classification": "Média Superior"},
+                    "cb": {"name": "Cubos", "raw_score": 53, "t_score": 50, "classification": "Média"},
+                    "rm": {"name": "Raciocínio Matricial", "raw_score": 71, "t_score": 64, "classification": "Superior"},
+                }
+            }
+        }
+
+        verbal_rows = ReportExportService._wasi_subscale_rows(test, "verbal")
+        execution_rows = ReportExportService._wasi_subscale_rows(test, "execucao")
+
+        self.assertEqual(verbal_rows[0], ["Testes Utilizados", "Escore Máximo", "Escore Médio", "Escore Mínimo", "Escore Obtido", "Classificação"])
+        self.assertEqual(verbal_rows[1], ["Vocabulário", "80", "40 - 60", "20", "56", "Média Superior"])
+        self.assertEqual(verbal_rows[2], ["Semelhanças", "80", "40 - 60", "20", "57", "Média Superior"])
+        self.assertEqual(execution_rows[1], ["Cubos", "80", "40 - 60", "20", "50", "Média"])
+        self.assertEqual(execution_rows[2], ["Raciocínio Matricial", "80", "40 - 60", "20", "64", "Superior"])
+
+    def test_rebuild_qualitative_section_for_wasi_includes_subscale_sections(self):
+        document = Document(str(ReportExportService.WASI_TEMPLATE_PATH))
+        context = {
+            "patient": {"full_name": "João Vitor", "sex": "M", "birth_date": "2008-03-20"},
+            "validated_tests": [
+                {
+                    "instrument_code": "wasi",
+                    "structured_results": {
+                        "composites": {
+                            "qi_verbal": {"qi": 118, "classification": "Média Superior"},
+                            "qi_execucao": {"qi": 120, "classification": "Superior"},
+                            "qit_4": {"qi": 122, "classification": "Superior"},
+                        },
+                        "subtests": {
+                            "vc": {"name": "Vocabulário", "raw_score": 61, "t_score": 56, "classification": "Média Superior"},
+                            "sm": {"name": "Semelhanças", "raw_score": 61, "t_score": 57, "classification": "Média Superior"},
+                            "cb": {"name": "Cubos", "raw_score": 53, "t_score": 50, "classification": "Média"},
+                            "rm": {"name": "Raciocínio Matricial", "raw_score": 71, "t_score": 64, "classification": "Superior"},
+                        },
+                    },
+                },
+            ],
+        }
+
+        ReportExportService._replace_simple_sections(document, self._report_stub(), sections={}, context=context)
+        ReportExportService._rebuild_qualitative_section(document, sections={}, context=context)
+
+        texts = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+        self.assertIn("5.2. Subescalas WASI", texts)
+        self.assertIn("5.2.1. Escala Verbal", texts)
+        self.assertIn("5.2.2. Escala de Execução", texts)
+        self.assertTrue(any(text.startswith("Interpretação: A avaliação da escala verbal") for text in texts))
+        self.assertTrue(any(text.startswith("Interpretação: A avaliação da escala de execução") for text in texts))
+
+    def test_rebuild_qualitative_section_for_wasi_skips_bfp_png_chart_fallback(self):
+        document = Document(str(ReportExportService.WASI_TEMPLATE_PATH))
+        context = {
+            "patient": {"full_name": "Paciente", "sex": "M", "birth_date": "2008-03-20"},
+            "validated_tests": [
+                {
+                    "instrument_code": "wasi",
+                    "structured_results": {
+                        "composites": {
+                            "qi_verbal": {"qi": 118, "classification": "Média Superior"},
+                            "qi_execucao": {"qi": 120, "classification": "Superior"},
+                            "qit_4": {"qi": 122, "classification": "Superior"},
+                        }
+                    },
+                },
+                {
+                    "instrument_code": "bfp",
+                    "computed_payload": {
+                        "factor_order": ["NN", "EE", "SS", "RR", "AA"],
+                        "factors": {
+                            "NN": {"name": "Neuroticismo", "raw_score": 4.2, "percentile": 88, "classification": "Superior"},
+                            "EE": {"name": "Extroversão", "raw_score": 3.3, "percentile": 22, "classification": "Média Inferior"},
+                            "SS": {"name": "Socialização", "raw_score": 4.8, "percentile": 50, "classification": "Média"},
+                            "RR": {"name": "Realização", "raw_score": 3.0, "percentile": 18, "classification": "Média Inferior"},
+                            "AA": {"name": "Abertura", "raw_score": 4.1, "percentile": 60, "classification": "Média"},
+                        },
+                    },
+                    "clinical_interpretation": "Texto interpretativo do BFP.",
+                },
+            ],
+        }
+
+        ReportExportService._replace_simple_sections(document, self._report_stub(), sections={}, context=context)
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={"aspectos_emocionais_comportamentais": "Texto integrado do BFP."},
+            context=context,
+        )
+
+        body_children = list(document._body._element)
+        bfp_index = next(
+            index
+            for index, child in enumerate(body_children)
+            if "BFP – Bateria Fatorial de Personalidade" in "".join(child.itertext())
+        )
+        conclusion_index = next(
+            index
+            for index, child in enumerate(body_children)
+            if "Conclusão" in "".join(child.itertext())
+        )
+
+        drawings_between = [
+            child
+            for child in body_children[bfp_index:conclusion_index]
+            if child.findall('.//w:drawing', {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
+        ]
+
+        self.assertEqual(drawings_between, [])
+
+    def test_wasi_payload_merges_snapshot_structured_and_computed_data(self):
+        test = {
+            "structured_results": {
+                "results": {"status": "ok"},
+            },
+            "computed_payload": {
+                "composites": {
+                    "qi_verbal": {"qi": 118, "classification": "Média Superior"},
+                    "qi_execucao": {"qi": 120, "classification": "Superior"},
+                    "qit_4": {"qi": 122, "classification": "Superior"},
+                },
+                "subtests": {
+                    "vc": {"name": "Vocabulário", "raw_score": 61, "t_score": 56, "classification": "Média Superior"},
+                    "sm": {"name": "Semelhanças", "raw_score": 61, "t_score": 57, "classification": "Média Superior"},
+                    "cb": {"name": "Cubos", "raw_score": 53, "t_score": 50, "classification": "Média"},
+                    "rm": {"name": "Raciocínio Matricial", "raw_score": 71, "t_score": 64, "classification": "Superior"},
+                },
+            },
+        }
+
+        intro = ReportExportService._wasi_intro_text(test, {"patient": {"full_name": "João Vitor"}})
+        chart_labels, chart_values = ReportExportService._wasi_chart_payload(test)
+        verbal_rows = ReportExportService._wasi_subscale_rows(test, "verbal")
+
+        self.assertIn("QIT = 122", intro)
+        self.assertEqual(chart_labels, ["QIE", "QIV", "QI TOTAL"])
+        self.assertEqual(chart_values, [120.0, 118.0, 122.0])
+        self.assertEqual(verbal_rows[1], ["Vocabulário", "80", "40 - 60", "20", "56", "Média Superior"])
+
+    def test_strip_markdown_heading_prefix_for_wasi_sections(self):
+        self.assertEqual(
+            ReportExportService._strip_markdown_heading_prefix("**Linguagem**\nTexto", "Linguagem"),
+            "Texto",
+        )
+        self.assertEqual(
+            ReportExportService._strip_markdown_heading_prefix("**Gnosias e Praxias**\nTexto", "Gnosias e Praxias"),
+            "Texto",
+        )
 
     def test_adult_reports_restore_header_footer_from_papel_timbrado(self):
         class Patient:
@@ -1001,6 +1483,71 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         self.assertTrue(any(text.startswith("A EBADEP-A avalia a presenca e a intensidade de sintomas depressivos em adultos") for text in texts))
         self.assertTrue(any(text.startswith("A SRS-2 e uma escala destinada a investigacao de dificuldades") for text in texts))
 
+    def test_rebuild_qualitative_section_for_plain_document_hides_epq_and_includes_bai_bfp(self):
+        document = Document()
+        start = document.add_paragraph("ANÁLISE QUALITATIVA")
+        end = document.add_paragraph("Conclusão")
+        start._p.addnext(end._p)
+
+        ReportExportService._rebuild_qualitative_section(
+            document,
+            sections={"aspectos_emocionais_comportamentais": "Texto integrado."},
+            context={
+                "patient": {"sex": "F"},
+                "validated_tests": [
+                    {
+                        "instrument_code": "bai",
+                        "computed_payload": {"total_raw_score": 24, "t_score": 58, "percentile": 78.4},
+                        "classified_payload": {
+                            "faixa_normativa": "Moderado",
+                            "interpretacao_faixa": "nível moderado de ansiedade",
+                            "classificacao": {"label": "Moderado"},
+                        },
+                    },
+                    {
+                        "instrument_code": "ebadep_a",
+                        "classified_payload": {
+                            "result": {
+                                "escore_total": 69,
+                                "percentil": 81,
+                                "classificacao": "Sintomatologia Depressiva Leve",
+                            }
+                        },
+                    },
+                    {
+                        "instrument_code": "bfp",
+                        "computed_payload": {
+                            "factor_order": ["NN"],
+                            "factors": {
+                                "NN": {
+                                    "name": "Neuroticismo",
+                                    "raw_score": 4.2,
+                                    "percentile": 88,
+                                    "classification": "Superior",
+                                }
+                            },
+                        },
+                        "clinical_interpretation": "Texto interpretativo do BFP.",
+                    },
+                ],
+            },
+        )
+
+        texts = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+
+        self.assertNotIn("EPQ-J", texts)
+        self.assertIn("BAI", texts)
+        self.assertIn("EBADEP-A", texts)
+        self.assertIn("BFP – Bateria Fatorial de Personalidade", texts)
+        self.assertTrue(any(text.endswith("BAI - Resultado da sintomatologia ansiosa") for text in texts))
+        self.assertTrue(any(text.endswith("BFP Resultados dos fatores") for text in texts))
+
+        drawings = document._body._element.findall(
+            './/w:drawing',
+            {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+        )
+        self.assertGreaterEqual(len(drawings), 2)
+
     def test_rebuild_qualitative_section_does_not_duplicate_wais3_global_intro(self):
         document = Document()
         start = document.add_paragraph("ANÁLISE QUALITATIVA")
@@ -1443,6 +1990,34 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
             ['113', '90'],
         )
 
+    def test_docx_package_is_valid_detects_missing_relationship_target(self):
+        buffer = BytesIO()
+        with ZipFile(buffer, 'w') as docx:
+            docx.writestr(
+                '[Content_Types].xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/_rels/document.xml.rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+</Types>''',
+            )
+            docx.writestr(
+                'word/document.xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>
+<w:p><w:r><w:drawing><c:chart r:id="rId1"/></w:drawing></w:r></w:p>
+</w:body></w:document>''',
+            )
+            docx.writestr(
+                'word/_rels/document.xml.rels',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart1.xml"/>
+</Relationships>''',
+            )
+
+        self.assertFalse(ReportExportService._docx_package_is_valid(buffer.getvalue()))
+
     def test_wais3_chart_payload_matches_model_labels(self):
         categories, values = ReportExportService._wais3_chart_payload(
             {
@@ -1476,6 +2051,24 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
           <c:order val="0"/>
           <c:cat><c:strRef><c:f>Plan1!$A$1:$A$2</c:f><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>Old A</c:v></c:pt><c:pt idx="1"><c:v>Old B</c:v></c:pt></c:strCache></c:strRef></c:cat>
           <c:val><c:numRef><c:f>Plan1!$B$1:$B$2</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>1</c:v></c:pt><c:pt idx="1"><c:v>2</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser>
+        <c:ser>
+          <c:idx val="1"/>
+          <c:order val="1"/>
+          <c:cat><c:strRef><c:f>Plan1!$A$1:$A$2</c:f><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>Old A</c:v></c:pt><c:pt idx="1"><c:v>Old B</c:v></c:pt></c:strCache></c:strRef></c:cat>
+          <c:val><c:numRef><c:f>Plan1!$C$1:$C$2</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>3</c:v></c:pt><c:pt idx="1"><c:v>4</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser>
+        <c:ser>
+          <c:idx val="2"/>
+          <c:order val="2"/>
+          <c:cat><c:strRef><c:f>Plan1!$A$1:$A$2</c:f><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>Old A</c:v></c:pt><c:pt idx="1"><c:v>Old B</c:v></c:pt></c:strCache></c:strRef></c:cat>
+          <c:val><c:numRef><c:f>Plan1!$D$1:$D$2</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>5</c:v></c:pt><c:pt idx="1"><c:v>6</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser>
+        <c:ser>
+          <c:idx val="3"/>
+          <c:order val="3"/>
+          <c:cat><c:strRef><c:f>Plan1!$A$1:$A$2</c:f><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>Old A</c:v></c:pt><c:pt idx="1"><c:v>Old B</c:v></c:pt></c:strCache></c:strRef></c:cat>
+          <c:val><c:numRef><c:f>Plan1!$E$1:$E$2</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>7</c:v></c:pt><c:pt idx="1"><c:v>8</c:v></c:pt></c:numCache></c:numRef></c:val>
         </c:ser>
       </c:barChart>
     </c:plotArea>
@@ -1559,6 +2152,111 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
             [node.text for node in chart8.findall('.//c:cat//c:pt/c:v', ns)],
             ['Perc.S', 'Cog.S', 'Com.S', 'Mot.S', 'PRR', 'CIS', 'TOTAL'],
         )
+
+    def test_populate_wasi_excel_charts_updates_all_present_chart_slots(self):
+        def chart_xml():
+            return b'''<?xml version="1.0" encoding="UTF-8"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+  <c:chart>
+    <c:plotArea>
+      <c:barChart>
+        <c:ser>
+          <c:idx val="0"/>
+          <c:order val="0"/>
+          <c:cat><c:strRef><c:f>Plan1!$A$1:$A$2</c:f><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>Old A</c:v></c:pt><c:pt idx="1"><c:v>Old B</c:v></c:pt></c:strCache></c:strRef></c:cat>
+          <c:val><c:numRef><c:f>Plan1!$B$1:$B$2</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>1</c:v></c:pt><c:pt idx="1"><c:v>2</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser>
+      </c:barChart>
+    </c:plotArea>
+  </c:chart>
+</c:chartSpace>'''
+
+        buffer = BytesIO()
+        with ZipFile(buffer, 'w') as docx:
+            docx.writestr(
+                '[Content_Types].xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart3.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+</Types>''',
+            )
+            docx.writestr(
+                'word/document.xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>
+<w:p><w:r><w:drawing><c:chart r:id="rId1"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId2"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId3"/></w:drawing></w:r></w:p>
+</w:body></w:document>''',
+            )
+            docx.writestr(
+                'word/_rels/document.xml.rels',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart2.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart3.xml"/>
+</Relationships>''',
+            )
+            for idx in range(1, 4):
+                docx.writestr(f'word/charts/chart{idx}.xml', chart_xml())
+                docx.writestr(f'word/charts/_rels/chart{idx}.xml.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>')
+
+        docx_bytes = ReportExportService._populate_wasi_excel_charts(
+            buffer.getvalue(),
+            {
+                'validated_tests': [
+                    {
+                        'instrument_code': 'wasi',
+                        'computed_payload': {
+                            'composites': {
+                                'qi_verbal': {'qi': 89},
+                                'qi_execucao': {'qi': 89},
+                                'qit_4': {'qi': 86},
+                            }
+                        },
+                    },
+                    {
+                        'instrument_code': 'bpa2',
+                        'bpa_chart_data': {
+                            'domains': [
+                                {'label': 'ATENÇÃO CONCENTRADA', 'values': {'maximo': 120, 'medio': 91, 'minimo': 63, 'bruto': 64, 'percentil': 20}},
+                                {'label': 'ATENÇÃO DIVIDIDA', 'values': {'maximo': 119, 'medio': 83, 'minimo': 49, 'bruto': 80, 'percentil': 40}},
+                                {'label': 'ATENÇÃO ALTERNADA', 'values': {'maximo': 120, 'medio': 95, 'minimo': 61, 'bruto': 86, 'percentil': 30}},
+                                {'label': 'ATENÇÃO GERAL', 'values': {'maximo': 352, 'medio': 267, 'minimo': 217, 'bruto': 230, 'percentil': 25}},
+                            ]
+                        },
+                    },
+                    {
+                        'instrument_code': 'ravlt',
+                        'structured_results': {
+                            'ravlt_esperado': {'a1': 7, 'a2': 9, 'a3': 11, 'a4': 12, 'a5': 12, 'b1': 6, 'a6': 12, 'a7': 11, 'r': 13, 'alt': 18, 'ret': 1, 'ip': 0.89, 'ir': 0.92},
+                            'ravlt_minimo': {'a1': 6, 'a2': 8, 'a3': 10, 'a4': 10, 'a5': 11, 'b1': 5, 'a6': 9, 'a7': 9, 'r': 5, 'alt': 12, 'ret': 0.91, 'ip': 0.73, 'ir': 0.82},
+                            'ravlt_obtido': {'a1': 4, 'a2': 5, 'a3': 7, 'a4': 7, 'a5': 7, 'b1': 4, 'a6': 5, 'a7': 5, 'r': 11, 'alt': 10, 'ret': 1, 'ip': 1, 'ir': 0.71},
+                        },
+                    },
+                ]
+            },
+        )
+
+        with ZipFile(BytesIO(docx_bytes), 'r') as docx:
+            ns = ReportExportService.CHART_NS
+            chart1 = LET.fromstring(docx.read('word/charts/chart1.xml'))
+            chart2 = LET.fromstring(docx.read('word/charts/chart2.xml'))
+            chart3 = LET.fromstring(docx.read('word/charts/chart3.xml'))
+
+        self.assertEqual(
+            [node.text for node in chart1.findall('.//c:cat//c:pt/c:v', ns)],
+            ['QIE', 'QIV', 'QI TOTAL'],
+        )
+        self.assertEqual(
+            [node.text for node in chart2.findall('.//c:val//c:pt/c:v', ns)][:5],
+            ['120.0', '91.0', '63.0', '64.0', '20.0'],
+        )
+        self.assertEqual(chart3.tag, '{http://schemas.openxmlformats.org/drawingml/2006/chart}chartSpace')
 
     def test_etdah_ad_table_widths_follow_etdah_model(self):
         self.assertEqual(

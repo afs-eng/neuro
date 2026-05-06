@@ -23,6 +23,31 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: neuro-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - neuro_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama
+  ollama:
+    image: ollama/ollama:latest
+    container_name: neuro-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - neuro_ollama_data:/root/.ollama
+
   # Backend Django
   backend:
     build:
@@ -30,7 +55,8 @@ services:
       dockerfile: infra/docker/backend.Dockerfile
       target: dev
     container_name: neuro-backend
-    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    entrypoint: ["/app/infra/docker/backend.entrypoint.sh"]
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -47,8 +73,13 @@ services:
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
       - CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
       - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - REDIS_URL=redis://redis:6379/1
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen3.5:9b
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   # Frontend Next.js
@@ -75,3 +106,5 @@ services:
 
 volumes:
   neuro_postgres_data:
+  neuro_redis_data:
+  neuro_ollama_data:

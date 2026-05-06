@@ -22,6 +22,9 @@ class AIHealthcheckService:
     def check(cls, provider: str | None = None, timeout: int | None = None) -> dict:
         provider_name = provider or settings.AI_PROVIDER
         client = ProviderFactory.create(provider_name)
+        
+        if client is None:
+            return {"status": "disabled", "provider": provider_name}
         result = client.generate(
             system_prompt=cls.HEALTHCHECK_SYSTEM_PROMPT,
             user_prompt=cls.HEALTHCHECK_USER_PROMPT,
