@@ -20,7 +20,7 @@ class ProviderFactory:
             return OllamaProvider(
                 base_url=config.base_url or "http://localhost:11434", model=config.model
             )
-        if provider == "openai":
+        if provider == "openai" or provider == "openrouter":
             if not settings.OPENAI_API_KEY or not settings.OPENAI_API_KEY.startswith("sk-"):
                 raise ValueError("OPENAI_API_KEY nao configurada.")
             from apps.ai.providers.openai_provider import OpenAIProvider

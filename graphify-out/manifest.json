@@ -1,0 +1,2914 @@
+{
+  "/home/andre/neuro/debug_preserve.py": {
+    "mtime": 1778258228.7310638,
+    "hash": "355f77e8b4d0f90232e68f354aaa6436"
+  },
+  "/home/andre/neuro/manage.py": {
+    "mtime": 1778177259.9908442,
+    "hash": "63391b40221b8271301bacabf5ded106"
+  },
+  "/home/andre/neuro/teste-pandas.py": {
+    "mtime": 1778177260.25985,
+    "hash": "0a329826fe213933e3bd9477758525e3"
+  },
+  "/home/andre/neuro/criar_admin_producao.py": {
+    "mtime": 1778177259.9182553,
+    "hash": "f0ffae56a11106aa00cc87859514dd8e"
+  },
+  "/home/andre/neuro/apps/patients/apps.py": {
+    "mtime": 1778177259.884096,
+    "hash": "c3a716a8b8e295c129c2420ad2e2ea4a"
+  },
+  "/home/andre/neuro/apps/patients/admin.py": {
+    "mtime": 1778177259.884096,
+    "hash": "a32b7a9ebbc5db41a334908f5a791b24"
+  },
+  "/home/andre/neuro/apps/patients/views.py": {
+    "mtime": 1778177259.884096,
+    "hash": "ccda6d6ebd98043bc2b1d576daf354a5"
+  },
+  "/home/andre/neuro/apps/patients/models.py": {
+    "mtime": 1778177259.884096,
+    "hash": "3f53624d7f7c60d976b8a4205a4c46fc"
+  },
+  "/home/andre/neuro/apps/patients/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/patients/tests.py": {
+    "mtime": 1778177259.884096,
+    "hash": "465b7e9f69bfd158c850cdfbc7306818"
+  },
+  "/home/andre/neuro/apps/patients/urls.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d3e484af4d115bc4dcc3789cfb5fe3cb"
+  },
+  "/home/andre/neuro/apps/patients/selectors.py": {
+    "mtime": 1778177259.884096,
+    "hash": "b37a1aaa453c77f9463d56a706cc8ec7"
+  },
+  "/home/andre/neuro/apps/patients/services.py": {
+    "mtime": 1778177259.884096,
+    "hash": "de6e52b4df48281e7b125ae0af9a4072"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0008_patient_responsible_name_patient_responsible_phone.py": {
+    "mtime": 1778177259.884096,
+    "hash": "5d670c6edfc1d4ebf566783aea2ec353"
+  },
+  "/home/andre/neuro/apps/patients/migrations/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0004_alter_patient_schooling.py": {
+    "mtime": 1778177259.884096,
+    "hash": "9e0d73fa65b4d7fbee154d6913348e2b"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0005_remove_patient_institution.py": {
+    "mtime": 1778177259.884096,
+    "hash": "0a726b72b634b96b200993a82ead4e1a"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0011_patient_created_by.py": {
+    "mtime": 1778177259.884096,
+    "hash": "903246b3634f6e8fe45ea4635c83a058"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0003_alter_patient_schooling.py": {
+    "mtime": 1778177259.884096,
+    "hash": "12c08841bef520a2fbbfe31b953a3642"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0001_initial.py": {
+    "mtime": 1778177259.884096,
+    "hash": "b4cf0f28956c0bdd4284343ffb8e4e50"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0010_alter_patient_responsible_null.py": {
+    "mtime": 1778177259.884096,
+    "hash": "e4d3051d7fe69a1f08d22dd95b156a5c"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0007_remove_patient_occupation.py": {
+    "mtime": 1778177259.884096,
+    "hash": "956dae7f764ae14b000910f80f55ae75"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0009_alter_patient_notes_null.py": {
+    "mtime": 1778177259.884096,
+    "hash": "691a0d2d245942d26da5e58ba19376e8"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0002_patient_grade_year_patient_institution.py": {
+    "mtime": 1778177259.884096,
+    "hash": "56b6bceefeca8f2671be9a46d3f4c6d3"
+  },
+  "/home/andre/neuro/apps/patients/migrations/0006_alter_patient_occupation.py": {
+    "mtime": 1778177259.884096,
+    "hash": "0e69d64b40dbd52ec434de4c27ce1ff7"
+  },
+  "/home/andre/neuro/apps/patients/api/schemas.py": {
+    "mtime": 1778177259.884096,
+    "hash": "3f468a29b465e8ac8c494a5c993d5d02"
+  },
+  "/home/andre/neuro/apps/patients/api/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/patients/api/router.py": {
+    "mtime": 1778177259.884096,
+    "hash": "a22e0b64e1e08c3a6297d192e1bc8a3e"
+  },
+  "/home/andre/neuro/apps/patients/api/endpoints.py": {
+    "mtime": 1778177259.884096,
+    "hash": "f3bfe33e1e5fec0a9c22f3be5897059d"
+  },
+  "/home/andre/neuro/apps/accounts/apps.py": {
+    "mtime": 1778177259.875556,
+    "hash": "8b5df793bfb19a150ce7947f3438abdf"
+  },
+  "/home/andre/neuro/apps/accounts/admin.py": {
+    "mtime": 1778177259.875556,
+    "hash": "45f9f540c224c84fa4c54534fd9257c5"
+  },
+  "/home/andre/neuro/apps/accounts/views.py": {
+    "mtime": 1778177259.875556,
+    "hash": "9ff80ca72a6dc8610806b82b6ae5961d"
+  },
+  "/home/andre/neuro/apps/accounts/models.py": {
+    "mtime": 1778177259.875556,
+    "hash": "f2d750eabfa4e5002d2afec765c51114"
+  },
+  "/home/andre/neuro/apps/accounts/__init__.py": {
+    "mtime": 1778177259.875556,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/accounts/permissions.py": {
+    "mtime": 1778177259.875556,
+    "hash": "fa94b9c0b3af3f9b23c1650ec61f1da8"
+  },
+  "/home/andre/neuro/apps/accounts/tests.py": {
+    "mtime": 1778177259.875556,
+    "hash": "465b7e9f69bfd158c850cdfbc7306818"
+  },
+  "/home/andre/neuro/apps/accounts/selectors.py": {
+    "mtime": 1778177259.875556,
+    "hash": "9092d61f151c21ca85a4345105ee7515"
+  },
+  "/home/andre/neuro/apps/accounts/services.py": {
+    "mtime": 1778177259.875556,
+    "hash": "faf692a238a206a879511ee477286599"
+  },
+  "/home/andre/neuro/apps/accounts/management/__init__.py": {
+    "mtime": 1778177259.875556,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/accounts/management/commands/__init__.py": {
+    "mtime": 1778177259.875556,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/accounts/management/commands/create_admin.py": {
+    "mtime": 1778177259.875556,
+    "hash": "57e25070f4b0d232765208be5619d99e"
+  },
+  "/home/andre/neuro/apps/accounts/migrations/0002_user_api_token.py": {
+    "mtime": 1778177259.875556,
+    "hash": "7c6ff19a2a71852bcfdc78544cae26a6"
+  },
+  "/home/andre/neuro/apps/accounts/migrations/__init__.py": {
+    "mtime": 1778177259.875556,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/accounts/migrations/0007_user_two_factor_fields.py": {
+    "mtime": 1778177259.875556,
+    "hash": "650680f876fb13a23d488e682ee2ef1c"
+  },
+  "/home/andre/neuro/apps/accounts/migrations/0005_user_sex.py": {
+    "mtime": 1778177259.875556,
+    "hash": "55b9bdafef59234211d2280a8f0c0ed0"
+  },
+  "/home/andre/neuro/apps/accounts/migrations/0003_alter_user_crp_alter_user_email.py": {
+    "mtime": 1778177259.875556,
+    "hash": "8b78f8128de19538680f760dc02108fb"
+  },
+  "/home/andre/neuro/apps/accounts/migrations/0001_initial.py": {
+    "mtime": 1778177259.875556,
+    "hash": "6b47efa3689649a4cffd4974c7f1c77b"
+  },
+  "/home/andre/neuro/apps/accounts/migrations/0004_alter_user_crp_alter_user_email.py": {
+    "mtime": 1778177259.875556,
+    "hash": "79ef97e30f5dca77ea1d6032efc83e03"
+  },
+  "/home/andre/neuro/apps/accounts/migrations/0006_add_api_token_hash.py": {
+    "mtime": 1778177259.875556,
+    "hash": "f0793da7be1d7b64d95924d9186aabe0"
+  },
+  "/home/andre/neuro/apps/accounts/api/schemas.py": {
+    "mtime": 1778177259.875556,
+    "hash": "ed9211d457a0f89b14339682672db4b2"
+  },
+  "/home/andre/neuro/apps/accounts/api/router.py": {
+    "mtime": 1778177259.875556,
+    "hash": "a22e0b64e1e08c3a6297d192e1bc8a3e"
+  },
+  "/home/andre/neuro/apps/accounts/api/endpoints.py": {
+    "mtime": 1778177259.875556,
+    "hash": "c40bcae953aa518722326e1121088d3f"
+  },
+  "/home/andre/neuro/apps/ai/apps.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "ecc0c9e97d3d27147860db55d13272db"
+  },
+  "/home/andre/neuro/apps/ai/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "dd9a71f6cfdb4bd3ed344adba2840e4f"
+  },
+  "/home/andre/neuro/apps/ai/guards/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "0b2bf9abe1098c3fbd293920a7354b55"
+  },
+  "/home/andre/neuro/apps/ai/guards/data_presence_guard.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "8333798b8cdc587e7ddb8389f2d96579"
+  },
+  "/home/andre/neuro/apps/ai/logging/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "996ca1b5bacce9658a9564d44c921d69"
+  },
+  "/home/andre/neuro/apps/ai/logging/ai_log_service.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "08c981f04fd2282be6c050a1ddedb951"
+  },
+  "/home/andre/neuro/apps/ai/schemas/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "3878c3d5d7934b6ff8cf7cd23d043b27"
+  },
+  "/home/andre/neuro/apps/ai/services/text_generation_service.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "c233b4499fe8a5ec0ae1e39f915c194f"
+  },
+  "/home/andre/neuro/apps/ai/services/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d5581263ba68c95ded3fb1401c4f3acd"
+  },
+  "/home/andre/neuro/apps/ai/services/ai_healthcheck_service.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "2054d85c8f2888f8932d338e689d4885"
+  },
+  "/home/andre/neuro/apps/ai/services/provider_factory.py": {
+    "mtime": 1778178791.7893639,
+    "hash": "7607c136b01d0008588c728351e4165a"
+  },
+  "/home/andre/neuro/apps/ai/services/prompt_registry_service.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "3c0405d418ed3accde7b86e537172055"
+  },
+  "/home/andre/neuro/apps/ai/api/schemas.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "3743c88db9b44778d9e7399e1be28943"
+  },
+  "/home/andre/neuro/apps/ai/api/router.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "229cde3e1a1e99b6ee313e25c08c92e4"
+  },
+  "/home/andre/neuro/apps/ai/api/endpoints.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "1f1eebfda317805e4a2637bd4f64c898"
+  },
+  "/home/andre/neuro/apps/ai/providers/ollama_provider.py": {
+    "mtime": 1778178476.6452575,
+    "hash": "60230f1e7ff21ffc1e0ac392978874d2"
+  },
+  "/home/andre/neuro/apps/ai/providers/openai_provider.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "c55c4fef8fa915dcf928f8d0553498eb"
+  },
+  "/home/andre/neuro/apps/ai/providers/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "c47a2ca648818c3233b296a7380a60b0"
+  },
+  "/home/andre/neuro/apps/ai/providers/base.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "93a0a96fbb9280b09d5bbacb5e3d51db"
+  },
+  "/home/andre/neuro/apps/ai/providers/anthropic_provider.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "6c986e61819fc3c842626188021751f1"
+  },
+  "/home/andre/neuro/apps/tests/apps.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "9dc2c258cabd8f715f0de9932f12dbf6"
+  },
+  "/home/andre/neuro/apps/tests/admin.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "ec68f5699564fe0d6e8de1407906a21c"
+  },
+  "/home/andre/neuro/apps/tests/views.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "a36f7b6bdb4d33875ecd83f38ef314d7"
+  },
+  "/home/andre/neuro/apps/tests/models.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "8c4eb991c6dca757bdd77f539092e29b"
+  },
+  "/home/andre/neuro/apps/tests/__init__.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/tests/registry.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "6d81c48872f2cc833cce70f59d9fb8ae"
+  },
+  "/home/andre/neuro/apps/tests/tests.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "1eba682f3af578e4ca540a142c2fc952"
+  },
+  "/home/andre/neuro/apps/tests/urls.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "9da78cdb10321465bc6547cea53aa831"
+  },
+  "/home/andre/neuro/apps/tests/selectors.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "ea9726482ca88176c518a14b2f314923"
+  },
+  "/home/andre/neuro/apps/tests/age_rules.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "19bb3420457883cc92ac797062cc8a0f"
+  },
+  "/home/andre/neuro/apps/tests/management/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/tests/management/commands/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/tests/management/commands/create_instruments.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "429144db18efb46db0230903401712a5"
+  },
+  "/home/andre/neuro/apps/tests/management/commands/recompute_wais3.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "5b5ac5238c417882733324faf0583e01"
+  },
+  "/home/andre/neuro/apps/tests/migrations/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/tests/migrations/0003_add_wais3_instrument.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "9a015fd0eae8e239a263219e61fb3361"
+  },
+  "/home/andre/neuro/apps/tests/migrations/0002_seed_default_instruments.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "5b09a149d13dec2e5a54c200d93442bd"
+  },
+  "/home/andre/neuro/apps/tests/migrations/0001_initial.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "53254cf5ee25cefc5a9761544d5306d1"
+  },
+  "/home/andre/neuro/apps/tests/epq_j/interpreters.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "128ddcda03b0c3f66bd9c7dad04ce051"
+  },
+  "/home/andre/neuro/apps/tests/epq_j/schemas.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "71f0efd86ecb6002431da5cbe5f3efa4"
+  },
+  "/home/andre/neuro/apps/tests/epq_j/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "92ce2ad0aada88e0c0b8dc72aee9aad3"
+  },
+  "/home/andre/neuro/apps/tests/epq_j/calculators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "06fcc0bf7af44a86b4764eb6a02974fb"
+  },
+  "/home/andre/neuro/apps/tests/epq_j/config.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "cee40ed58b8a01aba29637f8e9b197d8"
+  },
+  "/home/andre/neuro/apps/tests/epq_j/validators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "68d2bfa5c2a47e0e44b8a068203838a3"
+  },
+  "/home/andre/neuro/apps/tests/base/types.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "505d5a3fc93d5feb820ccf43fa39f9b6"
+  },
+  "/home/andre/neuro/apps/tests/base/__init__.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "18c80bca3228c9cec56301c4de8d6a32"
+  },
+  "/home/andre/neuro/apps/tests/base/interfaces.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "fe984896f2841ee76f738f4647390df6"
+  },
+  "/home/andre/neuro/apps/tests/base/exceptions.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "afb121f427634f1cadc033bac4d2f1ac"
+  },
+  "/home/andre/neuro/apps/tests/scared/interpreters.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "8ac520a229adfd20a1270f8d9285860d"
+  },
+  "/home/andre/neuro/apps/tests/scared/norms.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "20d60e7b604aebfb108a77b9dce756fe"
+  },
+  "/home/andre/neuro/apps/tests/scared/__init__.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "f3e27d9fff2e490bdedd792deb09869f"
+  },
+  "/home/andre/neuro/apps/tests/scared/calculators.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "557fb4bc6dc5c7262c930f9676c5e448"
+  },
+  "/home/andre/neuro/apps/tests/scared/classifiers.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "42c319a9f3decf4f1c9a8ea862f268d9"
+  },
+  "/home/andre/neuro/apps/tests/scared/config.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "5cedbe02baaaaf9b4f7da53cfeae1df0"
+  },
+  "/home/andre/neuro/apps/tests/scared/validators.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "66b705c26e0245b84b7ea5e6b431d782"
+  },
+  "/home/andre/neuro/apps/tests/srs2/interpreters.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "28951c785992c2f63b2b1a44c6f44244"
+  },
+  "/home/andre/neuro/apps/tests/srs2/norms.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "4cac58db0dd3d0f342f1f74fcd53c31f"
+  },
+  "/home/andre/neuro/apps/tests/srs2/__init__.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "e9e4e64f0bce9b5bbe94e38db6b2a715"
+  },
+  "/home/andre/neuro/apps/tests/srs2/calculators.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "5f54a0524ac45ca595145731b90aee6d"
+  },
+  "/home/andre/neuro/apps/tests/srs2/paths.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "2f38eb0a8d5c8bdaa629707874021b5b"
+  },
+  "/home/andre/neuro/apps/tests/srs2/classifiers.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "3a3cdbf7200cbb8e0f9406dc0c9cf6cf"
+  },
+  "/home/andre/neuro/apps/tests/srs2/config.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "b78e9847e753c68f295727b1160b68f0"
+  },
+  "/home/andre/neuro/apps/tests/srs2/validators.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "b390948bdae41fd211e864d7834951ff"
+  },
+  "/home/andre/neuro/apps/tests/fdt/interpreters.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "742b845ba47ddc12c5fb630245cc5fc0"
+  },
+  "/home/andre/neuro/apps/tests/fdt/schemas.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "f74f079760cde3c2dbf118957cb467df"
+  },
+  "/home/andre/neuro/apps/tests/fdt/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "7543eca138ab73f6f21b90406c0e34f7"
+  },
+  "/home/andre/neuro/apps/tests/fdt/calculators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "0e02a067fca03fb49f6b438540f67ed5"
+  },
+  "/home/andre/neuro/apps/tests/fdt/config.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "c0017c1808db218d2067ed5d53db2983"
+  },
+  "/home/andre/neuro/apps/tests/fdt/validators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "d002514df50aa517a40f530aa0063394"
+  },
+  "/home/andre/neuro/apps/tests/bpa2/interpreters.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "e370190d5ae5996d8bac3c48e7ffed12"
+  },
+  "/home/andre/neuro/apps/tests/bpa2/schemas.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "cfefc41a2140a394fb990b4458c3a598"
+  },
+  "/home/andre/neuro/apps/tests/bpa2/__init__.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "fedd5116c5d906f8543b650458822ef5"
+  },
+  "/home/andre/neuro/apps/tests/bpa2/script_avaliacao.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "df7645a2624dbb509392656eb418dd2e"
+  },
+  "/home/andre/neuro/apps/tests/bpa2/calculators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "41e1a8a4d1a09e692e5025295e1ad5f5"
+  },
+  "/home/andre/neuro/apps/tests/bpa2/classifiers.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "c3b64e00ab6b8110abe9c20e98f538a2"
+  },
+  "/home/andre/neuro/apps/tests/bpa2/config.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "4084d4f0586c43fd04a824613c93ca0b"
+  },
+  "/home/andre/neuro/apps/tests/bpa2/validators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "7fc01682e13ef38d35227e6693cbf1ee"
+  },
+  "/home/andre/neuro/apps/tests/norms/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/tests/norms/bai/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "f8e1203ef63bf278c31a287b875f8f4b"
+  },
+  "/home/andre/neuro/apps/tests/ravlt/norms.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "7f66de66e04b2d1543996557938f0ab0"
+  },
+  "/home/andre/neuro/apps/tests/ravlt/__init__.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "dc6d4944d9e1376e401c88c481c4a880"
+  },
+  "/home/andre/neuro/apps/tests/ravlt/config.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "e3a57d5cc561157c95e792afbbe7a8f7"
+  },
+  "/home/andre/neuro/apps/tests/ebadep_a/interpreters.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "edd3401f3c13c29b4ae448be943fd1c3"
+  },
+  "/home/andre/neuro/apps/tests/ebadep_a/schemas.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "c6528a652ba61a878a1144f979faf4ba"
+  },
+  "/home/andre/neuro/apps/tests/ebadep_a/__init__.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "7e4d16bbe4709a1887888dcbd32b30ad"
+  },
+  "/home/andre/neuro/apps/tests/ebadep_a/calculators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "bc6891850b01db04d916011784d8fb53"
+  },
+  "/home/andre/neuro/apps/tests/ebadep_a/config.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "bdca56c10beae6b202f4c671ea56d4ac"
+  },
+  "/home/andre/neuro/apps/tests/ebadep_a/validators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "c0a62c3bdba1cef04c6ea7beb157f830"
+  },
+  "/home/andre/neuro/apps/tests/wais3/interpreters.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "c8f52b3c2948fe65892ac5da934ff552"
+  },
+  "/home/andre/neuro/apps/tests/wais3/utils.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "d26757597190a124428ca270f4d416d6"
+  },
+  "/home/andre/neuro/apps/tests/wais3/schemas.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "8cab7e4319fdf16df8ecb4aad7d8006b"
+  },
+  "/home/andre/neuro/apps/tests/wais3/test_wais3_sample_result.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "860ed9d6a3a2d1ef2b395fa70190ecbf"
+  },
+  "/home/andre/neuro/apps/tests/wais3/__init__.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "c28c0033e9b6f9f01d4bba86714d2a57"
+  },
+  "/home/andre/neuro/apps/tests/wais3/calculators.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "1e98c324ca4c88ecb6898f6589b919c1"
+  },
+  "/home/andre/neuro/apps/tests/wais3/norm_utils.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "73cddc0dfe790a2c34357e25d0f47928"
+  },
+  "/home/andre/neuro/apps/tests/wais3/test_wais3_utils.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "d0edf6b1fde1f2daadcface805eaa9ee"
+  },
+  "/home/andre/neuro/apps/tests/wais3/loaders.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "8b7c2f8652874ace1846d18a4702cfa1"
+  },
+  "/home/andre/neuro/apps/tests/wais3/classifiers.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "e8c5dcea853ee2eb8ad65538dc7c153f"
+  },
+  "/home/andre/neuro/apps/tests/wais3/config.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "2912736af35ab093abdcf33b3554bb34"
+  },
+  "/home/andre/neuro/apps/tests/wais3/validators.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "00f495e722e5cc84ace472b6de5b2d96"
+  },
+  "/home/andre/neuro/apps/tests/wais3/constants.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "c3f28a2bd6bffbde013de4e3ee6cfd23"
+  },
+  "/home/andre/neuro/apps/tests/wais3/tabelas/conversor.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "29d1c7989eeabcad5b4cc1e3674b162b"
+  },
+  "/home/andre/neuro/apps/tests/etdah_ad/interpreters.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "49780427f343824e991287adcb1fa719"
+  },
+  "/home/andre/neuro/apps/tests/etdah_ad/schemas.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "99dc9b2beb3e00d5c0c90446050ba864"
+  },
+  "/home/andre/neuro/apps/tests/etdah_ad/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "59037eeb488665767556befdd7831b87"
+  },
+  "/home/andre/neuro/apps/tests/etdah_ad/calculators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "5f618db46c3b2f4e43727c5357cff0f8"
+  },
+  "/home/andre/neuro/apps/tests/etdah_ad/config.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "ea921df06d832e3b19df8e48760f78cb"
+  },
+  "/home/andre/neuro/apps/tests/etdah_ad/validators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "73df742567fc3c73d1c8fbe1b6c4c13a"
+  },
+  "/home/andre/neuro/apps/tests/mchat/interpreters.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "f7051c6988adadec6776a1ffe72bcd1a"
+  },
+  "/home/andre/neuro/apps/tests/mchat/schemas.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "3e722d288a4298d1be667da3cbf81792"
+  },
+  "/home/andre/neuro/apps/tests/mchat/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "10ec4bdcb001a16021aa347073b4fc41"
+  },
+  "/home/andre/neuro/apps/tests/mchat/calculators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "b4810bfd1ef1dd73a61c5a00918b718f"
+  },
+  "/home/andre/neuro/apps/tests/mchat/loaders.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "7e7f4f6f602da3442c1179d04c3a9156"
+  },
+  "/home/andre/neuro/apps/tests/mchat/classifiers.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "2646b6c2f15a0a1b0e46129cb0bc7a31"
+  },
+  "/home/andre/neuro/apps/tests/mchat/config.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "8bf0e2000c98dacd507a2a756501d2d3"
+  },
+  "/home/andre/neuro/apps/tests/mchat/validators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "ce17b7aa2e8304e97881f839293dedb6"
+  },
+  "/home/andre/neuro/apps/tests/mchat/constants.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "214701f47f3cbd5a0cb44d39a63ddf40"
+  },
+  "/home/andre/neuro/apps/tests/etdah_pais/interpreters.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "f49a504c072ad13ffa0acc9208a8e6db"
+  },
+  "/home/andre/neuro/apps/tests/etdah_pais/schemas.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "7397dbed7ee70b808d8bd95c07881935"
+  },
+  "/home/andre/neuro/apps/tests/etdah_pais/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "0d31dfdbc82766d502500127bfb5cb07"
+  },
+  "/home/andre/neuro/apps/tests/etdah_pais/calculators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "117c6de1b0473147288c2e4587f75165"
+  },
+  "/home/andre/neuro/apps/tests/etdah_pais/config.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "39e160820f723caf6b6a0a4759e3fa4c"
+  },
+  "/home/andre/neuro/apps/tests/etdah_pais/validators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "9708f0ee774e305d3fd1bc2bcd85b06b"
+  },
+  "/home/andre/neuro/apps/tests/services/__init__.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "e3690994fe14d663045586100b848424"
+  },
+  "/home/andre/neuro/apps/tests/services/scoring_service.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "43f71bb31b1f970e2c96e6342ae49cbb"
+  },
+  "/home/andre/neuro/apps/tests/services/interpretation_service.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "094c0f2f4a2d794cc630b633c130a083"
+  },
+  "/home/andre/neuro/apps/tests/services/application_service.py": {
+    "mtime": 1778177259.9054456,
+    "hash": "b5e1348503247e0e5e17184994d7ebf1"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/interpreters.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "a65aca4dfbbacc1d9454f9881cda14c4"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/schemas.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "5c6e08f1c89e0cef63599b1563a7c5c1"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/__init__.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "57519ca433957c974e434bbfcc009431"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/calculators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "722c906f8dd065b45a19a45947aa751f"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/loaders.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "c870efe08c3c6d2473bfa490115eee12"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/classifiers.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "2edd6b908c27ffb8ef54465baebf7abc"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/config.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "31f519aa7f7f5122c595cf0aaa1808f8"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/validators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "48cea8026caf13aa66d2b8be5ba24725"
+  },
+  "/home/andre/neuro/apps/tests/cars2_hf/constants.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "35e8a1adc24145fca33e7db59c7404fb"
+  },
+  "/home/andre/neuro/apps/tests/wisc4/interpreters.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "671853349be75d8d6756c73946ef5bae"
+  },
+  "/home/andre/neuro/apps/tests/wisc4/__init__.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "a2e93383bbe22be30ccd3c533d8e363c"
+  },
+  "/home/andre/neuro/apps/tests/wisc4/calculators.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "67b233fc566d9ad1319dc2475e18e9e5"
+  },
+  "/home/andre/neuro/apps/tests/wisc4/paths.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "0ac299aaf0bdc7d24e809b5f06d18a53"
+  },
+  "/home/andre/neuro/apps/tests/wisc4/classifiers.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "d87793425c3bcdf66367859093afb65c"
+  },
+  "/home/andre/neuro/apps/tests/wisc4/test_wisc4_model_compatibility.py": {
+    "mtime": 1778177259.9139855,
+    "hash": "a8055911516dac462075a9125d781344"
+  },
+  "/home/andre/neuro/apps/tests/wisc4/modelos-graficos/wisc4_pontos_compostos_linha_fluida.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "503c36113d25158ef5b2450c7e170d97"
+  },
+  "/home/andre/neuro/apps/tests/wisc4/modelos-graficos/grafico-curva-01.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "6e213f88e76a2bc485447938570a115f"
+  },
+  "/home/andre/neuro/apps/tests/ebaped_ij/interpreters.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "d929d6d6cfac01c62ab512a684197623"
+  },
+  "/home/andre/neuro/apps/tests/ebaped_ij/schemas.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "844fe19666f9f019b3838b00b8adc2f3"
+  },
+  "/home/andre/neuro/apps/tests/ebaped_ij/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "d860e339845ab15a36a9be9c4ab38630"
+  },
+  "/home/andre/neuro/apps/tests/ebaped_ij/calculators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "bd04bef2ec90828c4ef25dd98f1c5a7e"
+  },
+  "/home/andre/neuro/apps/tests/ebaped_ij/classifiers.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "c7fe4df12e33798018054ffbdfc1568e"
+  },
+  "/home/andre/neuro/apps/tests/ebaped_ij/config.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "3e1248a4cefb24b9d7989082a1dc0813"
+  },
+  "/home/andre/neuro/apps/tests/ebaped_ij/validators.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "4c646a09416bc2d997c3225ad13968db"
+  },
+  "/home/andre/neuro/apps/tests/api/schemas.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "0b089adf020d6321b535416d6f616c64"
+  },
+  "/home/andre/neuro/apps/tests/api/__init__.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/tests/api/router.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "a22e0b64e1e08c3a6297d192e1bc8a3e"
+  },
+  "/home/andre/neuro/apps/tests/api/endpoints.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "33c8d44c3c7e18be2eb20bc5c24040ee"
+  },
+  "/home/andre/neuro/apps/tests/wasi/interpreters.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "8d5159c3ff0ab8e94276ece82cfb9a91"
+  },
+  "/home/andre/neuro/apps/tests/wasi/schemas.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "9d15b328c6037fd483f689d12fcb8af9"
+  },
+  "/home/andre/neuro/apps/tests/wasi/__init__.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "b556890f8ba3764e2bdd1e0e7cd1ba70"
+  },
+  "/home/andre/neuro/apps/tests/wasi/calculators.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "b33bb3d6907d11b0d9d30cadde194a43"
+  },
+  "/home/andre/neuro/apps/tests/wasi/loaders.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "4b4691381bbf7562afeebd7f3533b79d"
+  },
+  "/home/andre/neuro/apps/tests/wasi/config.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "fa1e7b63f5d438ae87d769963ac8adec"
+  },
+  "/home/andre/neuro/apps/tests/wasi/validators.py": {
+    "mtime": 1778177259.9097154,
+    "hash": "e19d8226a00fe086bb410b627a2781d9"
+  },
+  "/home/andre/neuro/apps/tests/bfp/interpreters.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "975a3909a0e299c2d7168700a6bf8965"
+  },
+  "/home/andre/neuro/apps/tests/bfp/schemas.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "192f3db3e449854a804402eae99163dc"
+  },
+  "/home/andre/neuro/apps/tests/bfp/__init__.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "859e98fcf01b504ae0c3bccaf679edf0"
+  },
+  "/home/andre/neuro/apps/tests/bfp/calculators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "fefeea4234036216c81961df0f18d051"
+  },
+  "/home/andre/neuro/apps/tests/bfp/test_interpreters.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "d096e385981f108628797a3b8db73f7f"
+  },
+  "/home/andre/neuro/apps/tests/bfp/config.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "0d43ad040489100ff83076cd94d93f7a"
+  },
+  "/home/andre/neuro/apps/tests/bfp/validators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "6651fc03ce11869818665a99eb940b5b"
+  },
+  "/home/andre/neuro/apps/tests/bai/interpreters.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "f96792a66e80c7c8d7d014a270449bfa"
+  },
+  "/home/andre/neuro/apps/tests/bai/schemas.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "bf4d417d54980709ce982ffad92abc88"
+  },
+  "/home/andre/neuro/apps/tests/bai/__init__.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "b9986dc1e159c609b158965d8183a94a"
+  },
+  "/home/andre/neuro/apps/tests/bai/calculators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "2bf9733a71c7aa3e53267df2f637e1a4"
+  },
+  "/home/andre/neuro/apps/tests/bai/charts.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "372c017cd777a2a37c13a58ad71dcaf5"
+  },
+  "/home/andre/neuro/apps/tests/bai/classifiers.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "72f4a29380f70e905c9d9f9fd74d1bc5"
+  },
+  "/home/andre/neuro/apps/tests/bai/validators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "f1af6bb2b34e80706f2d8a75824c22b3"
+  },
+  "/home/andre/neuro/apps/tests/bai/constants.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "2977bceb28ef7fb283c9b5937e555c84"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/example_usage.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "4b033efcdfc8fc7dc715d2c800635ad0"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/interpreters.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "76b711b8d870e4f41157f9eaac21764e"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/schemas.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "10c214207b4fa2a7b72a1cc807a81e95"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/__init__.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "459e57f843e3088b576f9a9114499c9c"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/calculators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "a233751edd8d29a85eb86a5f8faee1db"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/charts.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "a11caac8b6ba8d93d1472bccfea14a45"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/classifiers.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "99eaef5c4563f1031f17cb5b909b9927"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/config.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "ad96a9573c1e79c0ec5deb2f8f303fa9"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/validators.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "cc643bfcb651aec7972989edc164d8d1"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/bai/constants.py": {
+    "mtime": 1778177259.8926358,
+    "hash": "a10ba6dead6bf907c047a66122c480e0"
+  },
+  "/home/andre/neuro/apps/tests/models/instruments.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "95eff4057cac003832f46441c0660e1d"
+  },
+  "/home/andre/neuro/apps/tests/models/__init__.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "be7a807dd0657f90454d22eae0a7f5e9"
+  },
+  "/home/andre/neuro/apps/tests/models/applications.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "18b27267dabd254e40d3de06693eafdf"
+  },
+  "/home/andre/neuro/apps/tests/models/templates.py": {
+    "mtime": 1778177259.9011755,
+    "hash": "ee796e8dd738961eb9a9a4b1fa7f9aba"
+  },
+  "/home/andre/neuro/apps/evaluations/apps.py": {
+    "mtime": 1778177259.884096,
+    "hash": "0282024c2b92d3a777b9aca6e6e5d14b"
+  },
+  "/home/andre/neuro/apps/evaluations/admin.py": {
+    "mtime": 1778177259.884096,
+    "hash": "1152e48559fc2c1a10145f88c218dee8"
+  },
+  "/home/andre/neuro/apps/evaluations/views.py": {
+    "mtime": 1778177259.884096,
+    "hash": "72efad6d5ee26bf2d8eb6ed878b6bc96"
+  },
+  "/home/andre/neuro/apps/evaluations/models.py": {
+    "mtime": 1778177259.884096,
+    "hash": "6788b5e0935573e6f527940eb8e8b7ec"
+  },
+  "/home/andre/neuro/apps/evaluations/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/evaluations/tests.py": {
+    "mtime": 1778177259.884096,
+    "hash": "465b7e9f69bfd158c850cdfbc7306818"
+  },
+  "/home/andre/neuro/apps/evaluations/urls.py": {
+    "mtime": 1778177259.884096,
+    "hash": "47d43a1b769314135c44422a9462b94d"
+  },
+  "/home/andre/neuro/apps/evaluations/selectors.py": {
+    "mtime": 1778177259.884096,
+    "hash": "06053ffa91f3e4f8a2e7d1db5f2863fb"
+  },
+  "/home/andre/neuro/apps/evaluations/services.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d2110f9144d91b510c3c97630d8275d8"
+  },
+  "/home/andre/neuro/apps/evaluations/migrations/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/evaluations/migrations/0001_initial.py": {
+    "mtime": 1778177259.884096,
+    "hash": "01b7181bfe0769641f5d2f6a874b7fc0"
+  },
+  "/home/andre/neuro/apps/evaluations/migrations/0002_evaluationprogressentry.py": {
+    "mtime": 1778177259.884096,
+    "hash": "5a542dee8c1f58ab0c4841f9b23d4b86"
+  },
+  "/home/andre/neuro/apps/evaluations/api/schemas.py": {
+    "mtime": 1778177259.884096,
+    "hash": "3aeeb6962fb0c4940927910eb46a2141"
+  },
+  "/home/andre/neuro/apps/evaluations/api/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/evaluations/api/router.py": {
+    "mtime": 1778177259.884096,
+    "hash": "a22e0b64e1e08c3a6297d192e1bc8a3e"
+  },
+  "/home/andre/neuro/apps/evaluations/api/endpoints.py": {
+    "mtime": 1778177259.884096,
+    "hash": "8980607aa9bda36c57c44ff7e3b0c9e0"
+  },
+  "/home/andre/neuro/apps/audit/apps.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "90cbfa70ece8181227a91c488163bc85"
+  },
+  "/home/andre/neuro/apps/audit/models.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "41eabada82731db5ca30a1c3be0f825b"
+  },
+  "/home/andre/neuro/apps/audit/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "90cbfa70ece8181227a91c488163bc85"
+  },
+  "/home/andre/neuro/apps/audit/services.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "338570d026f15ffdc71dc7de4683322b"
+  },
+  "/home/andre/neuro/apps/audit/migrations/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/audit/migrations/0001_initial.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "6390ab5ba58f6b734fc938cd6b57cc87"
+  },
+  "/home/andre/neuro/apps/common/apps.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d06c691e22e386161ef875e2bb29d027"
+  },
+  "/home/andre/neuro/apps/common/admin.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "e3dc717de887db03a015667a5fec59d8"
+  },
+  "/home/andre/neuro/apps/common/utils.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "04e322dfef00bbd17b0f2cbc53dc2a61"
+  },
+  "/home/andre/neuro/apps/common/views.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "450ac03c39dba53f2cf4376ad78df6ca"
+  },
+  "/home/andre/neuro/apps/common/models.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "8c4eb991c6dca757bdd77f539092e29b"
+  },
+  "/home/andre/neuro/apps/common/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/common/security.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "ab2a1d961313f10cd0e65514c32fc901"
+  },
+  "/home/andre/neuro/apps/common/tests.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "465b7e9f69bfd158c850cdfbc7306818"
+  },
+  "/home/andre/neuro/apps/common/migrations/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/common/templatetags/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/common/templatetags/form_helpers.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "0f06049813e3cf003872ae1a89ddf5ca"
+  },
+  "/home/andre/neuro/apps/documents/apps.py": {
+    "mtime": 1778177259.884096,
+    "hash": "5805ea1e2bbac8d956f1cdfda7886f99"
+  },
+  "/home/andre/neuro/apps/documents/admin.py": {
+    "mtime": 1778177259.884096,
+    "hash": "78a2346c08f7e6dcb14f793be6328e13"
+  },
+  "/home/andre/neuro/apps/documents/models.py": {
+    "mtime": 1778177259.884096,
+    "hash": "6bf5f7f3b712d0852ad719581b1ac3c3"
+  },
+  "/home/andre/neuro/apps/documents/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/documents/selectors.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d83962af97a639ac779820297c34af28"
+  },
+  "/home/andre/neuro/apps/documents/services.py": {
+    "mtime": 1778177259.884096,
+    "hash": "131f4ebfdd4587ccd333bf096cafc646"
+  },
+  "/home/andre/neuro/apps/documents/migrations/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/documents/migrations/0001_initial.py": {
+    "mtime": 1778177259.884096,
+    "hash": "f7ec6b4410d8eee0ca9cd05a95022ac7"
+  },
+  "/home/andre/neuro/apps/documents/api/schemas.py": {
+    "mtime": 1778177259.884096,
+    "hash": "4c1eb84c7d6dda4be81f42c3ceabd6f2"
+  },
+  "/home/andre/neuro/apps/documents/api/router.py": {
+    "mtime": 1778177259.884096,
+    "hash": "229cde3e1a1e99b6ee313e25c08c92e4"
+  },
+  "/home/andre/neuro/apps/documents/api/endpoints.py": {
+    "mtime": 1778177259.884096,
+    "hash": "33a316d7234284abded83cc4e6b8d6be"
+  },
+  "/home/andre/neuro/apps/anamnesis/apps.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "9733e876bea295d3d87a175db6f56f81"
+  },
+  "/home/andre/neuro/apps/anamnesis/models.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "315db225640887726ebb7a90fa8a6ad1"
+  },
+  "/home/andre/neuro/apps/anamnesis/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/anamnesis/selectors.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "7aab19edd678272a21a625c82fd6f465"
+  },
+  "/home/andre/neuro/apps/anamnesis/constants.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "1c9db343d3e9d20b1e202dd69225c8d5"
+  },
+  "/home/andre/neuro/apps/anamnesis/services.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "a5f73ba103975028ca27e44039fd8693"
+  },
+  "/home/andre/neuro/apps/anamnesis/migrations/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/anamnesis/migrations/0002_response_internal_fields_and_templates_v2.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "e019be109f52ad23f2c49a5d22f1a247"
+  },
+  "/home/andre/neuro/apps/anamnesis/migrations/0001_initial.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "983c65a9930db0d18f671918a976a286"
+  },
+  "/home/andre/neuro/apps/anamnesis/migrations/0003_deactivate_v1_templates.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "38c6a03b762d29be9d73432551b52f6e"
+  },
+  "/home/andre/neuro/apps/anamnesis/templates/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "a507f440e31c8572c936a581abda7d5c"
+  },
+  "/home/andre/neuro/apps/anamnesis/templates/adult.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "5bdade7bee0b378b4151b87be2a7fb8c"
+  },
+  "/home/andre/neuro/apps/anamnesis/templates/infant.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "6b277a0c1c33b3b9c400033c80aa6a44"
+  },
+  "/home/andre/neuro/apps/anamnesis/templates/adolescent.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "888353702db26d890554010f2485f7ca"
+  },
+  "/home/andre/neuro/apps/anamnesis/api/schemas.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "dec2f6e2fabbc793220e9038bb4b2c80"
+  },
+  "/home/andre/neuro/apps/anamnesis/api/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/anamnesis/api/router.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "18dbc3f4f5862d23c3114d16e1bba522"
+  },
+  "/home/andre/neuro/apps/anamnesis/api/endpoints.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "431fa7d1fcfcec4d0c3bae966700c2b6"
+  },
+  "/home/andre/neuro/apps/messaging/apps.py": {
+    "mtime": 1778177259.884096,
+    "hash": "6380b3ff4ba3baf3a228c2549b18b5c5"
+  },
+  "/home/andre/neuro/apps/messaging/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/messaging/whatsapp_service.py": {
+    "mtime": 1778177259.884096,
+    "hash": "3914b64b0382cd6bc01b55ae231cd091"
+  },
+  "/home/andre/neuro/apps/messaging/email_service.py": {
+    "mtime": 1778177259.884096,
+    "hash": "067c630aab26c3b86a3e294b2b65d272"
+  },
+  "/home/andre/neuro/apps/messaging/services.py": {
+    "mtime": 1778177259.884096,
+    "hash": "83cb6a1f45e6e0103c53d905fa220524"
+  },
+  "/home/andre/neuro/apps/api/apps.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "b6772c357bf2644fec35bde0bb189e46"
+  },
+  "/home/andre/neuro/apps/api/admin.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "e3dc717de887db03a015667a5fec59d8"
+  },
+  "/home/andre/neuro/apps/api/system.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "350978a02700351a130c57f1a30e3d90"
+  },
+  "/home/andre/neuro/apps/api/views.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "cf468a60bada7c017b7679117ae6e8e7"
+  },
+  "/home/andre/neuro/apps/api/models.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "8c4eb991c6dca757bdd77f539092e29b"
+  },
+  "/home/andre/neuro/apps/api/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/api/router.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "b843d7e37b9d48ab11fde4acf6cc6618"
+  },
+  "/home/andre/neuro/apps/api/tests.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "465b7e9f69bfd158c850cdfbc7306818"
+  },
+  "/home/andre/neuro/apps/api/auth.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "913417028eaac23993a099b5f7415a05"
+  },
+  "/home/andre/neuro/apps/api/migrations/__init__.py": {
+    "mtime": 1778177259.8798258,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/reports/apps.py": {
+    "mtime": 1778177259.884096,
+    "hash": "cce0624a2169a50d864f4e42f21cee4b"
+  },
+  "/home/andre/neuro/apps/reports/admin.py": {
+    "mtime": 1778177259.884096,
+    "hash": "e3dc717de887db03a015667a5fec59d8"
+  },
+  "/home/andre/neuro/apps/reports/views.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "bc4e091a14cb3b850a2f7b828369b90f"
+  },
+  "/home/andre/neuro/apps/reports/models.py": {
+    "mtime": 1778177259.884096,
+    "hash": "93309ab2543a3d6af07e50dd5c65a91a"
+  },
+  "/home/andre/neuro/apps/reports/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/reports/tests.py": {
+    "mtime": 1778248453.5409007,
+    "hash": "60aa5df1e647cb5184950e3ec196f6d0"
+  },
+  "/home/andre/neuro/apps/reports/urls.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "efa31aead830d3f9f9b4219f30881a00"
+  },
+  "/home/andre/neuro/apps/reports/selectors.py": {
+    "mtime": 1778177259.884096,
+    "hash": "5b93871841638657630b97eb7aa52b8e"
+  },
+  "/home/andre/neuro/apps/reports/services.py": {
+    "mtime": 1778177259.884096,
+    "hash": "ce250cbd02e0a86b8e1b840f8b469973"
+  },
+  "/home/andre/neuro/apps/reports/migrations/0003_report_interested_party_report_purpose.py": {
+    "mtime": 1778177259.884096,
+    "hash": "e348816057793bf53863cb4139f8c434"
+  },
+  "/home/andre/neuro/apps/reports/migrations/0002_alter_reportsection_options_and_more.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d2199044713de0f57cb562dc9b76c113"
+  },
+  "/home/andre/neuro/apps/reports/migrations/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/apps/reports/migrations/0004_report_ai_metadata_reportsection_generation_metadata_and_more.py": {
+    "mtime": 1778177259.884096,
+    "hash": "c759a3087ec5de13a7f6797ff6dc7fcf"
+  },
+  "/home/andre/neuro/apps/reports/migrations/0001_initial.py": {
+    "mtime": 1778177259.884096,
+    "hash": "0e47456d3a413b84245d061eafd49e1b"
+  },
+  "/home/andre/neuro/apps/reports/builders/progress_builder.py": {
+    "mtime": 1778177259.884096,
+    "hash": "ae6e559100f4c5c4957dd911f3ac2317"
+  },
+  "/home/andre/neuro/apps/reports/builders/references_builder.py": {
+    "mtime": 1778177259.884096,
+    "hash": "cd2425743540e20c5312e774a29e3583"
+  },
+  "/home/andre/neuro/apps/reports/builders/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "827d93b9f7643122b32b23b3eef5e9a8"
+  },
+  "/home/andre/neuro/apps/reports/builders/documents_builder.py": {
+    "mtime": 1778177259.884096,
+    "hash": "cbbd040d5c7546ab3537834b31c30c12"
+  },
+  "/home/andre/neuro/apps/reports/builders/wais3_report_builder.py": {
+    "mtime": 1778177259.884096,
+    "hash": "5bfd26252a580b371c3ec49343008ec6"
+  },
+  "/home/andre/neuro/apps/reports/builders/snapshot_builder.py": {
+    "mtime": 1778177259.884096,
+    "hash": "d44b83a6163a56652f526c61da412a10"
+  },
+  "/home/andre/neuro/apps/reports/builders/anamnesis_builder.py": {
+    "mtime": 1778177259.884096,
+    "hash": "5d54fd2a0ebf86d3f84e83986c976746"
+  },
+  "/home/andre/neuro/apps/reports/builders/section_builder.py": {
+    "mtime": 1778177259.884096,
+    "hash": "48651a7556f91e5d21c482aae5df232e"
+  },
+  "/home/andre/neuro/apps/reports/builders/tests_builder.py": {
+    "mtime": 1778243244.021113,
+    "hash": "24f449d610fb64d6a360eb12bdd4587d"
+  },
+  "/home/andre/neuro/apps/reports/specs/__init__.py": {
+    "mtime": 1778263283.6857162,
+    "hash": "f30c590723163b44fe1fd16ede41435f"
+  },
+  "/home/andre/neuro/apps/reports/specs/table_specs.py": {
+    "mtime": 1778264821.6523468,
+    "hash": "e397d6205beda5e2d38d7bf75b49707c"
+  },
+  "/home/andre/neuro/apps/reports/specs/wasi_model_spec.py": {
+    "mtime": 1778262351.9758158,
+    "hash": "31223e26530479d0747ce2039549284b"
+  },
+  "/home/andre/neuro/apps/reports/charts/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "792b39ee3150c919cf00bc304e04adcd"
+  },
+  "/home/andre/neuro/apps/reports/charts/wasi_chart.py": {
+    "mtime": 1778262425.6626587,
+    "hash": "c57c5965ae92bc579fe6d1415b770954"
+  },
+  "/home/andre/neuro/apps/reports/charts/bpa2_chart.py": {
+    "mtime": 1778177259.884096,
+    "hash": "6be22160532eccbfe4f26399e784e314"
+  },
+  "/home/andre/neuro/apps/reports/services/report_ai_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "116f521ae2e5601bfa96fc0f6cc69a3f"
+  },
+  "/home/andre/neuro/apps/reports/services/wisc4_standardization.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "956fc2a26e8f2f1db310f9ee849be0f8"
+  },
+  "/home/andre/neuro/apps/reports/services/report_generation_service.py": {
+    "mtime": 1778245365.1950505,
+    "hash": "205cf57e781d8ea45fd8e89ddbba710d"
+  },
+  "/home/andre/neuro/apps/reports/services/__init__.py": {
+    "mtime": 1778177259.884096,
+    "hash": "5bb70fcd61a7dfd8f27b1f68c52332e4"
+  },
+  "/home/andre/neuro/apps/reports/services/report_section_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "cff8b9301695fad5372de4c4cfb289c2"
+  },
+  "/home/andre/neuro/apps/reports/services/report_validation_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "a03448e17a284add2c0ed334cc4e311a"
+  },
+  "/home/andre/neuro/apps/reports/services/wais3_standardization.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "b8e6039f56ecdf7594a4879eac25a618"
+  },
+  "/home/andre/neuro/apps/reports/services/section_context_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "1cb3117ec7cd163bb7c839b0bac44e76"
+  },
+  "/home/andre/neuro/apps/reports/services/report_version_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "22451a39eba4cad3627ecef2d99c5254"
+  },
+  "/home/andre/neuro/apps/reports/services/section_validation_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "76ecfb472a3c8cbaf741a5ac3f7a9d98"
+  },
+  "/home/andre/neuro/apps/reports/services/section_workflow_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "81d82f9221ea08f5b583153569742c95"
+  },
+  "/home/andre/neuro/apps/reports/services/section_registry.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "7e6de98a21b2f272ca56b3856495ed46"
+  },
+  "/home/andre/neuro/apps/reports/services/report_review_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "93d6a2ff42f1e503e174854890146b53"
+  },
+  "/home/andre/neuro/apps/reports/services/report_pipeline_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "5699c45cbff4645b48da2986d9a5143f"
+  },
+  "/home/andre/neuro/apps/reports/services/section_regeneration_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "e9f9a57d3aa23644332452e5d4896079"
+  },
+  "/home/andre/neuro/apps/reports/services/report_export_service.py": {
+    "mtime": 1778265377.1964023,
+    "hash": "31ca31e74cacb823f5dde878cfcbeeb8"
+  },
+  "/home/andre/neuro/apps/reports/services/clinical_consistency_audit_service.py": {
+    "mtime": 1778177259.884096,
+    "hash": "91008a95fa7664b45b2b35ae5acc7e2b"
+  },
+  "/home/andre/neuro/apps/reports/services/ptbr_text_service.py": {
+    "mtime": 1778177259.884096,
+    "hash": "546f36a9db00007642975435533b080b"
+  },
+  "/home/andre/neuro/apps/reports/services/report_context_service.py": {
+    "mtime": 1778177259.8883657,
+    "hash": "11724339585870a695d64837aa029b3b"
+  },
+  "/home/andre/neuro/apps/reports/api/schemas.py": {
+    "mtime": 1778177259.884096,
+    "hash": "ecc3316f0d9b8f4853079c43fbbf8e09"
+  },
+  "/home/andre/neuro/apps/reports/api/router.py": {
+    "mtime": 1778177259.884096,
+    "hash": "229cde3e1a1e99b6ee313e25c08c92e4"
+  },
+  "/home/andre/neuro/apps/reports/api/endpoints.py": {
+    "mtime": 1778177259.884096,
+    "hash": "ead8ef336e4d30d67677ae9e83fbb023"
+  },
+  "/home/andre/neuro/apps/reports/prompts/rules.py": {
+    "mtime": 1778177259.884096,
+    "hash": "b1c10c996624b6799f9374b6823e3cf6"
+  },
+  "/home/andre/neuro/theme/apps.py": {
+    "mtime": 1778177260.25985,
+    "hash": "9113df490def4a4d568d0ee2eaf440ed"
+  },
+  "/home/andre/neuro/theme/__init__.py": {
+    "mtime": 1778177260.25985,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/theme/static_src/tailwind.config.js": {
+    "mtime": 1778177260.3110893,
+    "hash": "d7724395493b8cd70e0be270937b2c95"
+  },
+  "/home/andre/neuro/neuro/scripts/convert_csvs_to_xlsm.py": {
+    "mtime": 1778177260.25985,
+    "hash": "889ea5919ddd45728f2f34c0da919e69"
+  },
+  "/home/andre/neuro/neuro-frontend/next.config.js": {
+    "mtime": 1778177260.25985,
+    "hash": "4329eac3a90bff4b41657de25ef4cb8c"
+  },
+  "/home/andre/neuro/neuro-frontend/postcss.config.js": {
+    "mtime": 1778177260.25985,
+    "hash": "ef6e40de3eeede34ff3cfe3949778384"
+  },
+  "/home/andre/neuro/neuro-frontend/next-env.d.ts": {
+    "mtime": 1778178234.7552626,
+    "hash": "b5ed9dd8b4c5ba8e5ab8e6a379c15838"
+  },
+  "/home/andre/neuro/neuro-frontend/tailwind.config.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "2f2df26263bb5b78fecf1fa2b281475e"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/select.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "955ca2b143ccf6e48d52083fc5a3a6fb"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/badge.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "ec778ee86e2a655879584633d8f41801"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/progress.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "eb2fbd897bb7afc86535a73fefea8015"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/tabs.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "5c76963bd5154b16013c2bae9a9cb9dc"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/input.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "20c7d814efed7c1cb30937a9bcca5089"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/page.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "a82c43de54fabe1866f5b45423af588e"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/dropdown-menu.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "3acbda0132f38060692bd4c207f03b72"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/table.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "c0680fc2bdf47ca7a0f189a4465c0886"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/card.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "e23ed8158c4e56f0e900dd0a3fe2f476"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/avatar.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "cfd6e1f64371df4f19bc418418ebf003"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/separator.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "5f255f9bef54a83b73f7d053447f51a3"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/scroll-area.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "f751e5bdb19889deeeada11d6ae59bd2"
+  },
+  "/home/andre/neuro/neuro-frontend/components/ui/button.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "d23146ad1047c2ae116c92bc3fc28d5a"
+  },
+  "/home/andre/neuro/neuro-frontend/components/layout/AppSidebar.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "dc0ef48a63f07b38ed6481564c82b37b"
+  },
+  "/home/andre/neuro/neuro-frontend/components/layout/AppHeader.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "eddb3fbd087fc6a61c2e20aab52dab60"
+  },
+  "/home/andre/neuro/neuro-frontend/components/layout/AppLayout.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "b491069f9aef614cf5e40e2c191c6aed"
+  },
+  "/home/andre/neuro/neuro-frontend/components/evaluations/EvaluationHeader.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "e53b145aadd5c49e3f9cb5ab5e98fb8f"
+  },
+  "/home/andre/neuro/neuro-frontend/components/evaluations/EvaluationTabs.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "33ddf3b5e56023608417a4694abea4a4"
+  },
+  "/home/andre/neuro/neuro-frontend/components/charts/FDTChart.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "f724be6e8b305c46183ffcc51fb04cd3"
+  },
+  "/home/andre/neuro/neuro-frontend/components/charts/RAVLTChart.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "08f1aa0dc65d99455af60b265d79b2c6"
+  },
+  "/home/andre/neuro/neuro-frontend/components/charts/WiscChart.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "a17ce5dab6be7bb6c8c53ab004174ed7"
+  },
+  "/home/andre/neuro/neuro-frontend/components/anamnesis/ReviewSummary.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "43b503c2f4adda872d969448565b9715"
+  },
+  "/home/andre/neuro/neuro-frontend/components/anamnesis/ProgressHeader.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "919bfc45d3e35f917a45c7153c0eea48"
+  },
+  "/home/andre/neuro/neuro-frontend/components/anamnesis/InternalAnamnesisEditor.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "6c2aebaaa0d1b112e17a0798d6d29364"
+  },
+  "/home/andre/neuro/neuro-frontend/components/anamnesis/types.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "091c615aa91cdfa377e670b0e30c19ff"
+  },
+  "/home/andre/neuro/neuro-frontend/components/anamnesis/AnamnesisResponseViewer.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "ee7cea5d3223d2e3ec77a83ee478e44b"
+  },
+  "/home/andre/neuro/neuro-frontend/components/anamnesis/FormStepRenderer.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "8b0616624399241c5a06f19f5a91ef62"
+  },
+  "/home/andre/neuro/neuro-frontend/components/anamnesis/RepeaterField.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "78561f5a060cff096b5607ebf56c547f"
+  },
+  "/home/andre/neuro/neuro-frontend/components/anamnesis/FieldRenderer.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "5c2608f0810d30d3ffff56acb9d442ed"
+  },
+  "/home/andre/neuro/neuro-frontend/types/index.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "7e9b6b0524ff93504d0d0e0aad0f6cc5"
+  },
+  "/home/andre/neuro/neuro-frontend/types/evaluation.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "44614a4eeefe5dbb083b4176c2c8b713"
+  },
+  "/home/andre/neuro/neuro-frontend/types/shared.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "cb18bd2e475e6bc6ee54d93e8fc8736c"
+  },
+  "/home/andre/neuro/neuro-frontend/types/patient.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "645c498f29c25f85c1199cb4d4df6b21"
+  },
+  "/home/andre/neuro/neuro-frontend/types/tests/wisc4.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "94f9e4d94512937cbb5e45d40fe1ee96"
+  },
+  "/home/andre/neuro/neuro-frontend/services/wisc4Service.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "0f2650004a359d8ec5b65089200ab306"
+  },
+  "/home/andre/neuro/neuro-frontend/services/anamnesisService.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "5059b08c24892a0bce3e195bdacf9c87"
+  },
+  "/home/andre/neuro/neuro-frontend/services/evaluationService.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "f3a99ba57ba7caef366023f57e817fff"
+  },
+  "/home/andre/neuro/neuro-frontend/services/documentService.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "d08d9e36a39a961ad06d19f987944d6c"
+  },
+  "/home/andre/neuro/neuro-frontend/services/index.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "9f2b1dce4bbdff18d722cbbf44685d62"
+  },
+  "/home/andre/neuro/neuro-frontend/services/reportService.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "ebce867a7035679aa6c18b235b4fbfb2"
+  },
+  "/home/andre/neuro/neuro-frontend/services/testService.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "2b68dcaeb32f53c68493475bbf6be5f3"
+  },
+  "/home/andre/neuro/neuro-frontend/services/patientService.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "d468e7357295ddea0b01b37276ea406b"
+  },
+  "/home/andre/neuro/neuro-frontend/app/layout.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "147ae436955924ba9518ce50c2d89137"
+  },
+  "/home/andre/neuro/neuro-frontend/app/page.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "9557e6b78399d536793f3f7c6cffd124"
+  },
+  "/home/andre/neuro/neuro-frontend/app/forgot-password/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "77241dd6552ef3b6508cdb5c639b1c3c"
+  },
+  "/home/andre/neuro/neuro-frontend/app/public/anamnesis/[token]/page.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "71aa7cac7858736c9543223f7dfe688e"
+  },
+  "/home/andre/neuro/neuro-frontend/app/reset-password/page.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "4d6a4fd15d74e5df4941221da10f7b66"
+  },
+  "/home/andre/neuro/neuro-frontend/app/register/page.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "898acd9d7c254fdd1e35dccf2930ba5f"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/layout.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "4910ef7a69795d38340a23c3e2c4969d"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "c8d4e039bdeec47150f812a9e60a312f"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/patients/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "0292f1a7abb4d562da2bf324a7c7a314"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/patients/[id]/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "56336d88f56092f0adf4b63e51d33fa1"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/patients/[id]/edit/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "6cb67ae279f2d86ab535831ec8fe9171"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/patients/new/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "013c3d1baa9d68a5d177257df7b96ce6"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/accounts/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "1f2b421450bcc74c9e3efe3bcf0cc0db"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/ai/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "bd30879ceddc0457b5132c53a9b70e33"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "6e2aedb0dbaccee573947a098777a7ba"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/cars2-hf/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "ba662f7ddda0cd96caf2743239203c30"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/cars2-hf/page.client.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "22f22b4b52521abc2e4fd110ba0422fe"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/cars2-hf/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "cc9cd1300258e2d071902304a6943678"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/scared/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "04d19810b3bc4eb73bf60ddb624d8797"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/scared/[id]/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "8c9d42e56669cf902a08d167e0556c2f"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/scared/[id]/result/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "b744ad43e6121ad429e342667ea01f84"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/srs2/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "5dd6d99664d9914a10f5b54fa4645c1f"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/srs2/[id]/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "aa8a5e19e7e5b8fd813c72bf7a99e88a"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/srs2/[id]/result/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "8743e4ee4374b04189c7d32912d2d071"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/etdah-pais/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "10f98bf96ebe79d634f71061886efbf9"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/etdah-pais/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "c91ca582f772b436de4f17f498801040"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/etdah-pais/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "da269dda68b51750686d8ded3b59dae3"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/fdt/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "ca4238674ce7cd44eeba870a5bc7bbdd"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/fdt/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "ecd1f7db9a1d2a76134440d9e5c1722e"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/fdt/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "f87630870da344417c49f011abadea91"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bpa2/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "817a37248d565677500a32193506ee14"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bpa2/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "ee354bddc2ec5460b708ee647345d524"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bpa2/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "83e70c9bf6e8b8a7c38cdf9c6a2dc558"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ravlt/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "e6ca0ba3eb11b1c102e1dda11d793eb3"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ravlt/[id]/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "4a29d58e64c22b865657c814091cf585"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ravlt/[id]/result/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "a367d7647924a6797dc5bb4a03608de1"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wais3/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "ceb6bf0ce412d98a8b77f9de50b35291"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wais3/[id]/result/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "8f9a915c7c822be0dc6cdb9ee3f354ca"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/mchat/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "4f798d0721ef7d3cf158db3946efa34b"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/mchat/page.client.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "0cb20d6a5dd9c28da64193a3939ff88a"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/mchat/[id]/result/page.tsx": {
+    "mtime": 1778177260.2470403,
+    "hash": "e0bf96f016d387742ce88b89e4a65314"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ebadep-ij/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "b57ff1909b1aa9348c96bef30552c574"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ebadep-ij/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "0c745d7f0ea806c63cdd22423548a2a1"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ebadep-ij/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "83a76d48ca24a2130999319d7d043fbc"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wisc4/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "72ef96e10436188781a554674407f737"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wisc4/[id]/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "75f2e70049d0bcb3eefd0a99f1d75679"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wisc4/[id]/result/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "57a0e20bbd58290e607a716bfc90c6e7"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/epq-j/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "f7502b310d819b0960e39dbc88e9e9ce"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/epq-j/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "d5be7feb655c94ba7a4ec4035069e97e"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/epq-j/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "dce611d35316b337b0e6bb4e5fd745d6"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wasi/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "5ec076d8f0b57268fed9315959eaca4f"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wasi/data.ts": {
+    "mtime": 1778177260.2555802,
+    "hash": "2bcafe73539d3c3edbad28affa0a7286"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wasi/[id]/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "45f18f9689f77672f1b999795825bf84"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/wasi/[id]/result/page.tsx": {
+    "mtime": 1778177260.2555802,
+    "hash": "87a40d991015c1d8318bbd011812392a"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/etdah-ad/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "615865fbb642ceb7cdd1520b5114fade"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/etdah-ad/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "5c3a97e0d8fe138c0ee5eab5393dcb1a"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/etdah-ad/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "76af911710bd909a9b2d885726410fc6"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bfp/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "4db03b540c1eb933a14c5bfdab59ddd3"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bfp/data.ts": {
+    "mtime": 1778177260.2427702,
+    "hash": "1196165db09bd6604aee79a154b98d79"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bfp/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "9401a213a763a5879b2d23305c7d2f60"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bfp/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "39692dfe6820b42b15f6440847dd2dc8"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bai/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "ada25e1179895945ecf60901a9dff5ed"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bai/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "92ddc2986f5d6d97a55440b9c07cc568"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/bai/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "3aba242619eaee40937cde75344ab238"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ebadep-a/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "83f3b63da142ece316c243a3a0ec0899"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ebadep-a/[id]/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "802c4e68eed1cff4c22b86868279eb8e"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/tests/ebadep-a/[id]/result/page.tsx": {
+    "mtime": 1778177260.2427702,
+    "hash": "a5efa18f3cb600c889b010b8d79a84f4"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "48700c9dd5bed02c623a69a94277050d"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/layout.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "cd1c23e9256ab9ebd43867b0a283e210"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "0de18d1a0df45fdf0c2e96a8ed011cb8"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/report/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "c76b2e89fae701667f236bf33e3c113b"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/progress/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "eacb3d556d06e2cb9c313c4a15ed8767"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/tests/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "392ba0a5a207fe73247d1c7818d6c7ec"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/edit/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "dac6c13efb4b71cb8b9c4b42e9f8bb08"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/overview/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "8b019975e91798db4526c9d3085458a2"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/documents/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "c46f96dc8cfc603c91aa8d301e3ffa7d"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/anamnesis/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "4b745b9d57918d88bb28debc13d76d7f"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/anamnesis/[anamnesisId]/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "a609e00ba0e9c624e6f712316fc3856e"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/[id]/anamnesis/new/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "1166933fb680738d1c0c49274daf663a"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/evaluations/new/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "a7a5572c3ad53ec24d4195ff0663791e"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/settings/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "0669a62539dcc2a6cf938f0c30103370"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/documents/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "7e549f7da100615e03ac2fd678457c0b"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/reports/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "4385ad1da4386e6d4ae988d129905e6a"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/reports/[id]/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "212e5a7b403f4a9c81643e604e0a5af2"
+  },
+  "/home/andre/neuro/neuro-frontend/app/dashboard/reports/generate/[evaluationId]/page.tsx": {
+    "mtime": 1778177260.2385004,
+    "hash": "fe94492e7fc5467fbd50ec09b0684aa0"
+  },
+  "/home/andre/neuro/neuro-frontend/app/login/page.tsx": {
+    "mtime": 1778177260.25985,
+    "hash": "ef35e7556098a6cc06c5ed97081cbcd8"
+  },
+  "/home/andre/neuro/neuro-frontend/lib/evaluation-deadline.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "04f10b37feb2ca1d51e4a2dc927be008"
+  },
+  "/home/andre/neuro/neuro-frontend/lib/api.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "0693088e1e65cb3d43a4a432554cb694"
+  },
+  "/home/andre/neuro/neuro-frontend/lib/utils.ts": {
+    "mtime": 1778177260.25985,
+    "hash": "ea1c194ee828369e6fcdde84b4d8b8ba"
+  },
+  "/home/andre/neuro/files/gerar_laudo.py": {
+    "mtime": 1778177259.9225252,
+    "hash": "a67625ed8b3264cf933979576b75b990"
+  },
+  "/home/andre/neuro/config/__init__.py": {
+    "mtime": 1778177259.9139855,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/home/andre/neuro/config/asgi.py": {
+    "mtime": 1778177259.9139855,
+    "hash": "2825020270432e0d915c5e21e75de1a9"
+  },
+  "/home/andre/neuro/config/wsgi.py": {
+    "mtime": 1778177259.9182553,
+    "hash": "5e4199a2b652dbc955794d1c29c93fc7"
+  },
+  "/home/andre/neuro/config/urls.py": {
+    "mtime": 1778177259.9182553,
+    "hash": "e2812aff24fa87c08be2ba8df9828b95"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/autocomplete.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "01591ab27be76a799fe8051c4e81ab91"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/urlify.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "ae970a8202121d365888c4fb110e3564"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/popup_response.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "96190d343c22b6530b07517d995018ae"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/prepopulate_init.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "6cac7f3105b86816ad13714ca1a2f79e"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/change_form.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "9d8ca4f96b75fc3c53e3f05c5a7bfb4e"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/prepopulate.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "bd2361dfd64d2183823dc84b0d82801c"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/cancel.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "ecc4c5ca7b320db9ec67785d7ab4bc65"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/calendar.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "1ba287b592e82a5193ad1db0369c20f3"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/filters.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "0e360b7a9f80ef8889781e59bc828e65"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/actions.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "f1d5653edb592c4d14e3592f755e799a"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/SelectBox.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "7d3ce5a9800705ffbd8e6eaa2009fb09"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/inlines.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "89b3c627c5dc2e92584e824929130fa0"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/SelectFilter2.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "6f887636b8dcf6a89809b38b369997a3"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/jquery.init.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "b7781a0897fc89389201ee3da15e900f"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/nav_sidebar.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "3b9190d420b144427a4d38346e7c6506"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/core.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "7e257fdf56dc00a1969102a9518778e2"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/theme.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "91cf832f559eee72daf4d5b1448877cb"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/jquery/jquery.min.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "2c872dbe60f4ba70fb85356113d8b35e"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/jquery/jquery.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "12e87d2f3a4c8b347ab13a0764d420a3"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/xregexp/xregexp.min.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "f1ae4617847c53634ea8a83f81e34cb2"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/xregexp/xregexp.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "a7e08b0ce6864ff99e850aef98ca6932"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/select2.full.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "c2afdeda30583c460d6db9778ba92cde"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/select2.full.min.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "fcd7500d8e13d2b2aae5d3956dc3e21d"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ne.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "3d79fd3f08dbfd0973cf91dd6a62bccd"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/sv.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "7a9c2f71e7779a263b2cf3520b1aa611"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ja.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "170ae885d74f1634271e1eb470cb4621"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/he.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "e420ff6cd3ed77ab9271c9b3d441442c"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/gl.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "d99b1fedaa86d011818cfbab11dd355c"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/fr.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "05e0542fcfe6df5ab074a377dc1a5a9b"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/de.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "8a1c222b0204c8faaf6d3c07c961d8aa"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ps.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "38dfa47af9e086eece5a333d711abc79"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/fa.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "3b5bd1961cfd0a6f96ac4cd2ea16c243"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/et.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "2b96fd98289dc3fc5e61f21e6e1a7d52"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/az.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "270c257daf8140a0cf23ad5de6f8ed1b"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/pt-BR.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "e1b294433e7fc3175842ce37b9f15014"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/bn.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "6d42b4dd5665d0fa28f06994eedb4899"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/hi.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "70640d41628f36284af78b22ea8b283b"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/fi.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "614ec42aa9baaf687ab9ff44705dfd2e"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ca.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "a166b745933a48ce3d0580a74210617d"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/cs.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "4f43e8e7d33aa1e6aadf3286c7e379e9"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/is.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "3ddd9a6a97e93e1910210c9eefc1bca1"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/dsb.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "56372c92d2f1bcb2b8e382981dca0546"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/uk.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "8cede7f4803c7dbd1e8261bfa1932b7c"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/pl.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "6031b4f164521f58dfec7d1e46238861"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/sl.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "131a78bc075237a13750ead3807683d2"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/tk.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "7c572a68c78fb798f11f7d8c78ebb9d6"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/sq.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "5636b60d29c9bdd55f18a4585746b6d1"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/hr.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "a2b092cc1147f07b978145d407c67fa1"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/zh-CN.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "2cff662ec5f972b4613566cf5988cda2"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/nl.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "997868a37ed89062ad7b19c9a88f1bb0"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/bs.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "91624382358e95086b80f00fa0bd6955"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/sk.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "33d02cef8d110f358acd1624f7f79ffe"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/sr.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "5ed85a48f483d17a7ad102832cb11ea1"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ko.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "e7be6c20e67393698a0f05971e9720c1"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/km.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "c23089cb06ca871153ba9bfe8458a378"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/id.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "04debded514d3962bb74f05532e793d4"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/af.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "4f6fcd73488ce79fae1b7a90aceaecde"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ms.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "4ba82c9a51ce975fe0e4eff5f6eece65"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/el.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "27097f071856a0f4e82298fe407d1eac"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/tr.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "b5a0643d1545f4a3e1622e65e46ddc7c"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/hu.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "6ec6039cb8a354e2bc6a1794f729caae"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/es.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "66dbc2652fb1b769bf29058e707b43c8"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/nb.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "da2fce143f2794208e36dc8520e4c36a"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/lt.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "23c7ce903300fc118947994b9cdd16cb"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/en.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "cf932ba09a98fe11bde8e1f3dd5e2cfa"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/pt.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "33b4a3b44d437614b83497e36c138ca9"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/hsb.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "fa3b55265efe8f4182d5e65a1a506252"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/bg.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "39b8be30d4f06779839cfaaa415d0690"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/zh-TW.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "04554a227c2ba0f3bb6ca3d2e01e5440"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/da.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "766346afe4dd72c003242cfb1cbe2617"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/it.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "be4fe8d365b5916432504d1f98e2e0af"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/eu.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "adfe5c97b72c20bb0afbc0968b440e50"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/th.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "f38c20b0221b68924d6c8f0773cb252d"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/vi.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "097a5b75b3e146e2d94ab8e1510be607"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/sr-Cyrl.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "f254bb8c4c7ce00d9d17e9e91945ad9b"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ar.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "65aa8e36bf5da57ff4e3f22a835ab035"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ka.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "2083264a54f0873f55468affa796d61e"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/mk.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "dabbb90871300ce3a295969bc0260420"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ro.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "f75cb460ec3b98b4b9017e9513ca20cf"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/lv.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "08e62128eac1d0e8ac32cfaf75f2ec9f"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/ru.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "934aa95f5b5f32c72c80857bb2622074"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/i18n/hy.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "c7babaeef5a625566434ea79b19d4c7e"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/admin/DateTimeShortcuts.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "5a6d4ad120242202b2e1b27d569dae52"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/admin/RelatedObjectLookups.js": {
+    "mtime": 1778177259.9139855,
+    "hash": "ed6240809a40f155dd9c6ada9ba6a96a"
+  },
+  "/home/andre/neuro/config/settings/__init__.py": {
+    "mtime": 1778177259.9139855,
+    "hash": "644af84ff1e90cf8cd72fefc7657b7ad"
+  },
+  "/home/andre/neuro/config/settings/local.py": {
+    "mtime": 1778177259.9139855,
+    "hash": "a427a80976240275db3a8108d319ce4f"
+  },
+  "/home/andre/neuro/config/settings/base.py": {
+    "mtime": 1778177259.9139855,
+    "hash": "8a19ec6dd512e1b85ae801152f52b2b7"
+  },
+  "/home/andre/neuro/config/settings/production.py": {
+    "mtime": 1778177259.9139855,
+    "hash": "fc4a1322a827631a1a68e0c1bb4f5731"
+  },
+  "/home/andre/neuro/docker-compose.prod.yml": {
+    "mtime": 1778177259.9225252,
+    "hash": "bff9e13fa821da7080f3df021020fa31"
+  },
+  "/home/andre/neuro/graphify-out/converted/test_laudo_complete_5765c567.md": {
+    "mtime": 1778265389.6339793,
+    "hash": "c81a05af3a7acb995725a0d0c34ef08e"
+  },
+  "/home/andre/neuro/analise_mensageria_revisada.md": {
+    "mtime": 1778177259.875556,
+    "hash": "72768d6b5b2892f6246383126ca91a5d"
+  },
+  "/home/andre/neuro/README.md": {
+    "mtime": 1778177259.875556,
+    "hash": "5ff597eae78de7da571812e6d932ecef"
+  },
+  "/home/andre/neuro/implementacao_laudo_com_ia.md": {
+    "mtime": 1778177259.9908442,
+    "hash": "96c47285c5495fe686295672d0e00a6e"
+  },
+  "/home/andre/neuro/FRONTEND_STRUCTURE.md": {
+    "mtime": 1778177259.875556,
+    "hash": "dbb67cdce7074f54136d530aa2d9000e"
+  },
+  "/home/andre/neuro/VERCEL_DEPLOY.md": {
+    "mtime": 1778177259.875556,
+    "hash": "1f9af7fd784f94e1d16cc7045cd9e59e"
+  },
+  "/home/andre/neuro/DEPLOY.md": {
+    "mtime": 1778177259.875556,
+    "hash": "8f441594a3a2de8b6d32f5971406b0f7"
+  },
+  "/home/andre/neuro/graphify-out/converted/test_laudo_143_v3_rebuilt_7d287dbc.md": {
+    "mtime": 1778265389.6691794,
+    "hash": "853428fa3039656b8ad9c87123474bad"
+  },
+  "/home/andre/neuro/graphify-out/converted/test_laudo_final_09d40f8e.md": {
+    "mtime": 1778265389.7087793,
+    "hash": "765635d4cbf29f898ef8ee10998f8fbf"
+  },
+  "/home/andre/neuro/requirements.txt": {
+    "mtime": 1778177260.25985,
+    "hash": "03eda08c12918f063bd99228d616dec5"
+  },
+  "/home/andre/neuro/AGENTS.md": {
+    "mtime": 1778256180.260411,
+    "hash": "194fd830c2c5c7d8e850fb041e0a77c0"
+  },
+  "/home/andre/neuro/project_architecture.md": {
+    "mtime": 1778256295.2467594,
+    "hash": "ef6d44dc842ec0df3e5b8d6c79093a46"
+  },
+  "/home/andre/neuro/ANALISE_WAIS3_SKILL.md": {
+    "mtime": 1778177259.8243167,
+    "hash": "63def61e7d904c5ecff496af437eba0b"
+  },
+  "/home/andre/neuro/mapeamento_modelo_adolescente.md": {
+    "mtime": 1778177259.9908442,
+    "hash": "4d2e6ea7152a3a3614b573be93eff042"
+  },
+  "/home/andre/neuro/DOCKER_INSTRUCTIONS.md": {
+    "mtime": 1778177259.875556,
+    "hash": "4161046f9e0ccbd794e236ece2a3e308"
+  },
+  "/home/andre/neuro/graphify-out/converted/test_laudo_standard_4a2488f1.md": {
+    "mtime": 1778265389.7483795,
+    "hash": "1ad14bc3a0367d1dafdd91ff6e069af6"
+  },
+  "/home/andre/neuro/QWEN.md": {
+    "mtime": 1778177259.875556,
+    "hash": "8e4d5097dc8b6a254b2cce050742e578"
+  },
+  "/home/andre/neuro/TEST_WAIS3_PREVIEW.md": {
+    "mtime": 1778177259.875556,
+    "hash": "1305ee70d85b4ddc30a765dc729366f9"
+  },
+  "/home/andre/neuro/graphify-out/converted/test_laudo_clean_5cfff0a9.md": {
+    "mtime": 1778265389.7835793,
+    "hash": "ccc11f6a330cb647d47749459b32dd4a"
+  },
+  "/home/andre/neuro/graphify-out/converted/test_laudo_fresh_3cabb721.md": {
+    "mtime": 1778265389.8187795,
+    "hash": "81fe53336577fc0de35873522f8b4b3b"
+  },
+  "/home/andre/neuro/graphify-out/converted/test_laudo_143_v2_e15deee6.md": {
+    "mtime": 1778265389.8583794,
+    "hash": "635ca2157e6c9860f6575216602b8a02"
+  },
+  "/home/andre/neuro/DEPLOY_PRODUCAO.md": {
+    "mtime": 1778177259.875556,
+    "hash": "a1295b03c6c00f665f101ef01e4d4ccc"
+  },
+  "/home/andre/neuro/render.yaml": {
+    "mtime": 1778177260.25985,
+    "hash": "825f049b776d44014e370004fd49acd9"
+  },
+  "/home/andre/neuro/PROJECT_ARCHITECTURE.md": {
+    "mtime": 1778177259.875556,
+    "hash": "5c7b15fbae32aeb09230e79f41189ce8"
+  },
+  "/home/andre/neuro/docker-compose.yml": {
+    "mtime": 1778177259.9225252,
+    "hash": "beb026a21a649408ef09a4b1242868fd"
+  },
+  "/home/andre/neuro/COMANDOS_OLLAMA.md": {
+    "mtime": 1778177259.8243167,
+    "hash": "943791413cbb599bbc02096a88b4bc36"
+  },
+  "/home/andre/neuro/graphify-out/converted/Catarina__PEI_472ea43e.md": {
+    "mtime": 1778265389.9551795,
+    "hash": "3e57290800df1e2d7d656c15a36c5fa6"
+  },
+  "/home/andre/neuro/apps/ai/prompts/base_system_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "e31cfe8c56e561e975fea02ea42f30b8"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/etdah_pais_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "4af0e1640a8861ae975f5a5d007cafdb"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/capacidade_cognitiva_global_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "dee5f77519cebd15b942b10d0cec5f28"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/srs2_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "6461f9e95a1f55f3b2e61334b86c1142"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/aspectos_emocionais_comportamentais_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "9226499c620cf536c09becb4df18edcb"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/funcoes_executivas_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "04ff980742d02d2d694e809548406706"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/gnosias_praxias_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "3030fb524d11cc9e4e60d80ef90f369c"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/epq_j_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "53a09d09870163f006f54179d9f5b52e"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/capacidade_cognitiva_global_wais3_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "a165c8c482bfe0b1bbbd5fdc8cf7ae6c"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/linguagem_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "725ff0433414f588a7118336cce5b3b0"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/ravlt_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "48c2019ba8b90cfe61db191ca63e1533"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/scared_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "bb686ffe1f8dcdd324cf2d410299a8d2"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/bpa2_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "fd53f3568abb74cd8132c6a5eafa367b"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/attention_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "19bc4544d996cec06d98156ad8749691"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/fdt_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "d0742a4362323cc7de75963968c9a49b"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/ebadep_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "9e918719528bce3f243be6e826752a20"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/consistency_audit_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "2adb99efe8782845ed50cf70818f09ec"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/etdah_ad_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "6f2879650bd333c287b436bcbbb3cf74"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/conclusao_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "bc9cdcaa9f8fcf8ad94308f9e2de8cd2"
+  },
+  "/home/andre/neuro/apps/ai/prompts/reports/memoria_aprendizagem_prompt.txt": {
+    "mtime": 1778177259.8798258,
+    "hash": "ddcec30a62b6ef080b82aa26ad8b78c1"
+  },
+  "/home/andre/neuro/apps/tests/norms/bai/README.md": {
+    "mtime": 1778177259.9011755,
+    "hash": "022f431a8ffc08bfb8f4400ea0f23356"
+  },
+  "/home/andre/neuro/apps/tests/bai/ANALISE.md": {
+    "mtime": 1778177259.8883657,
+    "hash": "eb55e0bef9053e450eca96a8a22c4acd"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/README.md": {
+    "mtime": 1778177259.8883657,
+    "hash": "76f00a6f828c26ba828fa94c098aa846"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/skill_grafico_bai.md": {
+    "mtime": 1778177259.8926358,
+    "hash": "ea5d78004bf18f9600b5007a8ee48262"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/bai_skill_v2.md": {
+    "mtime": 1778177259.8926358,
+    "hash": "41ddd39fdbe29da58584da698f3070b4"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/apps/tests/norms/bai/README.md": {
+    "mtime": 1778177259.8926358,
+    "hash": "b488d770fe674e70a8b31f90a950f451"
+  },
+  "/home/andre/neuro/apps/reports/templates_assets/skill_laudo_wisc4_completo_padrao_ouro.md": {
+    "mtime": 1778177259.8883657,
+    "hash": "1ef09fc6bb5fb181a2d2e15877db8203"
+  },
+  "/home/andre/neuro/apps/reports/templates_assets/skill_completa_modelo_wasi.md": {
+    "mtime": 1778261013.5443883,
+    "hash": "c35aff78a062d0ed524e090e585a62e6"
+  },
+  "/home/andre/neuro/apps/reports/templates_assets/skill_modelo_wisc4.md": {
+    "mtime": 1778177259.8883657,
+    "hash": "0341f2d42d678a37d053b52690346847"
+  },
+  "/home/andre/neuro/apps/reports/templates_assets/skill_modelo_wais3.md": {
+    "mtime": 1778177259.8883657,
+    "hash": "61c02cc1cf9c95ab90fe9ac150f2873d"
+  },
+  "/home/andre/neuro/graphify-out/converted/modelo-wisc4_408958b4.md": {
+    "mtime": 1778265390.0343795,
+    "hash": "c7a5ff612bf5a90b0245b9ab116b0a17"
+  },
+  "/home/andre/neuro/graphify-out/converted/Modelo-WASI_e4d90850.md": {
+    "mtime": 1778265390.0827794,
+    "hash": "1809d35ecfde1db22a705b01fdc2daa2"
+  },
+  "/home/andre/neuro/neuro-frontend/walkthrough.txt": {
+    "mtime": 1778177260.25985,
+    "hash": "924783faa9bcd2ad1da6b2d51f7fbf75"
+  },
+  "/home/andre/neuro/graphify-out/converted/Laudo-Benjamin-Silva-dos-Santos_073909bf.md": {
+    "mtime": 1778265390.1223795,
+    "hash": "3055068ccb3ca1a53eeb34c923ab53a7"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/README.md": {
+    "mtime": 1778177259.9139855,
+    "hash": "2e7bc30d034a93a88a2ff0c164499100"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/css/vendor/select2/LICENSE-SELECT2.md": {
+    "mtime": 1778177259.9139855,
+    "hash": "f94142512c911b193a09e603fb0db26a"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/jquery/LICENSE.txt": {
+    "mtime": 1778177259.9139855,
+    "hash": "de877aa6d744cc160ff41c26a8e4811f"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/xregexp/LICENSE.txt": {
+    "mtime": 1778177259.9139855,
+    "hash": "b6fd2ceea8d3872d310a97a375ed26f9"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/js/vendor/select2/LICENSE.md": {
+    "mtime": 1778177259.9139855,
+    "hash": "f94142512c911b193a09e603fb0db26a"
+  },
+  "/home/andre/neuro/config/templates/patients/detail.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "d795e2635a7b5668d3e8589340ad8ef6"
+  },
+  "/home/andre/neuro/config/templates/patients/form.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "a514428038c64f7dfaf3401aefc5329c"
+  },
+  "/home/andre/neuro/config/templates/patients/list.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "a4b045286b72666c0de2ae6cfd3a00be"
+  },
+  "/home/andre/neuro/config/templates/base/base.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "0962e7e7d47a2350d7628df8b33b9abb"
+  },
+  "/home/andre/neuro/config/templates/partials/badge.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "8e7687fd29def1b44aa8fcb4d25e7499"
+  },
+  "/home/andre/neuro/config/templates/partials/pagination.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "584451a5b913886376d33b22212611fd"
+  },
+  "/home/andre/neuro/config/templates/partials/delete_modal.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "8d981dc2f9097ed708dca4b1ff90d8d9"
+  },
+  "/home/andre/neuro/config/templates/tests/ebadep_a_report.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "f52732cb34858276507f7bc5fb8cf947"
+  },
+  "/home/andre/neuro/config/templates/tests/wisc4_result.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "ede9a0295e52fc19fce1cb79a71c3c96"
+  },
+  "/home/andre/neuro/config/templates/tests/ebaped_ij_result.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "9b0423a995508a15c52bba8dfe772cf9"
+  },
+  "/home/andre/neuro/config/templates/tests/apply_for_patient.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "19b36a287dc8802c498f64b2d05230a8"
+  },
+  "/home/andre/neuro/config/templates/tests/bpa2_report.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "18b013028c0cb23574db826b52c82e1d"
+  },
+  "/home/andre/neuro/config/templates/tests/ebaped_ij_form.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "b1d7c4c057b45a5e13c9d7d5bbd1b843"
+  },
+  "/home/andre/neuro/config/templates/tests/ebadep_a_result.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "eae69642a399570aff3cdccaf4399219"
+  },
+  "/home/andre/neuro/config/templates/tests/ebaped_ij_report.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "81df7cd1a796f7c89f0bfaa8e9b8b238"
+  },
+  "/home/andre/neuro/config/templates/tests/ebadep_a_form.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "40d220c7a11c551a30c87377e95c6738"
+  },
+  "/home/andre/neuro/config/templates/tests/wisc4_form.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "dada091f9a5302f67868787a80ccf19a"
+  },
+  "/home/andre/neuro/config/templates/tests/bpa2_form.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "3ffc611bab1fe227b18216caa2db70ce"
+  },
+  "/home/andre/neuro/config/templates/tests/bpa2_result.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "2fdbf298452770af522bb7fef484712a"
+  },
+  "/home/andre/neuro/config/templates/tests/list.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "2af110667876c7c4fae470e130684c16"
+  },
+  "/home/andre/neuro/config/templates/evaluations/detail.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "f68ff26d551abdb9256acc2fe1b28874"
+  },
+  "/home/andre/neuro/config/templates/evaluations/form.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "da78d6d6460f28f246a085c44b577295"
+  },
+  "/home/andre/neuro/config/templates/evaluations/list.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "77777340db79e63189206f08b22f282b"
+  },
+  "/home/andre/neuro/config/templates/dashboard/index.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "88cc2141dda4340338d193fc9acd9c15"
+  },
+  "/home/andre/neuro/config/templates/reports/list.html": {
+    "mtime": 1778177259.9182553,
+    "hash": "3fb7c2aaf3e97b227ab1af3001fb1c2a"
+  },
+  "/home/andre/neuro/media/documents/patient_2/evaluation_3/Avalia\u00e7\u00e3o_Funcional_ABC.pdf": {
+    "mtime": 1778177259.995114,
+    "hash": "157e117ac05b1da84d68173de019b3a1"
+  },
+  "/home/andre/neuro/apps/tests/ebaped_ij/EBADEP-IJ_modelo de relat\u00f3rio completo.pdf": {
+    "mtime": 1778177259.9011755,
+    "hash": "0920cd12b27195e58d624d6dd79c8efc"
+  },
+  "/home/andre/neuro/apps/tests/bai/bai_module/MODELO-BAI.pdf": {
+    "mtime": 1778177259.8883657,
+    "hash": "97387387c0a3d7b3a6ed64955986d555"
+  },
+  "/home/andre/neuro/media/documents/patient_2/evaluation_1/bams.jpg": {
+    "mtime": 1778177259.9908442,
+    "hash": "6d4fa82b347939886895c2fd662d97a8"
+  },
+  "/home/andre/neuro/media/documents/patient_2/evaluation_36/bams.jpg": {
+    "mtime": 1778177259.995114,
+    "hash": "6d4fa82b347939886895c2fd662d97a8"
+  },
+  "/home/andre/neuro/media/documents/patient_1/evaluation_37/WhatsApp_Image_2026-03-25_at_07.24.03.jpeg": {
+    "mtime": 1778177259.9908442,
+    "hash": "c7cb4874870bf12675f130b1390cab04"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-no-dark.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "b8cdf102c9f07bde75995b38a42a8ad1"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-debug.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "55d305d7061134eec42e3f5909cb9c2f"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-addlink.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "cf2357b7d0e64aaded73961759f06350"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-clock.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "e8021c090c7adcb6f6cfc20306d57bc5"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/search.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "b529c8b3d9fb2a3404bbd335430e07ed"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-unknown.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "a3f339db02b7d232dc1ec72b890f871a"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/selector-icons.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "0c131af266f6f08ca3dc972f54a11d77"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-alert-dark.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "0feae5205d73e773d30b7580efa78109"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/tooltag-add.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "16a3e1048c7ec7abbeaa8d6bcef8fbee"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-unknown-alt.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "36166323e5114708b616ee3d8c063101"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-yes-dark.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "89c587634cdd369676db3ebdd7333ce3"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-calendar.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "5ecf61f31b5da611ba5d264560f2098a"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-no.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "030751157345a2b3686cfb099d99f403"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-deletelink.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "d730f4e28ccec8f59bb594092176720f"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/inline-delete.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "f07da9f665803602212e5e04291335f9"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-debug-dark.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "54c8a9312862626544d112270421811c"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-info.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "8d7f595627bceb7e7797341ab1ed0dde"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-viewlink.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "4a14a61a9e85a181fbcf26a153ea0489"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-info-dark.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "d45fe10cd8bd7daf6af2c3d98e211a1b"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-changelink.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "b592a93b41be71d6a2161842bddbfbf2"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-alert.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "22a12b18ffea85a2decdc06c299aa6dc"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/sorting-icons.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "c9d975052c554dd4c53db50a121df061"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-yes.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "29488ce3e9f89457288095c6fb986965"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/calendar-icons.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "11b535e4a489d4e5c38a8b838c90dd4e"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/icon-hidelink.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "e152bbd564309fd176aa0777052aa6c9"
+  },
+  "/home/andre/neuro/config/staticfiles/admin/img/tooltag-arrowright.svg": {
+    "mtime": 1778177259.9139855,
+    "hash": "838d69f08fa99c8e6bbb5d92b4c1eeba"
+  }
+}

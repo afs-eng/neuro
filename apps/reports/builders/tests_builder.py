@@ -4,6 +4,7 @@ from apps.tests.bpa2.calculators import get_age_group as _get_bpa2_age_group
 from apps.tests.bpa2.calculators import load_table as _load_bpa2_table
 from apps.tests.base.types import TestContext
 from apps.tests.registry import get_test_module
+from apps.tests.selectors import get_test_applications_by_evaluation
 from apps.tests.selectors import get_validated_test_applications_by_evaluation
 from apps.tests.wais3.constants import WAIS3_ALL_SUBTESTS, classify_scaled_score
 from apps.tests.wais3.loaders import WAIS3NormLoader
@@ -275,14 +276,72 @@ def _build_bpa2_chart_data(payload: dict, evaluation, applied_on) -> dict:
 
 
 def _is_effectively_applied_test(item) -> bool:
+    instrument_code = getattr(getattr(item, "instrument", None), "code", "") or ""
+    raw_payload = getattr(item, "raw_payload", None) or {}
+    computed_payload = getattr(item, "computed_payload", None) or {}
+    classified_payload = getattr(item, "classified_payload", None) or {}
+    reviewed_payload = getattr(item, "reviewed_payload", None) or {}
+
+    if instrument_code == "bfp":
+        return bool(
+            getattr(item, "applied_on", None)
+            and (
+                (computed_payload.get("factors") or computed_payload.get("facets"))
+            or ((classified_payload or {}).get("factors") or (classified_payload or {}).get("facets"))
+            or ((raw_payload or {}).get("responses"))
+            )
+        )
+
+    if instrument_code == "scared":
+        return bool(
+            (classified_payload.get("analise_geral") or [])
+            or (raw_payload.get("responses") or {})
+            or computed_payload
+            or reviewed_payload
+        )
+
     return bool(
         getattr(item, "applied_on", None)
-        or getattr(item, "raw_payload", None)
-        or getattr(item, "computed_payload", None)
-        or getattr(item, "classified_payload", None)
-        or getattr(item, "reviewed_payload", None)
+        or raw_payload
+        or computed_payload
+        or classified_payload
+        or reviewed_payload
         or str(getattr(item, "interpretation_text", "") or "").strip()
     )
+
+
+def _application_signature(item) -> tuple[str, str]:
+    instrument_code = getattr(getattr(item, "instrument", None), "code", "") or ""
+    classified_payload = getattr(item, "classified_payload", None) or {}
+    raw_payload = getattr(item, "raw_payload", None) or {}
+    form_type = (
+        classified_payload.get("form_type")
+        or raw_payload.get("form")
+        or "default"
+    )
+    return instrument_code, str(form_type)
+
+
+def _select_report_applications(evaluation) -> list:
+    validated = list(get_validated_test_applications_by_evaluation(evaluation.id))
+    all_applied = list(get_test_applications_by_evaluation(evaluation.id))
+
+    selected: dict[tuple[str, str], object] = {}
+    for item in validated:
+        selected[_application_signature(item)] = item
+    for item in all_applied:
+        selected.setdefault(_application_signature(item), item)
+
+    def sort_key(item):
+        applied_on = getattr(item, "applied_on", None)
+        created_at = getattr(item, "created_at", None)
+        return (
+            applied_on.isoformat() if applied_on else "",
+            created_at.isoformat() if created_at else "",
+            getattr(item, "id", 0),
+        )
+
+    return sorted(selected.values(), key=sort_key)
 
 
 
@@ -600,7 +659,7 @@ def build_result_rows(instrument_code: str, payload: dict) -> list[str]:
 
 
 def build_validated_tests_snapshot(evaluation) -> list[dict]:
-    tests = get_validated_test_applications_by_evaluation(evaluation.id)
+    tests = _select_report_applications(evaluation)
     snapshots: list[dict] = []
 
     for item in tests:

@@ -3,6 +3,8 @@ from __future__ import annotations
 import matplotlib
 import matplotlib.pyplot as plt
 
+from apps.reports.specs import WASI_CHART_SPEC, WASI_LAYOUT_SPEC
+
 matplotlib.use("Agg")
 
 
@@ -12,15 +14,21 @@ def gerar_grafico_wasi_bytes(
     qi_total: int,
     dpi: int = 300,
 ) -> bytes | None:
-    labels = ["QI verbal", "QI Execução", "QI Total"]
+    labels = WASI_CHART_SPEC["labels"]
     valores = [qi_verbal, qi_execucao, qi_total]
     cores = ["#4472C4", "#ED7D31", "#70AD47"]
 
-    plt.rcParams["font.family"] = "Times New Roman"
+    plt.rcParams["font.family"] = WASI_LAYOUT_SPEC["font_family"]
 
     fig, ax = plt.subplots(figsize=(9.8, 4.0), dpi=dpi)
+    fig.patch.set_facecolor(WASI_CHART_SPEC["background_color"])
 
-    ax.axhspan(90, 110, color="#F4C2F4", alpha=0.35, zorder=0)
+    ax.axhspan(
+        *WASI_CHART_SPEC["average_band"],
+        color=WASI_CHART_SPEC["average_band_color"],
+        alpha=0.35,
+        zorder=0,
+    )
 
     barras = ax.bar(labels, valores, color=cores, width=0.32, zorder=2)
 
@@ -31,16 +39,34 @@ def gerar_grafico_wasi_bytes(
             str(valor),
             ha="center",
             va="bottom",
-            fontsize=10,
+            fontsize=WASI_CHART_SPEC["data_label_size_pt"],
             color="#333333",
         )
 
-    ax.set_title("WASI QIs", fontsize=18, color="#2F4F1F", pad=10)
+    ax.set_title(
+        WASI_CHART_SPEC["title"],
+        fontsize=WASI_CHART_SPEC["title_size_pt"],
+        color="#2F4F1F",
+        pad=10,
+    )
+    ax.set_ylabel(
+        WASI_CHART_SPEC["y_label"],
+        fontsize=WASI_CHART_SPEC["axis_label_size_pt"],
+    )
     ax.set_ylim(10, 130)
     ax.set_yticks([10, 30, 50, 70, 90, 110, 130])
 
-    ax.tick_params(axis="x", labelsize=10, colors="#4D4D4D")
-    ax.tick_params(axis="y", labelsize=9, colors="#4D4D4D", length=0)
+    ax.tick_params(
+        axis="x",
+        labelsize=WASI_CHART_SPEC["axis_label_size_pt"],
+        colors="#4D4D4D",
+    )
+    ax.tick_params(
+        axis="y",
+        labelsize=WASI_CHART_SPEC["axis_label_size_pt"],
+        colors="#4D4D4D",
+        length=0,
+    )
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -48,7 +74,7 @@ def gerar_grafico_wasi_bytes(
     ax.spines["bottom"].set_color("#CFCFCF")
     ax.spines["bottom"].set_linewidth(0.8)
 
-    ax.grid(False)
+    ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
 
     ax.plot([2.18, 2.48], [74, 74], color="#F4A3F4", linewidth=5, solid_capstyle="butt")
     ax.text(
@@ -85,15 +111,21 @@ def gerar_grafico_wasi(
 
     matplotlib.use("Agg")
 
-    labels = ["QI verbal", "QI Execução", "QI Total"]
+    labels = WASI_CHART_SPEC["labels"]
     valores = [qi_verbal, qi_execucao, qi_total]
     cores = ["#4472C4", "#ED7D31", "#70AD47"]
 
-    plt.rcParams["font.family"] = "Times New Roman"
+    plt.rcParams["font.family"] = WASI_LAYOUT_SPEC["font_family"]
 
     fig, ax = plt.subplots(figsize=(9.8, 4.0), dpi=300)
+    fig.patch.set_facecolor(WASI_CHART_SPEC["background_color"])
 
-    ax.axhspan(90, 110, color="#F4C2F4", alpha=0.35, zorder=0)
+    ax.axhspan(
+        *WASI_CHART_SPEC["average_band"],
+        color=WASI_CHART_SPEC["average_band_color"],
+        alpha=0.35,
+        zorder=0,
+    )
 
     barras = ax.bar(labels, valores, color=cores, width=0.32, zorder=2)
 
@@ -104,16 +136,34 @@ def gerar_grafico_wasi(
             str(valor),
             ha="center",
             va="bottom",
-            fontsize=10,
+            fontsize=WASI_CHART_SPEC["data_label_size_pt"],
             color="#333333",
         )
 
-    ax.set_title("WASI QIs", fontsize=18, color="#2F4F1F", pad=10)
+    ax.set_title(
+        WASI_CHART_SPEC["title"],
+        fontsize=WASI_CHART_SPEC["title_size_pt"],
+        color="#2F4F1F",
+        pad=10,
+    )
+    ax.set_ylabel(
+        WASI_CHART_SPEC["y_label"],
+        fontsize=WASI_CHART_SPEC["axis_label_size_pt"],
+    )
     ax.set_ylim(10, 130)
     ax.set_yticks([10, 30, 50, 70, 90, 110, 130])
 
-    ax.tick_params(axis="x", labelsize=10, colors="#4D4D4D")
-    ax.tick_params(axis="y", labelsize=9, colors="#4D4D4D", length=0)
+    ax.tick_params(
+        axis="x",
+        labelsize=WASI_CHART_SPEC["axis_label_size_pt"],
+        colors="#4D4D4D",
+    )
+    ax.tick_params(
+        axis="y",
+        labelsize=WASI_CHART_SPEC["axis_label_size_pt"],
+        colors="#4D4D4D",
+        length=0,
+    )
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -121,7 +171,7 @@ def gerar_grafico_wasi(
     ax.spines["bottom"].set_color("#CFCFCF")
     ax.spines["bottom"].set_linewidth(0.8)
 
-    ax.grid(False)
+    ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
 
     ax.plot([2.18, 2.48], [74, 74], color="#F4A3F4", linewidth=5, solid_capstyle="butt")
     ax.text(
@@ -136,7 +186,7 @@ def gerar_grafico_wasi(
     )
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.savefig(output_path, dpi=300, bbox_inches="tight", facecolor="white")
     plt.close(fig)
 
     return output_path

@@ -25,8 +25,11 @@ class OllamaProvider(BaseAIProvider):
         )
         response.raise_for_status()
         data = response.json()
+        raw = (data.get("response") or "").strip()
+        import re
+        raw = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
         return {
-            "content": (data.get("response") or "").strip(),
+            "content": raw,
             "provider": "ollama",
             "model": data.get("model") or self.model,
             "finish_reason": "stop" if data.get("done") else "unknown",

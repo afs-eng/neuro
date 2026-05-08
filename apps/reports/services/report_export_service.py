@@ -31,6 +31,7 @@ from docx.shared import Cm
 
 from apps.reports.charts import gerar_grafico_bpa_bytes, gerar_grafico_wasi_bytes
 from apps.reports.models import Report
+from apps.reports.specs import TABLE_LAYOUT_SPECS, WASI_CHART_SPEC, WASI_LAYOUT_SPEC, WASI_REPORT_SPEC, WASI_TABLE_SPECS
 from apps.reports.builders.references_builder import build_references
 from apps.reports.builders.wais3_report_builder import WAIS3ReportBuilder
 from apps.reports.services.report_context_service import ReportContextService
@@ -70,18 +71,22 @@ ET.register_namespace("cx8", "http://schemas.microsoft.com/office/drawing/2016/5
 
 class ReportExportService:
     TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates_assets"
-    LAUDOS_TEMPLATE_DIR = TEMPLATE_DIR / "laudos"
+    LAUDOS_TEMPLATE_DIR = TEMPLATE_DIR / "laudo-modelo"
     DEFAULT_TEMPLATE_PATH = LAUDOS_TEMPLATE_DIR / "PAPEL-TIMBRADO-MODELO.docx"
     WAIS3_TEMPLATE_PATH = LAUDOS_TEMPLATE_DIR / "Modelo-WAIS3.docx"
     WISC4_TEMPLATE_PATH = LAUDOS_TEMPLATE_DIR / "Modelo-WISC4.docx"
     WASI_TEMPLATE_PATH = LAUDOS_TEMPLATE_DIR / "Modelo-WASI.docx"
     TABLE_STYLE_SOURCE_PATH = WISC4_TEMPLATE_PATH
-    FONT_NAME = "Times New Roman"
+    FONT_NAME = WASI_LAYOUT_SPEC["font_family"]
     BODY_SIZE = Pt(12)
-    TABLE_SIZE = Pt(9)
-    TABLE_HEADER_SIZE = Pt(8)
+    TABLE_SIZE = Pt(WASI_LAYOUT_SPEC["table_size_pt"])
+    TABLE_HEADER_SIZE = Pt(WASI_LAYOUT_SPEC["table_header_size_pt"])
     TITLE_SIZE = Pt(12)
-    CAPTION_SIZE = Pt(9)
+    CAPTION_SIZE = Pt(WASI_LAYOUT_SPEC["caption_size_pt"])
+    TABLE_CELL_MARGIN_TOP = 30
+    TABLE_CELL_MARGIN_START = 60
+    TABLE_CELL_MARGIN_BOTTOM = 30
+    TABLE_CELL_MARGIN_END = 60
     BODY_FIRST_LINE_INDENT = Cm(1.5)
     BODY_LINE_SPACING = 1.5
     CHART_NS = {
@@ -135,6 +140,23 @@ class ReportExportService:
         "REFERÊNCIAS BIBLIOGRÁFICAS",
         "REFERENCIA BIBLIOGRÁFICA",
         "REFERÊNCIAS",
+    )
+    SKIP_PATTERNS = (
+        "Laudo", "Neuropsicológico", "Documento", "Familiares", "Finalidade",
+        "Masculino", "Feminino", "Data", "Segunda", "Edição", "Dígitos",
+        "Child", "Anxiety", "Related", "Emotional", "Disorders",
+        "Aprendizagem", "Auditivo", "Versão", "Pais", "História", "Pessoal",
+        "Não", "Sim", "Resultado", "Observação", "Índice", "Nota",
+        "Encaminhamento", "Interessado", "Autora", "Filiação", "Escolaridade",
+        "Profissão", "Gênero", "Paciente", "Capacidade Cognitiva", "Global",
+        "Wechsler", "Abreviada", "Escala", "Psicológica", "Conselho",
+        "Média", "Inferior", "Superior", "Média Superior", "Média Inferior",
+        "Abaixo", "Acima", "Faixa", "Limítrofe", "Muito Superior",
+        "Quociente", "Inteligência", "Escalas", "Primárias",
+        "Atenção", "Concentrada", "Dividida", "Alternada", "Processos",
+        "Automáticos", "Gráfico", "Cinco", "Grandes", "Fatores",
+        "Interpretação", "Clínica", "Cognição", "Social", "Comunicação",
+        "Análise", "Integrada", "Os", "Na", "Em", "Entre", "Diferenças",
     )
     logger = logging.getLogger(__name__)
 
@@ -366,7 +388,10 @@ class ReportExportService:
         context = ReportContextService.sync_report_context(report)
         context = dict(context) if isinstance(context, dict) else {}
         sections = {
-            section.key: str(section.content_edited or section.content_generated or "")
+            section.key: cls._sanitize_section_text_for_patient(
+                str(section.content_edited or section.content_generated or ""),
+                context,
+            )
             for section in report.sections.all()
         }
 
@@ -392,10 +417,20 @@ class ReportExportService:
                 cls._apply_base_styles(document)
                 cls._replace_simple_sections(document, report, sections, context)
                 cls._rebuild_qualitative_section(document, sections, context)
+                cls._populate_wasi_tables(document, context)
 
         cls._ensure_model_table_styles(document)
         cls._normalize_model_header_footer(document)
+
+        body = document._body._element
+        ns_c = "{http://schemas.openxmlformats.org/drawingml/2006/chart}"
+        charts_in_doc = [e for e in body.iter() if e.tag == f"{ns_c}chart"]
         cls._sanitize_generated_document(document, report, context)
+        if charts_in_doc:
+            cls._remove_invalid_content_after_references(document)
+
+        cls._validate_patient_identity(document, report, context)
+        cls._validate_unique_wasi_result(document)
 
         output = BytesIO()
         document.save(output)
@@ -403,6 +438,7 @@ class ReportExportService:
         header_footer_template_path = cls._header_footer_template_path(template_path, report, context)
         if header_footer_template_path.exists():
             docx_bytes = cls._restore_template_header_footer(docx_bytes, header_footer_template_path)
+
         pre_chart_docx_bytes = docx_bytes
         if cls._find_test(context, "wisc4"):
             docx_bytes = cls._populate_wisc4_excel_charts(docx_bytes, context)
@@ -463,6 +499,12 @@ class ReportExportService:
         for child in document._body._element.iterchildren():
             if cls._element_contains_chart(child):
                 blocks.append(deepcopy(child))
+        if blocks:
+            return blocks
+        ns_w = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+        for paragraph in document._body._element.iter(ns_w + 'p'):
+            if cls._element_contains_chart(paragraph):
+                blocks.append(deepcopy(paragraph))
         return blocks
 
     @classmethod
@@ -640,6 +682,39 @@ class ReportExportService:
         return ET.tostring(root, encoding='utf-8', xml_declaration=True)
 
     @classmethod
+    def _update_direct_chart_values(cls, value_node, values: list[float]):
+        c_ns = cls.CHART_NS["c"]
+        literal_node = value_node.find(f"{{{c_ns}}}numLit")
+        if literal_node is None:
+            literal_node = ET.SubElement(value_node, f"{{{c_ns}}}numLit")
+        existing_pts = {
+            pt.get("idx", str(i)): pt
+            for i, pt in enumerate(literal_node.findall(f"{{{c_ns}}}pt"))
+        }
+        pt_count = literal_node.find(f"{{{c_ns}}}ptCount")
+        if pt_count is None:
+            pt_count = ET.SubElement(literal_node, f"{{{c_ns}}}ptCount")
+        pt_count.set("val", str(len(values)))
+        for key, pt in list(existing_pts.items()):
+            try:
+                idx = int(key)
+            except ValueError:
+                idx = -1
+            if idx >= len(values):
+                literal_node.remove(pt)
+                existing_pts.pop(key, None)
+        for i, v in enumerate(values):
+            pt = existing_pts.get(str(i))
+            if pt is None:
+                pt = ET.SubElement(literal_node, f"{{{c_ns}}}pt")
+                pt.set("idx", str(i))
+            for child in list(pt):
+                if child.tag == f"{{{c_ns}}}v":
+                    pt.remove(child)
+            v_elem = ET.SubElement(pt, f"{{{c_ns}}}v")
+            v_elem.text = str(v) if v is not None else "0"
+
+    @classmethod
     def _update_chart_series(cls, root, index: int, categories: list[str], values: list[float]):
         series = cls._chart_series(root, index)
         if series is None:
@@ -652,7 +727,17 @@ class ReportExportService:
         category_node = series.find('c:cat', cls.CHART_NS)
         cls._inline_cached_reference(category_node)
         value_node = series.find('c:val', cls.CHART_NS)
+        if value_node is not None:
+            cls._inline_numeric_values(value_node)
+            cls._update_direct_chart_values(value_node, values)
         cls._inline_cached_reference(value_node)
+
+    @classmethod
+    def _update_chart_title(cls, root, title: str | None):
+        if not title:
+            return
+        for text_node in root.findall('.//c:title//a:t', cls.CHART_NS):
+            text_node.text = title
 
     @classmethod
     def _detach_chart_external_data(cls, root):
@@ -855,6 +940,31 @@ class ReportExportService:
         return chart_targets
 
     @classmethod
+    def _document_chart_reference_is_valid(
+        cls,
+        document_root,
+        rels_root,
+        package_names: set[str],
+    ) -> bool:
+        relationship_ns = "http://schemas.openxmlformats.org/package/2006/relationships"
+        relationship_type = (
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"
+        )
+        rel_map = {
+            rel.get("Id"): f"word/{rel.get('Target')}"
+            for rel in rels_root.findall(f"{{{relationship_ns}}}Relationship")
+            if rel.get("Type") == relationship_type and rel.get("Id") and rel.get("Target")
+        }
+        for chart in document_root.findall('.//c:chart', cls.CHART_NS):
+            rel_id = chart.get(f'{{{cls.CHART_NS["r"]}}}id')
+            if not rel_id:
+                return False
+            target = rel_map.get(rel_id)
+            if not target or target not in package_names:
+                return False
+        return True
+
+    @classmethod
     def _resolve_package_target(cls, source_part: str, target: str) -> str:
         source_path = PurePosixPath(source_part)
         if target.startswith('/'):
@@ -893,6 +1003,17 @@ class ReportExportService:
                         resolved = cls._resolve_package_target(source_part, target)
                         if resolved not in names:
                             return False
+
+                document_root = parsed_parts.get('word/document.xml')
+                document_rels_root = parsed_parts.get('word/_rels/document.xml.rels')
+                if document_root is None or document_rels_root is None:
+                    return False
+                if not cls._document_chart_reference_is_valid(
+                    document_root,
+                    document_rels_root,
+                    names,
+                ):
+                    return False
 
                 content_types = parsed_parts.get('[Content_Types].xml')
                 if content_types is None:
@@ -1278,7 +1399,8 @@ class ReportExportService:
     @classmethod
     def _populate_wasi_excel_charts(cls, docx_bytes: bytes, context: dict) -> bytes:
         replacements: dict[str, bytes] = {}
-        chart_targets = iter(cls._document_chart_targets(docx_bytes))
+        chart_targets = list(cls._document_chart_targets(docx_bytes))
+        chart_targets_iter = iter(chart_targets)
 
         def load_chart(name: str):
             with ZipFile(BytesIO(docx_bytes), 'r') as source_zip:
@@ -1288,7 +1410,7 @@ class ReportExportService:
             replacements[name] = ET.tostring(root, encoding='utf-8', xml_declaration=True)
 
         def next_chart_target() -> str | None:
-            return next(chart_targets, None)
+            return next(chart_targets_iter, None)
 
         wasi_test = cls._find_test(context, 'wasi')
         if wasi_test:
@@ -1366,6 +1488,8 @@ class ReportExportService:
             cls._update_chart_series(root, 0, categories, cls._srs2_chart_values(srs2_test))
             dump_chart(chart_name, root)
 
+        cls._zero_unused_wasi_charts(replacements, chart_targets, load_chart, dump_chart)
+
         source_buffer = BytesIO(docx_bytes)
         output_buffer = BytesIO()
         with ZipFile(source_buffer, 'r') as source_zip, ZipFile(output_buffer, 'w') as target_zip:
@@ -1376,7 +1500,19 @@ class ReportExportService:
                 if item.filename.startswith('word/charts/_rels/chart') and item.filename.endswith('.rels'):
                     data = cls._strip_external_chart_relationships(data)
                 target_zip.writestr(item, data)
-        return cls._prune_unused_chart_parts(output_buffer.getvalue())
+        return output_buffer.getvalue()
+
+    @classmethod
+    def _zero_unused_wasi_charts(cls, replacements: dict, all_chart_targets: list, load_chart, dump_chart):
+        used_targets = set(k for k in replacements.keys() if re.match(r'word/charts/chart\d+\.xml', k))
+        for target in all_chart_targets:
+            if target not in used_targets:
+                try:
+                    root = load_chart(target)
+                    cls._zero_chart_series(root)
+                    dump_chart(target, root)
+                except Exception:
+                    pass
 
     @classmethod
     def _build_fallback_document(cls, report: Report, context: dict):
@@ -1406,7 +1542,8 @@ class ReportExportService:
         )
         cls._append_label_value(document, "Idade", cls._age_text(context))
 
-        body_text = str(report.final_text or report.edited_text or report.generated_text or "")
+        raw_body_text = str(report.final_text or report.edited_text or report.generated_text or "")
+        body_text = cls._sanitize_section_text_for_patient(raw_body_text, context)
         if body_text.strip():
             for raw_line in body_text.splitlines():
                 line = raw_line.strip()
@@ -1422,7 +1559,8 @@ class ReportExportService:
         else:
             appended_section = False
             for section in report.sections.all():
-                section_text = str(section.content_edited or section.content_generated or "").strip()
+                raw_section_text = str(section.content_edited or section.content_generated or "")
+                section_text = cls._sanitize_section_text_for_patient(raw_section_text, context)
                 if not section_text:
                     continue
                 appended_section = True
@@ -1597,14 +1735,15 @@ class ReportExportService:
                 sections.get(section_key),
                 sections.get(fallback_section_key) if fallback_section_key else None,
                 test_payload,
+                context,
             )
 
         purpose = cls.FIXED_PURPOSE
 
-        cls._add_center_title(document, "LAUDO DE AVALIAÇÃO NEUROPSICOLÓGICA")
+        cls._add_center_title(document, WASI_REPORT_SPEC["title"])
         cls._add_center_text(
             document,
-            "De acordo com a Resolução de Elaboração de Documentos-CFP 006/2019",
+            WASI_REPORT_SPEC["subtitle"],
         )
 
         cls._append_heading(document, "1. IDENTIFICAÇÃO")
@@ -1845,7 +1984,7 @@ class ReportExportService:
                 append_table_with_interpretation(
                     cls._scared_rows(scared_test),
                     cls._scared_table_key(scared_test),
-                    cls._resolve_interpretation_text(None, None, scared_test),
+                    cls._resolve_interpretation_text(None, None, scared_test, context),
                     f"SCARED - Resultados {form_label}",
                 )
                 if not inserted_scared_pair:
@@ -2180,7 +2319,7 @@ class ReportExportService:
             "IDENTIFICAÇÃO": "DESCRIÇÃO DA DEMANDA",
             "DESCRIÇÃO DA DEMANDA": "PROCEDIMENTOS",
             "PROCEDIMENTOS": "ANÁLISE",
-            "ANÁLISE": "ANÁLISE QUALITATIVA",
+            "ANÁLISE": "ANÁLISE QUALITATIVA" if cls._find_paragraph(document, "ANÁLISE QUALITATIVA") else "Conclusão",
             "Conclusão": "Sugestões de Conduta (Encaminhamentos):",
             "Sugestões de Conduta (Encaminhamentos):": "Considerações Finais",
             "Referências Bibliográficas": None,
@@ -2212,12 +2351,56 @@ class ReportExportService:
         cls._normalize_document_spacing(document)
         cls._remove_invalid_content_after_references(document)
         cls._remove_empty_paragraphs(document)
-        cls._validate_patient_identity(document, report, context)
-        cls._validate_unique_wasi_result(document)
+        cls._replace_foreign_patient_names(document, context)
+
+    @classmethod
+    def _paragraph_contains_chart(cls, paragraph) -> bool:
+        return cls._element_contains_chart(paragraph._p)
+
+    @classmethod
+    def _replace_foreign_patient_names(cls, document: Document, context: dict):
+        patient_name = ((context or {}).get("patient") or {}).get("full_name")
+        if not patient_name:
+            return
+        patient_name = patient_name.strip()
+        if not patient_name:
+            return
+
+        foreign_names = cls._foreign_patient_names_in_text(
+            cls._document_text_before_references(document),
+            patient_name,
+        )
+        if not foreign_names:
+            return
+
+        full_doc_text = "\n".join(
+            paragraph.text or ""
+            for paragraph in document.paragraphs
+        )
+        if not foreign_names:
+            return
+
+        for foreign_name in foreign_names:
+            if foreign_name in full_doc_text:
+                cls._replace_name_in_document(document, foreign_name, patient_name)
+
+    @classmethod
+    def _replace_name_in_document(cls, document: Document, old_name: str, new_name: str):
+        for paragraph in document.paragraphs:
+            if cls._paragraph_contains_chart(paragraph):
+                continue
+            full_text = paragraph.text or ""
+            if old_name not in full_text:
+                continue
+            for run in paragraph.runs:
+                if old_name in (run.text or ""):
+                    run.text = (run.text or "").replace(old_name, new_name)
 
     @classmethod
     def _remove_invalid_paragraph_patterns(cls, document: Document):
         for paragraph in document.paragraphs:
+            if cls._paragraph_contains_chart(paragraph):
+                continue
             text = paragraph.text or ""
             updated = text
             for pattern in cls.INVALID_DOCX_PATTERNS:
@@ -2228,6 +2411,8 @@ class ReportExportService:
     @classmethod
     def _normalize_document_spacing(cls, document: Document):
         for paragraph in document.paragraphs:
+            if cls._paragraph_contains_chart(paragraph):
+                continue
             normalized = PtBrTextService.normalize(paragraph.text or "")
             normalized = re.sub(r"[ \t]{2,}", " ", normalized)
             normalized = re.sub(r"\s+([,.;:])", r"\1", normalized)
@@ -2257,6 +2442,8 @@ class ReportExportService:
     def _remove_empty_paragraphs(cls, document: Document):
         body = document._body._element
         for paragraph in list(document.paragraphs):
+            if cls._paragraph_contains_chart(paragraph):
+                continue
             if paragraph.text.strip():
                 continue
             parent = paragraph._p.getparent()
@@ -2264,15 +2451,19 @@ class ReportExportService:
                 body.remove(paragraph._p)
 
     @classmethod
-    def _validate_patient_identity(cls, document: Document, report, context: dict):
-        patient_name = ((context or {}).get("patient") or {}).get("full_name")
-        if not patient_name and getattr(report, "patient", None) is not None:
-            patient_name = getattr(report.patient, "full_name", "")
+    def _foreign_patient_names_in_text(cls, text: str | None, patient_name: str | None) -> list[str]:
         patient_name = (patient_name or "").strip()
         if not patient_name:
-            return
-
+            return []
         allowed_tokens = {token for token in patient_name.split() if token}
+        technical_tokens = {
+            "Raciocínio", "Matricial", "Execução", "Tabela", "Rey", "Auditory", "Verbal",
+            "Learning", "Test", "Flexibilidade", "Cognitiva", "Big", "Five", "Interações",
+            "Sociais", "Espectro", "Autista", "Pontuação", "Total", "Vocabulário",
+            "Semelhanças", "Cubos", "Pânico", "Sintomas", "Somáticos", "Ansiedade",
+            "Generalizada", "Separação", "Fobia", "Social", "Evitação", "Escolar",
+            "Percepção", "Cognição", "Comunicação", "Motivação", "Realização", "Abertura",
+        }
         ignored_names = {
             patient_name,
             cls.FIXED_AUTHOR.split("(", 1)[0].strip(),
@@ -2283,20 +2474,63 @@ class ReportExportService:
             "Teste dos",
             "Rey Auditory",
             "Escala Baptista",
+            "Bateria Fatorial",
+            "Social Responsiveness",
+            "Screen for Child",
+            "Rey Auditory Verbal Learning Test",
+            "Raciocínio Matricial",
+            "Flexibilidade Cognitiva",
+            "Interações Sociais",
+            "Espectro Autista",
+            "Pontuação Total",
+            "Big Five",
+            "Execução Tabela",
         }
         candidates = re.findall(
             r"\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)+\b",
-            cls._document_text_before_references(document),
+            text or "",
         )
         foreign_names = []
         for name in candidates:
             if name in ignored_names:
                 continue
-            first_name = name.split()[0]
+            if any(pattern.lower() in name.lower() for pattern in cls.SKIP_PATTERNS):
+                continue
+            words = name.split()
+            if len(words) < 2 or len(words) > 5:
+                continue
+            if all(word in technical_tokens for word in words):
+                continue
+            first_name = words[0]
             if name == patient_name or first_name in allowed_tokens:
                 continue
             if name not in foreign_names:
                 foreign_names.append(name)
+        return foreign_names
+
+    @classmethod
+    def _sanitize_section_text_for_patient(cls, text: str | None, context: dict) -> str:
+        patient_name = ((context or {}).get("patient") or {}).get("full_name") or ""
+        cleaned = str(text or "").strip()
+        if not cleaned:
+            return ""
+        if cls._foreign_patient_names_in_text(cleaned, patient_name):
+            return ""
+        return cleaned
+
+    @classmethod
+    def _validate_patient_identity(cls, document: Document, report, context: dict):
+        patient_name = ((context or {}).get("patient") or {}).get("full_name")
+        if not patient_name and getattr(report, "patient", None) is not None:
+            patient_name = getattr(report.patient, "full_name", "")
+        patient_name = (patient_name or "").strip()
+        if not patient_name:
+            return
+
+        foreign_names = cls._foreign_patient_names_in_text(
+            cls._document_text_before_references(document),
+            patient_name,
+        )
         if foreign_names:
             raise ValueError(
                 "Exportação bloqueada: o laudo contém nomes divergentes de pacientes: "
@@ -2516,36 +2750,42 @@ class ReportExportService:
     def _rebuild_qualitative_section(
         cls, document: Document, sections: dict[str, str], context: dict
     ):
-        start = cls._find_paragraph(document, "ANÁLISE QUALITATIVA")
-        end = cls._find_paragraph(document, "Conclusão")
-        if start is None or end is None:
+        has_analise_qualitativa = cls._find_paragraph(document, "ANÁLISE QUALITATIVA") is not None
+        has_conclusao = cls._find_paragraph(document, "Conclusão") is not None
+        
+        if has_analise_qualitativa and has_conclusao:
+            start = cls._find_paragraph(document, "ANÁLISE QUALITATIVA")
+            end = cls._find_paragraph(document, "Conclusão")
+            cls._remove_nodes_between(start, end)
+        else:
             return
-
-        template_chart_blocks = cls._extract_template_chart_blocks(document)
-        cls._remove_nodes_between(start, end)
+        
         tests = {
             item.get("instrument_code"): item
             for item in context.get("validated_tests") or []
         }
-        is_adolescent = cls._is_adolescent_document(document, context)
+        table_index = 1
+        chart_index = 1
         table_index = 1
         chart_index = 1
         anchor = start
+        template_chart_blocks = cls._extract_template_chart_blocks(document)
+        is_adolescent = cls._is_adolescent_document(document, context)
         template_chart_map = {}
-        if tests.get("wisc4"):
+        if tests.get('wisc4'):
             template_chart_map = {
-                "wisc4": template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
-                "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
-                "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
-                "fdt_auto": template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
-                "fdt_control": template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
-                "etdah_pais": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
-                "etdah_ad": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
-                "scared_pair": template_chart_blocks[7] if len(template_chart_blocks) > 7 else None,
-                "epq": template_chart_blocks[8] if len(template_chart_blocks) > 8 else None,
-                "srs2": template_chart_blocks[9] if len(template_chart_blocks) > 9 else None,
+                'wisc4': template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
+                'bpa2': template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
+                'ravlt': template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
+                'fdt_auto': template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
+                'fdt_control': template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
+                'etdah_pais': template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
+                'etdah_ad': template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
+                'scared_pair': template_chart_blocks[7] if len(template_chart_blocks) > 7 else None,
+                'epq': template_chart_blocks[8] if len(template_chart_blocks) > 8 else None,
+                'srs2': template_chart_blocks[9] if len(template_chart_blocks) > 9 else None,
             }
-        elif tests.get("wais3"):
+        elif tests.get('wais3'):
             wais3_template_chart_blocks = cls._extract_chart_blocks_from_template_path(
                 cls.WAIS3_TEMPLATE_PATH
             )
@@ -2553,34 +2793,34 @@ class ReportExportService:
                 cls.WISC4_TEMPLATE_PATH
             )
             template_chart_map = {
-                "wais3": (
+                'wais3': (
                     template_chart_blocks[0]
                     if len(template_chart_blocks) > 0
                     else wais3_template_chart_blocks[0]
                     if len(wais3_template_chart_blocks) > 0
                     else None
                 ),
-                "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
-                "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
-                "fdt_auto": template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
-                "fdt_control": template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
-                "etdah_ad": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
-                "scared_pair": (
+                'bpa2': template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
+                'ravlt': template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
+                'fdt_auto': template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
+                'fdt_control': template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
+                'etdah_ad': template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
+                'scared_pair': (
                     wisc4_template_chart_blocks[7]
                     if len(wisc4_template_chart_blocks) > 7
                     else None
                 ),
-                "srs2": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
+                'srs2': template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
             }
-        elif tests.get("wasi"):
+        elif tests.get('wasi'):
             template_chart_map = {
-                "wasi": template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
-                "bpa2": template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
-                "ravlt": template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
-                "fdt_auto": template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
-                "fdt_control": template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
-                "etdah_ad": template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
-                "srs2": template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
+                'wasi': template_chart_blocks[0] if len(template_chart_blocks) > 0 else None,
+                'bpa2': template_chart_blocks[1] if len(template_chart_blocks) > 1 else None,
+                'ravlt': template_chart_blocks[2] if len(template_chart_blocks) > 2 else None,
+                'fdt_auto': template_chart_blocks[3] if len(template_chart_blocks) > 3 else None,
+                'fdt_control': template_chart_blocks[4] if len(template_chart_blocks) > 4 else None,
+                'etdah_ad': template_chart_blocks[5] if len(template_chart_blocks) > 5 else None,
+                'srs2': template_chart_blocks[6] if len(template_chart_blocks) > 6 else None,
             }
 
         def add_title(text: str):
@@ -2649,6 +2889,7 @@ class ReportExportService:
                 sections.get(section_key),
                 sections.get(fallback_section_key) if fallback_section_key else None,
                 test_payload,
+                context,
             )
 
         def add_chart(
@@ -2748,7 +2989,7 @@ class ReportExportService:
                 add_text(f"- {lead} - {tail}")
             add_title(f"Desempenho {patient_title} no WASI")
             add_chart(
-                "WASI - INDICES DE QIS",
+                WASI_CHART_SPEC["title"],
                 cls._wasi_chart_image(tests.get("wasi")),
                 show_caption=True,
                 template_key="wasi",
@@ -2914,7 +3155,7 @@ class ReportExportService:
                     anchor = cls._insert_interpretation_block_after(
                         anchor,
                         cls._normalize_interpretation_text(
-                            cls._resolve_interpretation_text(None, None, scared_test)
+                            cls._resolve_interpretation_text(None, None, scared_test, context)
                         ),
                     )
                     if not inserted_scared_pair:
@@ -2972,6 +3213,7 @@ class ReportExportService:
                         sections.get("aspectos_emocionais_comportamentais"),
                         None,
                         ebadep_test,
+                        context,
                     )
                 )
 
@@ -3217,8 +3459,8 @@ class ReportExportService:
 
             verbal_rows = cls._wasi_subscale_rows(tests.get("wasi"), "verbal")
             if verbal_rows:
-                add_title("5.2.1. Escala Verbal")
-                add_table("Resultado da escala verbal", verbal_rows, "wisc")
+                add_title(WASI_TABLE_SPECS["verbal"]["section_title"])
+                add_table(WASI_TABLE_SPECS["verbal"]["caption"], verbal_rows, "wisc")
                 add_text(
                     cls._strip_markdown_heading_prefix(sections.get("linguagem"), "Linguagem")
                     or cls._wasi_verbal_interpretation_text(tests.get("wasi"), context)
@@ -3226,8 +3468,8 @@ class ReportExportService:
 
             execution_rows = cls._wasi_subscale_rows(tests.get("wasi"), "execucao")
             if execution_rows:
-                add_title("5.2.2. Escala de Execução")
-                add_table("Resultados da escala de execução", execution_rows, "wisc")
+                add_title(WASI_TABLE_SPECS["execucao"]["section_title"])
+                add_table(WASI_TABLE_SPECS["execucao"]["caption"], execution_rows, "wisc")
                 add_text(
                     cls._strip_markdown_heading_prefix(sections.get("gnosias_praxias"), "Gnosias e Praxias")
                     or cls._wasi_execution_interpretation_text(tests.get("wasi"), context)
@@ -3798,6 +4040,7 @@ class ReportExportService:
             None,
             None,
             test,
+            context,
         )
         normalized = cls._normalize_interpretation_text(interpretation)
         if normalized != "Interpretação e Observações Clínicas:":
@@ -4015,16 +4258,149 @@ class ReportExportService:
         return rows if len(rows) > 1 else None
 
     @classmethod
+    def _populate_wasi_tables(cls, document: Document, context: dict):
+        validated = context.get('validated_tests') or []
+        tests = {}
+        for item in validated:
+            if isinstance(item, dict):
+                code = item.get('instrument_code')
+                if code:
+                    tests[code] = item
+
+        for table in document.tables:
+            if not table.rows:
+                continue
+            header_row = table.rows[0]
+            cells_text = [c.text.strip() for c in header_row.cells]
+
+            if 'Escore Máximo' in cells_text and len(table.columns) >= 6:
+                subtest_names = [c.text.strip().lower() for c in (table.rows[1].cells if len(table.rows) > 1 else [])]
+
+                if any('vocabul' in name for name in subtest_names if name):
+                    wasi = tests.get('wasi')
+                    if wasi:
+                        payload = cls._wasi_payload(wasi)
+                        subtests = payload.get('subtests') or {}
+                        vc = subtests.get('vc') or {}
+                        sm = subtests.get('sm') or {}
+                        if len(table.rows) >= 2:
+                            table.rows[1].cells[4].text = str(vc.get('t_score') or vc.get('raw_score') or '-')
+                            table.rows[1].cells[5].text = vc.get('classification') or '-'
+                        if len(table.rows) >= 3:
+                            table.rows[2].cells[4].text = str(sm.get('t_score') or sm.get('raw_score') or '-')
+                            table.rows[2].cells[5].text = sm.get('classification') or '-'
+
+                elif any('cubo' in name for name in subtest_names if name):
+                    wasi = tests.get('wasi')
+                    if wasi:
+                        payload = cls._wasi_payload(wasi)
+                        subtests = payload.get('subtests') or {}
+                        cb = subtests.get('cb') or {}
+                        rm = subtests.get('rm') or {}
+                        if len(table.rows) >= 2:
+                            table.rows[1].cells[4].text = str(cb.get('t_score') or cb.get('raw_score') or '-')
+                            table.rows[1].cells[5].text = cb.get('classification') or '-'
+                        if len(table.rows) >= 3:
+                            table.rows[2].cells[4].text = str(rm.get('t_score') or rm.get('raw_score') or '-')
+                            table.rows[2].cells[5].text = rm.get('classification') or '-'
+
+            elif 'ATENÇÃO BPA' in cells_text or cells_text[0] == 'ATENÇÃO BPA':
+                bpa = tests.get('bpa2')
+                if bpa:
+                    sr = bpa.get('structured_results') or {}
+                    subtestes = sr.get('subtestes') or []
+                    subtest_map = {st.get('codigo'): st for st in subtestes}
+
+                    code_map = [('ac', 1), ('ad', 2), ('aa', 3), ('ag', 4)]
+                    for code, row_idx in code_map:
+                        if row_idx < len(table.rows) and len(table.rows[row_idx].cells) >= 4:
+                            st = subtest_map.get(code) or {}
+                            table.rows[row_idx].cells[1].text = str(st.get('total', '-'))
+                            table.rows[row_idx].cells[2].text = str(st.get('percentil', '-'))
+                            table.rows[row_idx].cells[3].text = st.get('classificacao', '-')
+
+            elif 'TESTE DOS CINCO DÍGITOS' in ' '.join(cells_text):
+                fdt = tests.get('fdt')
+                if fdt:
+                    computed = fdt.get('computed_payload') or {}
+                    metric_results = computed.get('metric_results') or []
+                    stage_totals = computed.get('stage_totals') or {}
+
+                    code_map = [
+                        (2, 'leitura'),
+                        (3, 'contagem'),
+                        (4, 'escolha'),
+                        (5, 'alternancia'),
+                        (6, 'inibicao'),
+                        (7, 'flexibilidade'),
+                    ]
+                    for row_idx, key in code_map:
+                        st = next((m for m in metric_results if isinstance(m, dict) and m.get('codigo', '').lower() == key), None)
+                        stage = stage_totals.get(key, {}) if isinstance(stage_totals, dict) else {}
+                        if st and row_idx < len(table.rows) and len(table.rows[row_idx].cells) >= 6:
+                            row = table.rows[row_idx]
+                            row.cells[2].text = cls._fmt_fdt_num(stage.get('tempo') if isinstance(stage, dict) else None) or cls._fmt_fdt_num(st.get('valor'))
+                            row.cells[3].text = str(stage.get('erros', '0') if isinstance(stage, dict) else '0')
+                            row.cells[4].text = cls._fmt_fdt_num(st.get('percentil_num')) if st.get('percentil_num') is not None else '-'
+                            row.cells[5].text = st.get('classificacao', '-')
+
+            elif 'Desempenho' in cells_text and 'A1' in cells_text:
+                ravlt = tests.get('ravlt')
+                if ravlt:
+                    classified = ravlt.get('classified_payload') or {}
+                    computed = ravlt.get('computed_payload') or {}
+                    resultados = classified.get('resultados') or computed.get('resultados') or []
+                    result_map = {r.get('variavel'): r for r in resultados if isinstance(r, dict)}
+
+                    chart_data = classified.get('chart') or computed.get('chart') or {}
+                    series_list = chart_data.get('series', [])
+                    obtenido_row = next((s for s in series_list if isinstance(s, dict) and s.get('key') == 'obtido'), None)
+                    obtenido_vals = (obtenido_row.get('values', []) if isinstance(obtenido_row, dict) else []) if obtenido_row else []
+
+                    labels = ['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'A6', 'A7', 'R', 'ALT', 'RET', 'I.P.', 'I.R.']
+                    if len(table.rows) >= 4 and len(table.rows[3].cells) >= len(labels) + 1:
+                        row = table.rows[3]
+                        for col_idx, label in enumerate(labels, 1):
+                            if label in result_map:
+                                r = result_map[label]
+                                val = r.get('bruto') if r.get('bruto') is not None else r.get('ponderado')
+                                if val is not None:
+                                    row.cells[col_idx].text = str(int(val)) if val == int(val) else f'{val:.2f}'.replace('.', ',')
+                            elif col_idx - 1 < len(obtenido_vals):
+                                val = obtenido_vals[col_idx - 1]
+                                if val is not None:
+                                    row.cells[col_idx].text = str(int(val)) if val == int(val) else f'{val:.2f}'.replace('.', ',')
+
+    @classmethod
+    def _fmt_fdt_num(cls, value):
+        if value is None:
+            return None
+        try:
+            return str(round(float(value), 2)).replace('.', ',')
+        except (TypeError, ValueError):
+            return str(value)
+
+    @classmethod
+    def _merge_nested_dicts(cls, base: dict, override: dict) -> dict:
+        merged = dict(base or {})
+        for key, value in (override or {}).items():
+            current = merged.get(key)
+            if isinstance(current, dict) and isinstance(value, dict):
+                merged[key] = cls._merge_nested_dicts(current, value)
+            else:
+                merged[key] = value
+        return merged
+
+    @classmethod
     def _wasi_payload(cls, test: dict | None) -> dict:
         test = test or {}
         merged = {}
         for source in (
-            test.get("computed_payload") or {},
             test.get("structured_results") or {},
-            test.get("composites") or {},
+            test.get("computed_payload") or {},
         ):
             if isinstance(source, dict):
-                merged.update(source)
+                merged = cls._merge_nested_dicts(merged, source)
         return merged
 
     @classmethod
@@ -4657,12 +5033,25 @@ class ReportExportService:
     @classmethod
     def _normalize_interpretation_text(cls, interpretation: str) -> str:
         label = "Interpretação e Observações Clínicas:"
-        text = PtBrTextService.normalize(cls._strip_markdown_emphasis(cls._strip_legacy_srs2_table(interpretation)))
+        text = PtBrTextService.normalize(
+            cls._strip_embedded_caption_lines(
+                cls._strip_markdown_emphasis(cls._strip_legacy_srs2_table(interpretation))
+            )
+        )
         if not text:
             return label
         if text.casefold().startswith(label.casefold()):
             return text
         return f"{label} {text}"
+
+    @staticmethod
+    def _strip_embedded_caption_lines(text: str | None) -> str:
+        cleaned = str(text or "").strip()
+        if not cleaned:
+            return ""
+        cleaned = re.sub(r"(?im)^\s*(?:Gr[áa]fico|Tabela)\s+\d+\s+.+$", "", cleaned)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        return cleaned.strip()
 
     @staticmethod
     def _strip_markdown_emphasis(text: str | None) -> str:
@@ -4751,32 +5140,84 @@ class ReportExportService:
         return cleaned
 
     @classmethod
+    def _wasi_candidate_has_stale_qi(cls, text: str | None, test_payload: dict | None) -> bool:
+        if not text or not test_payload:
+            return False
+        if test_payload.get("instrument_code") != "wasi":
+            return False
+        computed_composites = ((test_payload.get("computed_payload") or {}).get("composites") or {})
+        if not computed_composites:
+            return False
+
+        text_str = str(text)
+        qi_pattern = re.compile(
+            r"\b(\d{2,3})\b",
+            re.IGNORECASE,
+        )
+        stale_qi_count = 0
+        valid_qi_count = 0
+
+        composite_values = {
+            (computed_composites.get(k) or {}).get("qi")
+            for k in ["qi_verbal", "qi_execucao", "qit_4"]
+            if (computed_composites.get(k) or {}).get("qi") is not None
+        }
+
+        for match in qi_pattern.finditer(text_str):
+            qi_val = int(match.group(1))
+            if 60 <= qi_val <= 160:
+                if qi_val in composite_values:
+                    valid_qi_count += 1
+                else:
+                    stale_qi_count += 1
+
+        return stale_qi_count > 0 and stale_qi_count >= valid_qi_count
+
+    @classmethod
     def _resolve_interpretation_text(
         cls,
         primary_section: str | None,
         fallback_section: str | None,
         test_payload: dict | None,
+        context: dict | None = None,
     ) -> str:
-        candidates = [
-            primary_section,
-            fallback_section,
-            (test_payload or {}).get("clinical_interpretation"),
-            (test_payload or {}).get("summary"),
-            cls._fallback_test_interpretation(test_payload),
-        ]
+        if test_payload:
+            candidates = [
+                (test_payload or {}).get("clinical_interpretation"),
+                cls._fallback_test_interpretation(test_payload),
+                (test_payload or {}).get("summary"),
+                primary_section,
+                fallback_section,
+            ]
+        else:
+            candidates = [
+                primary_section,
+                fallback_section,
+            ]
 
         for candidate in candidates:
             cleaned = cls._strip_legacy_srs2_table(candidate)
-            if cleaned:
-                return cleaned
+            if context is not None:
+                cleaned = cls._sanitize_section_text_for_patient(cleaned, context)
+            if not cleaned:
+                continue
+            if (
+                test_payload
+                and test_payload.get("instrument_code") == "wasi"
+                and cls._wasi_candidate_has_stale_qi(cleaned, test_payload)
+            ):
+                continue
+            return cleaned
         
+        patient_name_for_interp = (((context or {}).get("patient") or {}).get("full_name") or "Paciente").split()[0] or "Paciente"
+
         if test_payload and test_payload.get("instrument_code") == "wais3":
             from apps.tests.wais3.interpreters import build_wais3_interpretation
             merged = {
                 **(test_payload.get("computed_payload") or {}),
                 **(test_payload.get("structured_results") or {}),
             }
-            return build_wais3_interpretation(merged, "Paciente")
+            return build_wais3_interpretation(merged, patient_name_for_interp)
 
         if test_payload and test_payload.get("instrument_code") == "wasi":
             from apps.tests.wasi.interpreters import build_wasi_interpretation
@@ -4784,7 +5225,7 @@ class ReportExportService:
                 **(test_payload.get("computed_payload") or {}),
                 **(test_payload.get("structured_results") or {}),
             }
-            return build_wasi_interpretation(merged, patient_name="Paciente")
+            return build_wasi_interpretation(merged, patient_name=patient_name_for_interp)
 
         return ""
 
@@ -4820,6 +5261,16 @@ class ReportExportService:
                 ),
             }
             return (interpret_srs2_results(merged_data) or "").strip()
+
+        if instrument_code == "wasi":
+            merged_data = {
+                **(test_payload.get("computed_payload") or {}),
+                **(test_payload.get("classified_payload") or {}),
+                **(test_payload.get("structured_results") or {}),
+            }
+            patient_name = (((test_payload or {}).get("patient_context") or {}).get("full_name") or "Paciente").split()[0] or "Paciente"
+            from apps.tests.wasi.interpreters import build_wasi_interpretation
+            return (build_wasi_interpretation(merged_data, patient_name=patient_name) or "").strip()
 
         if instrument_code == "bai":
             from apps.tests.bai.interpreters import get_report_interpretation
@@ -5619,182 +6070,49 @@ class ReportExportService:
 
     @classmethod
     def _format_table(cls, table, table_key: str):
-        table.style = "Table Grid"
+        table_spec = cls._table_layout_spec(table_key)
+        table.style = table_spec.get("style")
         table.alignment = (
-            WD_TABLE_ALIGNMENT.LEFT if table_key in {"wisc", "bpa"} else WD_TABLE_ALIGNMENT.CENTER
+            WD_TABLE_ALIGNMENT.LEFT
+            if table_spec.get("alignment") == "left"
+            else WD_TABLE_ALIGNMENT.CENTER
         )
         table.autofit = False
         cls._set_table_layout_fixed(table)
+        cls._set_table_cell_margins(
+            table,
+            top=cls.TABLE_CELL_MARGIN_TOP,
+            start=cls.TABLE_CELL_MARGIN_START,
+            bottom=cls.TABLE_CELL_MARGIN_BOTTOM,
+            end=cls.TABLE_CELL_MARGIN_END,
+        )
+        cls._apply_table_borders_profile(table_spec, table)
         cls._apply_table_widths(table, table_key)
         title_text = cls._table_title_text(table_key)
         for row_index, row in enumerate(table.rows):
             if row_index == 0:
                 cls._set_repeat_table_header(row)
             for cell_index, cell in enumerate(row.cells):
-                if table_key == "wisc":
-                    if row_index == 0:
-                        cls._set_cell_shading(cell, cls.WISC_HEADER_FILL)
-                    elif cell == row.cells[0]:
-                        cls._set_cell_shading(cell, cls.WISC_NAME_FILL)
-                    else:
-                        cls._set_cell_shading(cell, cls.WISC_VALUE_FILL)
-                elif table_key == "bpa":
-                    if row_index == 0 and title_text:
-                        cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
-                    elif row_index in {0, 1} and title_text:
-                        cls._set_cell_shading(cell, cls.BPA_HEADER_FILL)
-                    elif row_index == 0:
-                        cls._set_cell_shading(cell, cls.BPA_HEADER_FILL)
-                    else:
-                        cls._set_cell_shading(cell, cls.BPA_BODY_FILL)
-                elif table_key == "fdt":
-                    if row_index == 0 and title_text:
-                        cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
-                    elif row_index in {0, 1}:
-                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
-                    elif cell == row.cells[0]:
-                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
-                    else:
-                        cls._set_cell_shading(cell, cls.FDT_BODY_FILL)
-                elif cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key):
-                    if row_index == 0 and title_text:
-                        cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
-                    elif row_index in {0, 1} and title_text:
-                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
-                    elif row_index == 0:
-                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
-                    elif cell == row.cells[0]:
-                        cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
-                    else:
-                        cls._set_cell_shading(cell, cls.FDT_BODY_FILL)
-                elif table_key == "bfp":
-                    # BFP: sem fundo colorido, apenas borda inferior
-                    pass  # Não usa shading
-                elif table_key == "bai_scores":
-                    if row_index == 0:
-                        cls._set_cell_shading(cell, cls.HEADER_FILL)
-                    elif row_index == 1 and cell_index in {1, 2}:
-                        cls._set_cell_shading(cell, "E9FBFD")
-                    elif row_index == 2:
-                        cls._set_cell_shading(cell, "DFF5F7")
-                elif table_key == "epq":
-                    cls._set_cell_shading(cell, cls.HEADER_FILL)
-                elif row_index == 0:
-                    cls._set_cell_shading(cell, cls.HEADER_FILL)
-                if table_key == "wisc" and row_index == 0:
-                    cls._set_cell_no_wrap(cell, True)
-                if table_key == "bpa" and row_index in ({0, 1} if title_text else {0}):
-                    cls._set_cell_no_wrap(cell, True)
-                if table_key == "fdt" and row_index in {0, 1}:
-                    cls._set_cell_no_wrap(cell, True)
-                if (cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key)) and row_index in ({0, 1} if title_text else {0}):
-                    cls._set_cell_no_wrap(cell, True)
-                if cls._is_etdah_table_key(table_key) and cell_index == 0:
-                    cls._set_cell_no_wrap(cell, True)
-                if table_key == "srs2" and cell_index == len(row.cells) - 1:
-                    cls._set_cell_no_wrap(cell, True)
-                # BFP: remove todas as bordas e aplica apenas borda inferior
-                if table_key == "bfp":
-                    tc_pr = cell._tc.get_or_add_tcPr()
-                    tc_borders = OxmlElement("w:tcBorders")
-                    # Remove todas as bordas primeiro
-                    for edge in ["top", "left", "right", "bottom"]:
-                        edge_elem = OxmlElement(f"w:{edge}")
-                        edge_elem.set(qn("w:val"), "nil")
-                        tc_borders.append(edge_elem)
-                    # Adiciona apenas borda inferior
-                    bottom = OxmlElement("w:bottom")
-                    bottom.set(qn("w:val"), "single")
-                    bottom.set(qn("w:sz"), "4")
-                    bottom.set(qn("w:color"), "6F6F6F")
-                    tc_borders.append(bottom)
-                    tc_pr.append(tc_borders)
+                cls._apply_table_cell_shading(table_spec, title_text, row, cell, row_index, cell_index)
+                cls._apply_table_cell_no_wrap(table_spec, title_text, row, cell, row_index, cell_index)
+                cls._apply_table_cell_borders(table_spec, cell)
                 for paragraph in cell.paragraphs:
-                    if table_key == "wisc":
-                        if row_index == 0:
-                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        elif cell_index in {0, len(row.cells) - 1}:
-                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        else:
-                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        paragraph.paragraph_format.space_before = Pt(0)
-                        paragraph.paragraph_format.space_after = Pt(0)
-                        paragraph.paragraph_format.line_spacing = 1.5
-                        paragraph.paragraph_format.first_line_indent = Pt(0)
-                    elif table_key == "bpa":
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 and title_text else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
-                        paragraph.paragraph_format.space_before = Pt(0)
-                        paragraph.paragraph_format.space_after = Pt(0)
-                        paragraph.paragraph_format.line_spacing = 1.5
-                        paragraph.paragraph_format.first_line_indent = Pt(0)
-                    elif table_key == "fdt":
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
-                        paragraph.paragraph_format.space_before = Pt(0)
-                        paragraph.paragraph_format.space_after = Pt(0)
-                        paragraph.paragraph_format.line_spacing = 1.5
-                        paragraph.paragraph_format.first_line_indent = Pt(0)
-                    elif cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key):
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
-                        paragraph.paragraph_format.space_before = Pt(0)
-                        paragraph.paragraph_format.space_after = Pt(0)
-                        paragraph.paragraph_format.line_spacing = 1.5
-                        paragraph.paragraph_format.first_line_indent = Pt(0)
-                    elif table_key == "bfp":
-                        # BFP: primeira coluna centralizada/esquerda, outras centralizadas
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        paragraph.paragraph_format.space_before = Pt(0)
-                        paragraph.paragraph_format.space_after = Pt(0)
-                        paragraph.paragraph_format.line_spacing = 1.5
-                        paragraph.paragraph_format.first_line_indent = Pt(0)
-                    elif table_key == "bai_scores":
-                        if row_index == 0:
-                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
-                        elif row_index == 1:
-                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
-                        else:
-                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        paragraph.paragraph_format.space_before = Pt(0)
-                        paragraph.paragraph_format.space_after = Pt(0)
-                        paragraph.paragraph_format.line_spacing = 1.5
-                        paragraph.paragraph_format.first_line_indent = Pt(0)
-                    elif table_key == "epq":
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        paragraph.paragraph_format.space_before = Pt(0)
-                        paragraph.paragraph_format.space_after = Pt(0)
-                        paragraph.paragraph_format.line_spacing = 1.5
-                        paragraph.paragraph_format.first_line_indent = Pt(0)
-                    else:
-                        paragraph.alignment = (
-                            WD_ALIGN_PARAGRAPH.CENTER
-                            if row_index == 0
-                            else WD_ALIGN_PARAGRAPH.LEFT
-                        )
-                        paragraph.paragraph_format.space_after = Pt(0)
-                        paragraph.paragraph_format.line_spacing = 1.5
+                    cls._apply_table_paragraph_style(
+                        table_spec,
+                        title_text,
+                        row,
+                        paragraph,
+                        row_index,
+                        cell_index,
+                    )
                     paragraph.paragraph_format.space_after = Pt(0)
                     for run in paragraph.runs:
                         run.font.name = cls.FONT_NAME
-                        if table_key == "wisc":
-                            run.font.size = Pt(9)
-                        elif table_key == "bpa":
-                            run.font.size = Pt(9)
-                        elif table_key == "fdt":
-                            run.font.size = Pt(10) if row_index == 0 else Pt(9)
-                        elif cls._is_etdah_table_key(table_key) or table_key == "srs2" or cls._is_scared_table_key(table_key):
-                            run.font.size = Pt(10) if row_index == 0 else Pt(9)
-                        elif table_key == "bai_scores":
-                            run.font.size = Pt(10) if row_index == 0 else Pt(9)
-                        elif table_key == "epq":
-                            run.font.size = Pt(10)
-                        else:
-                            run.font.size = cls.TABLE_SIZE
-                        if row_index == 0 or (table_key == "fdt" and row_index == 1):
-                            run.bold = True
-                        if row_index == 0:
-                            run.bold = False
+                        run.font.size = cls._table_font_size(table_key, row_index, cell_index, bool(title_text))
+                        run.bold = row_index in cls._table_header_row_indices(bool(title_text))
                         if row_index == 0 and title_text:
                             run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-                        if table_key == "fdt" and row_index in {0, 1}:
+                        if row_index == 0 and title_text:
                             run.bold = False
                         if table_key in {"wisc", "bpa"} and row_index > 0 and cell == row.cells[0]:
                             run.font.color.rgb = RGBColor(0, 0, 0)
@@ -5812,7 +6130,9 @@ class ReportExportService:
                         if table_key == "bai_scores" and row_index == 2:
                             run.bold = False
                 cell.vertical_alignment = (
-                    WD_CELL_VERTICAL_ALIGNMENT.CENTER if table_key in {"wisc", "bpa", "fdt", "srs2", "bai_scores"} or cls._is_etdah_table_key(table_key) or cls._is_scared_table_key(table_key) else None
+                    WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                    if table_spec.get("vertical_align_center")
+                    else None
                 )
 
             if table_key == "wisc" and row_index > 0 and row.cells[0].text == "Fala Espontânea":
@@ -5829,7 +6149,7 @@ class ReportExportService:
                     paragraph.paragraph_format.first_line_indent = Pt(0)
                     for run in paragraph.runs:
                         run.font.name = cls.FONT_NAME
-                        run.font.size = Pt(9)
+                        run.font.size = cls.TABLE_SIZE
                 row.cells[1].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
             if title_text and row_index == 0:
@@ -5842,7 +6162,7 @@ class ReportExportService:
                     paragraph.paragraph_format.first_line_indent = Pt(0)
                     for run in paragraph.runs:
                         run.font.name = cls.FONT_NAME
-                        run.font.size = Pt(10)
+                        run.font.size = cls.TABLE_HEADER_SIZE
                         run.bold = False
                         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
                 row.cells[0].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
@@ -5861,7 +6181,7 @@ class ReportExportService:
                 paragraph.paragraph_format.first_line_indent = Pt(0)
                 for run in paragraph.runs:
                     run.font.name = cls.FONT_NAME
-                    run.font.size = Pt(9)
+                    run.font.size = cls.TABLE_SIZE
                     run.bold = False
                 row.cells[0].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
@@ -5872,8 +6192,14 @@ class ReportExportService:
         table.autofit = False
         cls._set_table_layout_fixed(table)
         cls._clear_table_width(table)
-        cls._set_table_cell_margins(table, top=20, start=40, bottom=20, end=40)
-        cls._set_table_borders(table, color="000000", size=6)
+        cls._set_table_cell_margins(
+            table,
+            top=cls.TABLE_CELL_MARGIN_TOP,
+            start=cls.TABLE_CELL_MARGIN_START,
+            bottom=cls.TABLE_CELL_MARGIN_BOTTOM,
+            end=cls.TABLE_CELL_MARGIN_END,
+        )
+        cls._set_table_borders(table, color="D9D9D9", size=4)
 
         widths = cls._table_widths("ravlt") or []
         title_text = cls._table_title_text("ravlt")
@@ -5896,7 +6222,12 @@ class ReportExportService:
                 cls._set_cell_no_wrap(cell, True)
 
                 for paragraph in cell.paragraphs:
-                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                    paragraph.alignment = (
+                        WD_ALIGN_PARAGRAPH.CENTER
+                        if row_index in cls._table_header_row_indices(bool(title_text))
+                        else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0
+                        else WD_ALIGN_PARAGRAPH.CENTER
+                    )
 
                     paragraph.paragraph_format.space_before = Pt(0)
                     paragraph.paragraph_format.space_after = Pt(0)
@@ -5906,9 +6237,8 @@ class ReportExportService:
                     paragraph.paragraph_format.right_indent = Pt(0)
                     for run in paragraph.runs:
                         run.font.name = cls.FONT_NAME
-                        # Use font size 10 for RAVLT table to match requested layout
-                        run.font.size = Pt(10)
-                        run.bold = row_index > 0 and cell_index == 0
+                        run.font.size = cls._table_font_size("ravlt", row_index, cell_index, bool(title_text))
+                        run.bold = row_index in cls._table_header_row_indices(bool(title_text))
                         if row_index == 0 and title_text:
                             run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
 
@@ -5922,19 +6252,147 @@ class ReportExportService:
                     paragraph.paragraph_format.first_line_indent = Pt(0)
                     for run in paragraph.runs:
                         run.font.name = cls.FONT_NAME
-                        run.font.size = Pt(10)
+                        run.font.size = cls.TABLE_HEADER_SIZE
                         run.bold = False
                         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
 
     @classmethod
     def _apply_table_widths(cls, table, table_key: str):
-        widths = cls._table_widths(table_key)
+        widths = cls._table_layout_spec(table_key).get("widths")
         if not widths:
             return
         cls._set_table_grid_widths(table, widths)
         for row in table.rows:
             for idx, cell in enumerate(row.cells[: len(widths)]):
                 cell.width = widths[idx]
+
+    @classmethod
+    def _table_layout_spec(cls, table_key: str) -> dict:
+        if cls._is_etdah_table_key(table_key):
+            table_key = "etdah"
+        return TABLE_LAYOUT_SPECS.get(table_key) or TABLE_LAYOUT_SPECS["default"]
+
+    @classmethod
+    def _apply_table_cell_shading(cls, table_spec: dict, title_text: str, row, cell, row_index: int, cell_index: int):
+        profile = table_spec.get("shading_profile")
+        if profile == "wisc":
+            if row_index == 0:
+                cls._set_cell_shading(cell, cls.WISC_HEADER_FILL)
+            elif cell == row.cells[0]:
+                cls._set_cell_shading(cell, cls.WISC_NAME_FILL)
+            else:
+                cls._set_cell_shading(cell, cls.WISC_VALUE_FILL)
+            return
+        if profile == "bpa":
+            if row_index == 0 and title_text:
+                cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
+            elif row_index in {0, 1} and title_text:
+                cls._set_cell_shading(cell, cls.BPA_HEADER_FILL)
+            elif row_index == 0:
+                cls._set_cell_shading(cell, cls.BPA_HEADER_FILL)
+            else:
+                cls._set_cell_shading(cell, cls.BPA_BODY_FILL)
+            return
+        if profile in {"fdt", "banded_fdt"}:
+            if row_index == 0 and title_text:
+                cls._set_cell_shading(cell, cls.TABLE_TITLE_FILL)
+            elif row_index in {0, 1} and title_text:
+                cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
+            elif row_index == 0:
+                cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
+            elif cell == row.cells[0]:
+                cls._set_cell_shading(cell, cls.FDT_HEADER_FILL)
+            else:
+                cls._set_cell_shading(cell, cls.FDT_BODY_FILL)
+            return
+        if profile == "bai_scores":
+            if row_index == 0:
+                cls._set_cell_shading(cell, cls.HEADER_FILL)
+            elif row_index == 1 and cell_index in {1, 2}:
+                cls._set_cell_shading(cell, "E9FBFD")
+            elif row_index == 2:
+                cls._set_cell_shading(cell, "DFF5F7")
+            return
+        if profile == "epq":
+            cls._set_cell_shading(cell, cls.HEADER_FILL)
+            return
+        if profile == "default" and row_index == 0:
+            cls._set_cell_shading(cell, cls.HEADER_FILL)
+
+    @classmethod
+    def _apply_table_cell_no_wrap(cls, table_spec: dict, title_text: str, row, cell, row_index: int, cell_index: int):
+        header_rows = set(table_spec.get("header_no_wrap_rows_with_title") if title_text else table_spec.get("header_no_wrap_rows", ()))
+        if row_index in header_rows:
+            cls._set_cell_no_wrap(cell, True)
+        if table_spec.get("first_col_no_wrap") and cell_index == 0:
+            cls._set_cell_no_wrap(cell, True)
+        if table_spec.get("last_col_no_wrap") and cell_index == len(row.cells) - 1:
+            cls._set_cell_no_wrap(cell, True)
+
+    @classmethod
+    def _apply_table_cell_borders(cls, table_spec: dict, cell):
+        if table_spec.get("border_profile") != "bottom_only":
+            return
+        tc_pr = cell._tc.get_or_add_tcPr()
+        tc_borders = OxmlElement("w:tcBorders")
+        for edge in ["top", "left", "right", "bottom"]:
+            edge_elem = OxmlElement(f"w:{edge}")
+            edge_elem.set(qn("w:val"), "nil")
+            tc_borders.append(edge_elem)
+        bottom = OxmlElement("w:bottom")
+        bottom.set(qn("w:val"), "single")
+        bottom.set(qn("w:sz"), "4")
+        bottom.set(qn("w:color"), "6F6F6F")
+        tc_borders.append(bottom)
+        tc_pr.append(tc_borders)
+
+    @classmethod
+    def _apply_table_borders_profile(cls, table_spec: dict, table):
+        profile = table_spec.get("border_profile")
+        if profile == "subtle_grid":
+            cls._set_table_borders(table, color="D9D9D9", size=4)
+        elif profile == "bottom_only":
+            cls._set_table_borders(table, color="FFFFFF", size=0)
+
+    @classmethod
+    def _apply_table_paragraph_style(
+        cls,
+        table_spec: dict,
+        title_text: str,
+        row,
+        paragraph,
+        row_index: int,
+        cell_index: int,
+    ):
+        profile = table_spec.get("paragraph_profile")
+        if profile == "wisc":
+            if row_index == 0:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            elif cell_index in {0, len(row.cells) - 1}:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            else:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        elif profile == "banded_first_left":
+            paragraph.alignment = (
+                WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 and title_text
+                else WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0
+                else WD_ALIGN_PARAGRAPH.CENTER
+            )
+        elif profile == "center_all":
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        elif profile == "bai_scores":
+            if row_index in {0, 1}:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if cell_index == 0 else WD_ALIGN_PARAGRAPH.CENTER
+            else:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        else:
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if row_index == 0 else WD_ALIGN_PARAGRAPH.LEFT
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = Pt(0)
+        paragraph.paragraph_format.line_spacing = 1.5
+        paragraph.paragraph_format.first_line_indent = Pt(0)
+        paragraph.paragraph_format.left_indent = Pt(0)
+        paragraph.paragraph_format.right_indent = Pt(0)
 
     @classmethod
     def _set_table_grid_widths(cls, table, widths):
@@ -5951,57 +6409,7 @@ class ReportExportService:
 
     @classmethod
     def _table_widths(cls, table_key: str):
-        if cls._is_etdah_table_key(table_key):
-            table_key = "etdah"
-        return {
-            "wisc": [
-                Inches(1.75),
-                Inches(0.95),
-                Inches(0.95),
-                Inches(0.95),
-                Inches(0.90),
-                Inches(1.15),
-            ],
-            "bpa": [Inches(2.35), Inches(1.15), Inches(1.00), Inches(2.00)],
-            "ravlt": [
-                # Desempenho: 3.11 cm
-                Inches(3.11 / 2.54),
-                # A1..A5: 0.93 cm each
-                Inches(0.93 / 2.54), Inches(0.93 / 2.54), Inches(0.93 / 2.54), Inches(0.93 / 2.54),
-                Inches(0.93 / 2.54),
-                # B1: 0.93 cm
-                Inches(0.93 / 2.54),
-                # A6..A7: 0.93 cm each
-                Inches(0.93 / 2.54),
-                Inches(0.93 / 2.54),
-                # R: 0.82 cm
-                Inches(0.82 / 2.54),
-                # ALT: 1.36 cm
-                Inches(1.36 / 2.54),
-                # RET: 1.36 cm
-                Inches(1.36 / 2.54),
-                # I.P.: 1.2 cm
-                Inches(1.2 / 2.54),
-                # I.R.: 1.2 cm
-                Inches(1.2 / 2.54),
-            ],
-            "fdt": [
-                Inches(1295 / 1440),
-                Inches(1377 / 1440),
-                Inches(1411 / 1440),
-                Inches(673 / 1440),
-                Inches(1284 / 1440),
-                Inches(3304 / 1440),
-            ],
-            "etdah": [Inches(3.3), Inches(1.15), Inches(0.65), Inches(0.8), Inches(1.25)],
-            "scared": [Inches(2.3), Inches(0.9), Inches(0.9), Inches(1.1), Inches(1.1)],
-            "scared_parent": [Inches(2.3), Inches(0.9), Inches(0.9), Inches(1.1), Inches(1.1)],
-            "scared_self": [Inches(2.0), Inches(1.15), Inches(0.8), Inches(0.9), Inches(1.35)],
-            "epq": [Inches(2.0), Inches(0.8), Inches(0.8), Inches(0.8), Inches(1.2)],
-            "srs2": [Inches(2.2), Inches(1.05), Inches(0.7), Inches(0.75), Inches(1.95)],
-            "scale_summary": [Inches(2.2), Inches(3.0)],
-            "bai_scores": [Inches(3.8), Inches(1.55), Inches(1.55)],
-        }.get(table_key)
+        return cls._table_layout_spec(table_key).get("widths")
 
     @classmethod
     def _set_table_layout_autofit(cls, table):
@@ -6118,14 +6526,18 @@ class ReportExportService:
         merged.text = merged_text
 
     @classmethod
-    def _table_font_size(cls, table_key: str, row_index: int, cell_index: int):
-        if row_index == 0:
-            if table_key in {"ravlt", "fdt", "etdah", "srs2"} or cls._is_scared_table_key(table_key):
-                return Pt(7.5)
-            return cls.TABLE_HEADER_SIZE
-        if (table_key in {"ravlt", "fdt", "etdah", "srs2"} or cls._is_scared_table_key(table_key)) and cell_index > 0:
-            return Pt(8.5)
-        return cls.TABLE_SIZE
+    def _table_header_row_indices(cls, has_title_row: bool) -> set[int]:
+        return {1} if has_title_row else {0}
+
+    @classmethod
+    def _table_font_size(
+        cls,
+        table_key: str,
+        row_index: int,
+        cell_index: int,
+        has_title_row: bool = False,
+    ):
+        return cls.TABLE_HEADER_SIZE if row_index in cls._table_header_row_indices(has_title_row) else cls.TABLE_SIZE
 
     @classmethod
     def _set_repeat_table_header(cls, row):

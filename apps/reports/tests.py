@@ -32,10 +32,11 @@ class ReferencesBuilderTests(SimpleTestCase):
         self.assertIn("Teste dos Cinco Dígitos", references[2])
 
     @patch("apps.reports.builders.tests_builder.get_test_module", return_value=None)
+    @patch("apps.reports.builders.tests_builder.get_test_applications_by_evaluation")
     @patch("apps.reports.builders.tests_builder.get_validated_test_applications_by_evaluation")
-    def test_build_validated_tests_snapshot_skips_empty_validated_stub(self, mocked_selector, _mocked_module):
+    def test_build_validated_tests_snapshot_skips_empty_validated_stub(self, mocked_validated_selector, mocked_all_selector, _mocked_module):
         evaluation = SimpleNamespace(id=7, patient=SimpleNamespace(full_name="Paciente Exemplo"))
-        mocked_selector.return_value = [
+        items = [
             SimpleNamespace(
                 id=1,
                 evaluation=evaluation,
@@ -63,10 +64,90 @@ class ReferencesBuilderTests(SimpleTestCase):
                 is_validated=True,
             ),
         ]
+        mocked_validated_selector.return_value = items
+        mocked_all_selector.return_value = items
 
         snapshot = build_validated_tests_snapshot(evaluation)
 
         self.assertEqual([item["instrument_code"] for item in snapshot], ["bpa2"])
+
+    @patch("apps.reports.builders.tests_builder.get_test_module", return_value=None)
+    @patch("apps.reports.builders.tests_builder.get_test_applications_by_evaluation")
+    @patch("apps.reports.builders.tests_builder.get_validated_test_applications_by_evaluation")
+    def test_build_validated_tests_snapshot_includes_effective_unvalidated_scared_and_skips_empty_bfp(
+        self,
+        mocked_validated_selector,
+        mocked_all_selector,
+        _mocked_module,
+    ):
+        evaluation = SimpleNamespace(id=8, patient=SimpleNamespace(full_name="Paciente Exemplo"))
+        mocked_validated_selector.return_value = []
+        mocked_all_selector.return_value = [
+            SimpleNamespace(
+                id=10,
+                evaluation=evaluation,
+                evaluation_id=evaluation.id,
+                instrument=SimpleNamespace(code="bfp", name="BFP", category="Personalidade"),
+                applied_on=None,
+                raw_payload={},
+                computed_payload={},
+                classified_payload={},
+                reviewed_payload={},
+                interpretation_text="Texto residual",
+                is_validated=False,
+                created_at=None,
+            ),
+            SimpleNamespace(
+                id=11,
+                evaluation=evaluation,
+                evaluation_id=evaluation.id,
+                instrument=SimpleNamespace(code="scared", name="SCARED", category="Ansiedade"),
+                applied_on=date(2026, 5, 5),
+                raw_payload={"form": "child", "responses": {"1": 2}},
+                computed_payload={},
+                classified_payload={"form_type": "child", "analise_geral": [{"fator": "total", "escore_bruto": 12, "percentil": 85, "classificacao": "Muito Elevado"}]},
+                reviewed_payload={},
+                interpretation_text="",
+                is_validated=False,
+                created_at=None,
+            ),
+        ]
+
+        snapshot = build_validated_tests_snapshot(evaluation)
+
+        self.assertEqual([item["instrument_code"] for item in snapshot], ["scared"])
+
+    @patch("apps.reports.builders.tests_builder.get_test_module", return_value=None)
+    @patch("apps.reports.builders.tests_builder.get_test_applications_by_evaluation")
+    @patch("apps.reports.builders.tests_builder.get_validated_test_applications_by_evaluation")
+    def test_build_validated_tests_snapshot_excludes_bfp_without_applied_on(
+        self,
+        mocked_validated_selector,
+        mocked_all_selector,
+        _mocked_module,
+    ):
+        evaluation = SimpleNamespace(id=9, patient=SimpleNamespace(full_name="Paciente Exemplo"))
+        mocked_validated_selector.return_value = []
+        mocked_all_selector.return_value = [
+            SimpleNamespace(
+                id=12,
+                evaluation=evaluation,
+                evaluation_id=evaluation.id,
+                instrument=SimpleNamespace(code="bfp", name="BFP", category="Personalidade"),
+                applied_on=None,
+                raw_payload={"responses": {"A1": 2}},
+                computed_payload={"factors": {"NN": {"raw_score": 10}}},
+                classified_payload={},
+                reviewed_payload={},
+                interpretation_text="",
+                is_validated=False,
+                created_at=None,
+            ),
+        ]
+
+        snapshot = build_validated_tests_snapshot(evaluation)
+
+        self.assertEqual(snapshot, [])
 
     def test_build_references_deduplicates_equivalent_entries(self):
         references = build_references(
@@ -136,6 +217,28 @@ class WISC4StandardizationTests(SimpleTestCase):
                 }
             ],
         }
+
+
+class ReportGenerationSectionSafetyTests(SimpleTestCase):
+    def test_section_text_ignores_foreign_patient_content(self):
+        section = SimpleNamespace(
+            content_edited="Texto do João Vitor com interpretação antiga.",
+            content_generated="",
+        )
+
+        class SectionQuery:
+            def first(self_inner):
+                return section
+
+        report = SimpleNamespace(sections=SimpleNamespace(filter=lambda **kwargs: SectionQuery()))
+
+        text = ReportGenerationService._section_text(
+            report,
+            "capacidade_cognitiva_global",
+            {"patient": {"full_name": "Benjamin Silva dos Santos"}},
+        )
+
+        self.assertEqual(text, "")
 
     def test_build_global_section_uses_standardized_wisc_template(self):
         text = WISC4StandardizationService.build(
@@ -1017,6 +1120,86 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         self.assertEqual(chart_labels, ["QIE", "QIV", "QI TOTAL"])
         self.assertEqual(chart_values, [120.0, 118.0, 122.0])
         self.assertEqual(verbal_rows[1], ["Vocabulário", "80", "40 - 60", "20", "56", "Média Superior"])
+
+    def test_wasi_payload_prefers_computed_payload_over_structured_results(self):
+        test = {
+            "structured_results": {
+                "composites": {
+                    "qi_verbal": {"qi": 91, "classification": "Media"},
+                },
+                "subtests": {
+                    "vc": {"t_score": 41, "classification": "Media"},
+                },
+            },
+            "computed_payload": {
+                "composites": {
+                    "qi_verbal": {"qi": 118, "classification": "Média Superior"},
+                },
+                "subtests": {
+                    "vc": {"name": "Vocabulário", "raw_score": 61, "t_score": 56, "classification": "Média Superior"},
+                },
+            },
+        }
+
+        payload = ReportExportService._wasi_payload(test)
+
+        self.assertEqual(payload["composites"]["qi_verbal"]["qi"], 118)
+        self.assertEqual(payload["subtests"]["vc"]["t_score"], 56)
+        self.assertEqual(payload["subtests"]["vc"]["raw_score"], 61)
+
+    def test_resolve_interpretation_text_prefers_current_wasi_test_over_saved_section(self):
+        text = ReportExportService._resolve_interpretation_text(
+            "Texto antigo do João Vitor com QIT = 122.",
+            None,
+            {
+                "instrument_code": "wasi",
+                "clinical_interpretation": "Texto atual do Benjamin com QIT = 86.",
+            },
+        )
+
+        self.assertEqual(text, "Texto atual do Benjamin com QIT = 86.")
+
+    def test_resolve_interpretation_text_prefers_current_test_over_saved_section_for_other_instruments(self):
+        text = ReportExportService._resolve_interpretation_text(
+            "Texto antigo do João Vitor para ansiedade.",
+            None,
+            {
+                "instrument_code": "scared",
+                "clinical_interpretation": "Texto atual do Benjamin para ansiedade.",
+            },
+        )
+
+        self.assertEqual(text, "Texto atual do Benjamin para ansiedade.")
+
+    def test_sanitize_section_text_for_patient_discards_foreign_patient_text(self):
+        text = ReportExportService._sanitize_section_text_for_patient(
+            "A avaliação de João Vitor indica funcionamento superior.",
+            {"patient": {"full_name": "Benjamin Silva dos Santos"}},
+        )
+
+        self.assertEqual(text, "")
+
+    def test_foreign_patient_name_detection_ignores_technical_phrases(self):
+        names = ReportExportService._foreign_patient_names_in_text(
+            "Raciocínio Matricial, Flexibilidade Cognitiva, Rey Auditory Verbal Learning Test e Big Five.",
+            "Benjamin Silva dos Santos",
+        )
+
+        self.assertEqual(names, [])
+
+    def test_resolve_interpretation_text_discards_foreign_test_payload_text_with_context(self):
+        text = ReportExportService._resolve_interpretation_text(
+            "",
+            "",
+            {
+                "instrument_code": "scared",
+                "clinical_interpretation": "Texto antigo de João Vitor.",
+                "summary": "Texto atual do Benjamin.",
+            },
+            {"patient": {"full_name": "Benjamin Silva dos Santos"}},
+        )
+
+        self.assertEqual(text, "Texto atual do Benjamin.")
 
     def test_strip_markdown_heading_prefix_for_wasi_sections(self):
         self.assertEqual(
@@ -1989,6 +2172,12 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
             [node.text for node in chart_xml.findall('.//c:val//c:pt/c:v', ns)],
             ['113', '90'],
         )
+        value_node = chart_xml.find('.//c:ser/c:val', ns)
+        self.assertIsNotNone(value_node)
+        self.assertEqual(
+            [child.tag for child in value_node],
+            ['{http://schemas.openxmlformats.org/drawingml/2006/chart}numLit'],
+        )
 
     def test_docx_package_is_valid_detects_missing_relationship_target(self):
         buffer = BytesIO()
@@ -2014,6 +2203,33 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart1.xml"/>
 </Relationships>''',
+            )
+
+        self.assertFalse(ReportExportService._docx_package_is_valid(buffer.getvalue()))
+
+    def test_docx_package_is_valid_detects_chart_reference_without_rel(self):
+        buffer = BytesIO()
+        with ZipFile(buffer, 'w') as docx:
+            docx.writestr(
+                '[Content_Types].xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>''',
+            )
+            docx.writestr(
+                'word/document.xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>
+<w:p><w:r><w:drawing><c:chart r:id="rId99"/></w:drawing></w:r></w:p>
+</w:body></w:document>''',
+            )
+            docx.writestr(
+                'word/_rels/document.xml.rels',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>''',
             )
 
         self.assertFalse(ReportExportService._docx_package_is_valid(buffer.getvalue()))
@@ -2258,6 +2474,81 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         )
         self.assertEqual(chart3.tag, '{http://schemas.openxmlformats.org/drawingml/2006/chart}chartSpace')
 
+    def test_populate_wasi_excel_charts_preserves_unmapped_chart_parts(self):
+        def chart_xml():
+            return b'''<?xml version="1.0" encoding="UTF-8"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+  <c:chart>
+    <c:plotArea>
+      <c:barChart>
+        <c:ser>
+          <c:idx val="0"/>
+          <c:order val="0"/>
+          <c:cat><c:strRef><c:f>Plan1!$A$1:$A$2</c:f><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>Old A</c:v></c:pt><c:pt idx="1"><c:v>Old B</c:v></c:pt></c:strCache></c:strRef></c:cat>
+          <c:val><c:numRef><c:f>Plan1!$B$1:$B$2</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>1</c:v></c:pt><c:pt idx="1"><c:v>2</c:v></c:pt></c:numCache></c:numRef></c:val>
+        </c:ser>
+      </c:barChart>
+    </c:plotArea>
+  </c:chart>
+</c:chartSpace>'''
+
+        buffer = BytesIO()
+        with ZipFile(buffer, 'w') as docx:
+            docx.writestr(
+                '[Content_Types].xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+  <Override PartName="/word/charts/chart2.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>
+</Types>''',
+            )
+            docx.writestr(
+                'word/document.xml',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>
+<w:p><w:r><w:drawing><c:chart r:id="rId1"/></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><c:chart r:id="rId2"/></w:drawing></w:r></w:p>
+</w:body></w:document>''',
+            )
+            docx.writestr(
+                'word/_rels/document.xml.rels',
+                '''<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="charts/chart2.xml"/>
+</Relationships>''',
+            )
+            for idx in range(1, 3):
+                docx.writestr(f'word/charts/chart{idx}.xml', chart_xml())
+                docx.writestr(f'word/charts/_rels/chart{idx}.xml.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>')
+
+        docx_bytes = ReportExportService._populate_wasi_excel_charts(
+            buffer.getvalue(),
+            {
+                'validated_tests': [
+                    {
+                        'instrument_code': 'wasi',
+                        'computed_payload': {
+                            'composites': {
+                                'qi_verbal': {'qi': 89},
+                                'qi_execucao': {'qi': 89},
+                                'qit_4': {'qi': 86},
+                            }
+                        },
+                    },
+                ]
+            },
+        )
+
+        with ZipFile(BytesIO(docx_bytes), 'r') as docx:
+            names = set(docx.namelist())
+
+        self.assertIn('word/charts/chart1.xml', names)
+        self.assertIn('word/charts/chart2.xml', names)
+
     def test_etdah_ad_table_widths_follow_etdah_model(self):
         self.assertEqual(
             ReportExportService._table_widths("etdah_ad"),
@@ -2459,6 +2750,19 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         self.assertNotIn('{"raw": true}', texts)
         self.assertEqual(len(document.tables), 0)
 
+    def test_sanitize_generated_document_preserves_wasi_native_chart_paragraphs(self):
+        document = Document(str(ReportExportService.WASI_TEMPLATE_PATH))
+
+        before = len(ReportExportService._extract_template_chart_blocks(document))
+
+        ReportExportService._remove_invalid_paragraph_patterns(document)
+        ReportExportService._normalize_document_spacing(document)
+
+        after = len(ReportExportService._extract_template_chart_blocks(document))
+
+        self.assertEqual(before, 7)
+        self.assertEqual(after, 7)
+
     def test_validate_patient_identity_blocks_foreign_name_before_references(self):
         document = Document()
         document.add_paragraph('Nome: Maria Clara Souza')
@@ -2499,3 +2803,84 @@ class ReportExportChartSanitizationTests(SimpleTestCase):
         body_children = list(document._body._element.iterchildren())
         self.assertEqual(body_children[-1].tag.split('}')[-1], 'sectPr')
         self.assertEqual(body_children[-2].tag.split('}')[-1], 'p')
+
+    def test_replace_foreign_patient_names_replaces_detected_name(self):
+        document = Document()
+        document.add_paragraph('O paciente João Vitor apresentou resultados.')
+        document.add_paragraph('另有内容 sem contamination.')
+
+        ReportExportService._replace_foreign_patient_names(
+            document,
+            {'patient': {'full_name': 'Maria Clara'}},
+        )
+
+        texts = [p.text for p in document.paragraphs]
+        self.assertNotIn('João Vitor', '\n'.join(texts))
+        self.assertIn('Maria Clara', '\n'.join(texts))
+
+    def test_replace_foreign_patient_names_uses_patient_name_from_context(self):
+        document = Document()
+        document.add_paragraph('Texto com referencia ao paciente Tiago Henrique Silva.')
+
+        ReportExportService._replace_foreign_patient_names(
+            document,
+            {'patient': {'full_name': 'Ana Beatriz'}},
+        )
+
+        texts = [p.text for p in document.paragraphs]
+        self.assertNotIn('Tiago Henrique', '\n'.join(texts))
+
+    def test_sanitize_generated_document_calls_replace_foreign_names(self):
+        document = Document()
+        document.add_paragraph('Dados de Carlos Eduardo Santos.')
+        document.add_paragraph('Mais texto contaminado.')
+
+        with patch.object(ReportExportService, '_replace_foreign_patient_names') as mock_replace:
+            ReportExportService._sanitize_generated_document(
+                document,
+                report=SimpleNamespace(),
+                context={'patient': {'full_name': 'Maria Clara'}},
+            )
+            mock_replace.assert_called_once()
+
+    def test_build_fallback_document_sanitizes_body_text(self):
+        report = SimpleNamespace(
+            title='Laudo',
+            final_text='',
+            edited_text='',
+            generated_text='',
+            sections=SimpleNamespace(
+                all=lambda: [
+                    SimpleNamespace(key='identificacao', title='Identificacao', content_edited='', content_generated='Conteudo limpo.'),
+                ]
+            ),
+        )
+        context = {'patient': {'full_name': 'Pedro Lucas'}}
+
+        with patch.object(ReportExportService, '_append_heading'), \
+             patch.object(ReportExportService, '_append_subheading'), \
+             patch.object(ReportExportService, '_add_center_title'), \
+             patch.object(ReportExportService, '_add_center_text'), \
+             patch.object(ReportExportService, '_append_label_value'), \
+             patch.object(ReportExportService, '_age_text', return_value='10 anos'), \
+             patch.object(ReportExportService, '_format_date_display', return_value='01/01/2014'):
+            doc = ReportExportService._build_fallback_document(report, context)
+
+        texts = [p.text for p in doc.paragraphs]
+        self.assertIn('Conteúdo limpo.', texts)
+
+    def test_sanitize_generated_document_always_runs_even_with_charts(self):
+        document = Document()
+        document.add_paragraph('Texto com nome divergente Bruno Costa.')
+
+        with patch.object(ReportExportService, '_replace_foreign_patient_names') as mock_replace:
+            with patch.object(ReportExportService, '_remove_invalid_paragraph_patterns'):
+                with patch.object(ReportExportService, '_normalize_document_spacing'):
+                    with patch.object(ReportExportService, '_remove_invalid_content_after_references'):
+                        with patch.object(ReportExportService, '_remove_empty_paragraphs'):
+                            ReportExportService._sanitize_generated_document(
+                                document,
+                                report=SimpleNamespace(),
+                                context={'patient': {'full_name': 'Ana Paula'}},
+                            )
+            mock_replace.assert_called_once()

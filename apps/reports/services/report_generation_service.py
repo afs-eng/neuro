@@ -522,9 +522,69 @@ class ReportGenerationService:
         return full_name.split(" ", 1)[0] or full_name
 
     @staticmethod
-    def _section_text(report: Report, key: str) -> str:
+    def _foreign_patient_names_in_text(text: str | None, patient_name: str | None) -> list[str]:
+        patient_name = (patient_name or "").strip()
+        if not patient_name:
+            return []
+        allowed_tokens = {token for token in patient_name.split() if token}
+        technical_tokens = {
+            "Raciocínio", "Matricial", "Execução", "Tabela", "Rey", "Auditory", "Verbal",
+            "Learning", "Test", "Flexibilidade", "Cognitiva", "Big", "Five", "Interações",
+            "Sociais", "Espectro", "Autista", "Pontuação", "Total", "Vocabulário",
+            "Semelhanças", "Cubos", "Pânico", "Sintomas", "Somáticos", "Ansiedade",
+            "Generalizada", "Separação", "Fobia", "Social", "Evitação", "Escolar",
+            "Percepção", "Cognição", "Comunicação", "Motivação", "Realização", "Abertura",
+        }
+        ignored_names = {
+            patient_name,
+            "Conselho Federal",
+            "Microsoft Word",
+            "Escala Wechsler",
+            "Bateria Psicológica",
+            "Teste dos",
+            "Rey Auditory",
+            "Escala Baptista",
+            "Bateria Fatorial",
+            "Social Responsiveness",
+            "Screen for Child",
+            "Rey Auditory Verbal Learning Test",
+            "Raciocínio Matricial",
+            "Flexibilidade Cognitiva",
+            "Interações Sociais",
+            "Espectro Autista",
+            "Pontuação Total",
+            "Big Five",
+            "Execução Tabela",
+        }
+        candidates = re.findall(
+            r"\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+)+\b",
+            text or "",
+        )
+        foreign_names = []
+        for name in candidates:
+            if name in ignored_names:
+                continue
+            words = name.split()
+            if len(words) < 2 or len(words) > 5:
+                continue
+            if all(word in technical_tokens for word in words):
+                continue
+            if name == patient_name or words[0] in allowed_tokens:
+                continue
+            if name not in foreign_names:
+                foreign_names.append(name)
+        return foreign_names
+
+    @classmethod
+    def _section_text(cls, report: Report, key: str, context: dict) -> str:
         section = report.sections.filter(key=key).first()
-        return str(section.content_edited or section.content_generated or "").strip() if section else ""
+        if not section:
+            return ""
+        text = str(section.content_edited or section.content_generated or "").strip()
+        patient_name = (context.get("patient") or {}).get("full_name") if isinstance(context, dict) else ""
+        if cls._foreign_patient_names_in_text(text, patient_name):
+            return ""
+        return text
 
     @staticmethod
     def _has_any_keyword(text: str, keywords: tuple[str, ...]) -> bool:
@@ -581,14 +641,14 @@ class ReportGenerationService:
         hypothesis = (evaluation.get("clinical_hypothesis") or "").strip()
         validated_tests = context.get("validated_tests") or []
 
-        cognitive_text = cls._section_text(report, "capacidade_cognitiva_global")
-        language_text = cls._section_text(report, "linguagem")
-        executive_text = cls._section_text(report, "funcoes_executivas")
-        attention_text = cls._section_text(report, "atencao")
-        memory_text = cls._section_text(report, "memoria_aprendizagem")
-        praxis_text = cls._section_text(report, "gnosias_praxias")
-        emotional_text = cls._section_text(report, "aspectos_emocionais_comportamentais")
-        social_text = cls._section_text(report, "srs2")
+        cognitive_text = cls._section_text(report, "capacidade_cognitiva_global", context)
+        language_text = cls._section_text(report, "linguagem", context)
+        executive_text = cls._section_text(report, "funcoes_executivas", context)
+        attention_text = cls._section_text(report, "atencao", context)
+        memory_text = cls._section_text(report, "memoria_aprendizagem", context)
+        praxis_text = cls._section_text(report, "gnosias_praxias", context)
+        emotional_text = cls._section_text(report, "aspectos_emocionais_comportamentais", context)
+        social_text = cls._section_text(report, "srs2", context)
 
         test_names = [
             item.get("instrument_name") or item.get("instrument") or item.get("instrument_code")
@@ -744,14 +804,14 @@ class ReportGenerationService:
         qit = structured.get("qit_data") or {}
         indices = {item.get("indice"): item for item in structured.get("indices") or []}
 
-        cognitive_text = cls._section_text(report, "capacidade_cognitiva_global")
-        language_text = cls._section_text(report, "linguagem")
-        executive_text = cls._section_text(report, "funcoes_executivas")
-        attention_text = cls._section_text(report, "atencao")
-        memory_text = cls._section_text(report, "memoria_aprendizagem")
-        praxis_text = cls._section_text(report, "gnosias_praxias")
-        emotional_text = cls._section_text(report, "aspectos_emocionais_comportamentais")
-        social_text = cls._section_text(report, "srs2")
+        cognitive_text = cls._section_text(report, "capacidade_cognitiva_global", context)
+        language_text = cls._section_text(report, "linguagem", context)
+        executive_text = cls._section_text(report, "funcoes_executivas", context)
+        attention_text = cls._section_text(report, "atencao", context)
+        memory_text = cls._section_text(report, "memoria_aprendizagem", context)
+        praxis_text = cls._section_text(report, "gnosias_praxias", context)
+        emotional_text = cls._section_text(report, "aspectos_emocionais_comportamentais", context)
+        social_text = cls._section_text(report, "srs2", context)
 
         qit_class = qit.get("classificacao") or "não informada"
         if cls._has_any_keyword(cognitive_text, ("heterog", "variável", "misto")):
